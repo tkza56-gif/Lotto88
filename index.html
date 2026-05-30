@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#2a2a2a">
-<meta name="description" content="Royal 888 — ระบบจัดการโพยหวย คำนวณความเสี่ยง">
-<title>Royal 888</title>
+<meta name="theme-color" content="#dc2626">
+<meta name="description" content="Lotto 888 — ระบบจัดการโพยหวย คำนวณความเสี่ยง">
+<title>Lotto 888</title>
 
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
@@ -14,12 +14,12 @@
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Royal 888">
+<meta name="apple-mobile-web-app-title" content="Lotto 888">
 <meta name="mobile-web-app-capable" content="yes">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@300;400;500;600;700&family=Mitr:wght@500;600;700&family=Noto+Serif+Thai:wght@600;700;900&family=Cinzel:wght@500;600;700;900&family=Bodoni+Moda:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@300;400;500;600;700&family=Mitr:wght@500;600;700&family=Noto+Serif+Thai:wght@600;700;900&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
@@ -28,14 +28,14 @@
 
 <style>
   *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden; background: #faf7f0; }
+  html, body { margin: 0; padding: 0; width: 100%; max-width: 100vw; overflow-x: hidden; background: #fafaf9; }
   #root { width: 100%; max-width: 100vw; overflow-x: hidden; min-height: 100vh; }
   body {
     font-family: 'Bai Jamjuree', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #2a2a2a;
+    color: #1c1917;
     min-height: 100vh;
-    font-size: 18px;
-    line-height: 1.6;
+    font-size: 16px;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     font-feature-settings: 'kern' 1, 'liga' 1;
@@ -46,40 +46,36 @@
   .font-display { font-family: 'Mitr', sans-serif; letter-spacing: 0.01em; font-feature-settings: 'cv11' 1; }
   .font-numeric { font-family: 'Mitr', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
   .font-serif-thai { font-family: 'Noto Serif Thai', serif; }
-  .font-cinzel { font-family: 'Cinzel', serif; }
-  .font-bodoni { font-family: 'Bodoni Moda', serif; }
-  .champagne-text { color: #b8965a; }
-  .charcoal-text { color: #2a2a2a; }
 
-  /* Premium champagne gradient — main brand color */
+  /* Premium Bordeaux gradient — main brand color */
   .gold-text {
-    background: linear-gradient(135deg, #8a6d36 0%, #b8965a 35%, #d4b572 65%, #b8965a 100%);
+    background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 35%, #450a0a 75%, #7f1d1d 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     background-size: 200% 200%;
   }
   .green-text {
-    background: linear-gradient(135deg, #2a4f3a 0%, #3a6b4f 50%, #2a4f3a 100%);
+    background: linear-gradient(135deg, #15803d 0%, #166534 50%, #14532d 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
 
-  /* Cards with premium depth — pristine white on champagne */
+  /* Cards with premium depth — light cards on dark bg */
   .glass {
-    background: linear-gradient(180deg, #ffffff 0%, #fdfbf6 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(254, 251, 249, 0.96) 100%);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid #e8dfc8;
+    border: 1px solid rgba(212, 168, 71, 0.18);
     box-shadow:
-      0 2px 8px rgba(42, 42, 42, 0.04),
-      0 4px 16px rgba(184, 150, 90, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.95);
-    position: relative;
+      0 4px 16px rgba(0, 0, 0, 0.35),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
   .glass-strong {
-    background: linear-gradient(180deg, #ffffff 0%, #fdfbf6 100%);
-    border: 1px solid #dccfa6;
+    background: linear-gradient(180deg, #ffffff 0%, #fefcfb 100%);
+    border: 1px solid rgba(212, 168, 71, 0.25);
     box-shadow:
-      0 4px 12px rgba(42, 42, 42, 0.06),
-      0 8px 24px rgba(184, 150, 90, 0.10),
+      0 8px 24px rgba(0, 0, 0, 0.4),
+      0 2px 6px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(212, 168, 71, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 1);
   }
 
@@ -87,80 +83,68 @@
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   .glow {
     box-shadow:
-      0 0 0 1px rgba(184, 150, 90, 0.20),
-      0 4px 12px rgba(184, 150, 90, 0.15);
+      0 0 0 1px rgba(153, 27, 27, 0.15),
+      0 4px 12px rgba(153, 27, 27, 0.12);
   }
 
-  /* Premium number display tile - warm parchment feel */
+  /* Premium number display tile - subtle parchment feel */
   .num-tile {
-    background: linear-gradient(180deg, #ffffff 0%, #fdf9ed 100%);
-    border: 1px solid #e8dfc8;
+    background: linear-gradient(180deg, #ffffff 0%, #fef8f6 100%);
+    border: 1px solid #fde2e2;
     box-shadow:
-      0 1px 2px rgba(42, 42, 42, 0.03),
+      0 1px 2px rgba(0, 0, 0, 0.03),
       inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
   .risk-tile {
-    background: linear-gradient(180deg, #faf3df 0%, #f5ead0 100%);
-    border: 1px solid #d4b572;
+    background: linear-gradient(180deg, #fef2f2 0%, #fee2e2 100%);
+    border: 1px solid #fca5a5;
     box-shadow:
-      0 1px 2px rgba(184, 150, 90, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      0 1px 2px rgba(220, 38, 38, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
   }
 
-  /* Premium primary button — charcoal with gold accent */
+  /* Premium primary button */
   .btn-premium {
-    background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
-    color: #f5e8c8;
-    border: 1px solid #1a1a1a;
+    background: linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%);
+    color: #ffffff;
     box-shadow:
-      inset 0 1px 0 rgba(245, 232, 200, 0.10),
-      0 1px 2px rgba(0, 0, 0, 0.15),
-      0 4px 10px rgba(42, 42, 42, 0.20);
-    transition: all 0.15s ease;
-  }
-  /* Premium gold button alternative */
-  .btn-gold {
-    background: linear-gradient(180deg, #d4b572 0%, #b8965a 100%);
-    color: #2a2a2a;
-    border: 1px solid #8a6d36;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.3),
-      0 1px 2px rgba(184, 150, 90, 0.15),
-      0 4px 10px rgba(184, 150, 90, 0.25);
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 1px 2px rgba(0, 0, 0, 0.1),
+      0 4px 10px rgba(153, 27, 27, 0.25);
     transition: all 0.15s ease;
   }
 
-  /* Premium app background — Champagne & Charcoal */
+  /* Premium app background — deep burgundy luxury */
   .app-bg {
     position: relative;
     min-height: 100vh;
     background:
-      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(201, 169, 97, 0.12) 0%, transparent 65%),
-      radial-gradient(ellipse 60% 40% at 100% 30%, rgba(184, 150, 90, 0.08) 0%, transparent 60%),
-      radial-gradient(ellipse 70% 50% at 0% 70%, rgba(212, 181, 114, 0.06) 0%, transparent 60%),
-      linear-gradient(180deg, #faf7f0 0%, #f7f2e8 30%, #f5f0e3 60%, #f2ecdb 100%);
-    background-color: #f7f2e8;
+      radial-gradient(ellipse 90% 60% at 50% 0%, rgba(220, 38, 38, 0.18) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 40% at 100% 30%, rgba(212, 168, 71, 0.10) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 0% 70%, rgba(127, 29, 29, 0.15) 0%, transparent 60%),
+      linear-gradient(180deg, #2a0a0a 0%, #1f0808 30%, #1a0606 60%, #140505 100%);
+    background-color: #1a0606;
   }
-  /* Paper grain texture — warm champagne */
+  /* Paper grain texture overlay — darker version */
   .app-bg::before {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
-    opacity: 0.35;
+    opacity: 0.25;
     background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.45  0 0 0 0 0.30  0 0 0 0.07 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.9  0 0 0 0 0.7  0 0 0 0 0.5  0 0 0 0.06 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
     z-index: 0;
   }
-  /* Subtle champagne dot pattern */
+  /* Subtle gold dot pattern */
   .app-bg::after {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
-    opacity: 0.4;
+    opacity: 0.3;
     background-image:
-      radial-gradient(circle at 1px 1px, rgba(184, 150, 90, 0.10) 1px, transparent 0);
+      radial-gradient(circle at 1px 1px, rgba(212, 168, 71, 0.08) 1px, transparent 0);
     background-size: 28px 28px;
     z-index: 0;
   }
@@ -182,27 +166,21 @@
   .btn-premium:active {
     transform: translateY(1px);
     box-shadow:
-      inset 0 1px 0 rgba(245, 232, 200, 0.08),
-      0 1px 2px rgba(0, 0, 0, 0.15),
-      0 2px 4px rgba(42, 42, 42, 0.15);
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 1px 2px rgba(0, 0, 0, 0.1),
+      0 2px 4px rgba(153, 27, 27, 0.2);
   }
   .btn-premium:disabled {
     opacity: 0.5;
     transform: none;
   }
-  .btn-gold:active {
-    transform: translateY(1px);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.2),
-      0 1px 2px rgba(184, 150, 90, 0.15);
-  }
 
   /* Subtle gold accent — for premium touches */
   .accent-gold {
-    background: linear-gradient(135deg, #d4b572 0%, #b8965a 100%);
+    background: linear-gradient(135deg, #d4a847 0%, #b8860b 100%);
   }
   .accent-line {
-    background: linear-gradient(90deg, transparent 0%, #c9a961 30%, #d4b572 50%, #c9a961 70%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, #d4a847 50%, transparent 100%);
     height: 1px;
   }
 
@@ -240,57 +218,42 @@
   #loader {
     position: fixed; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #faf7f0 0%, #f5ead0 50%, #ebd9a8 100%);
+    background: linear-gradient(135deg, #fefefe 0%, #fef2f2 50%, #fde8e8 100%);
     z-index: 9999;
     transition: opacity 0.5s ease-out;
   }
   #loader.hidden { opacity: 0; pointer-events: none; }
   .loader-ornament {
-    width: 80px;
+    width: 60px;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, #b8965a 30%, #d4b572 50%, #b8965a 70%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, #b8860b 50%, transparent 100%);
     margin: 16px auto;
   }
-  .loader-crown {
-    font-size: 32px;
-    color: #b8965a;
-    text-align: center;
-    line-height: 1;
-    margin-bottom: 8px;
-  }
   .loader-logo {
-    font-family: 'Cinzel', serif;
-    font-size: 44px;
-    font-weight: 700;
-    color: #2a2a2a;
-    letter-spacing: 0.18em;
+    font-family: 'Noto Serif Thai', serif;
+    font-size: 64px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 35%, #450a0a 75%, #7f1d1d 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 0.04em;
     text-align: center;
-    line-height: 1;
-  }
-  .loader-numerals {
-    font-family: 'Bodoni Moda', serif;
-    font-weight: 700;
-    font-size: 24px;
-    color: #b8965a;
-    letter-spacing: 0.3em;
-    text-align: center;
-    margin-top: 4px;
+    animation: gradient-shift 3s ease-in-out infinite;
   }
   .loader-sub {
-    color: #8a6d36;
-    font-family: 'Cinzel', sans-serif;
+    color: #b8860b;
+    font-family: 'Mitr', sans-serif;
     font-size: 13px;
     letter-spacing: 0.4em;
     text-align: center;
     text-transform: uppercase;
-    font-weight: 500;
-    margin-top: 12px;
+    font-weight: 600;
   }
   .loader-tagline {
-    color: #6b6357;
+    color: #78716c;
     font-family: 'Bai Jamjuree', sans-serif;
     font-size: 14px;
-    margin-top: 32px;
+    margin-top: 28px;
     letter-spacing: 0.05em;
   }
 
@@ -343,12 +306,11 @@
 <body class="safe-bottom">
 
 <div id="loader">
-  <div class="loader-crown">♛</div>
-  <div class="loader-logo">ROYAL</div>
+  <div class="loader-sub">PREMIUM LOTTERY</div>
   <div class="loader-ornament"></div>
-  <div class="loader-numerals">8 8 8</div>
+  <div class="loader-logo">Lotto 888</div>
   <div class="loader-ornament"></div>
-  <div class="loader-sub">PREMIUM &middot; EST MMXXVI</div>
+  <div class="loader-sub" style="opacity:0.6">EST · MMXXVI</div>
   <div class="loader-tagline shimmer">ระบบจัดการโพยหวยพรีเมียม</div>
 </div>
 
@@ -954,7 +916,7 @@ function formatListForLine(bets, lottery, drawDate) {
     byCust[c].push(b);
   });
   const lines = [
-    `🎰 Royal 888`,
+    `🎰 Lotto 888`,
     `📋 ${lottery.name}`,
     `🗓 งวด ${formatDrawDateLong(drawDate)}`,
     '─────────────',
@@ -1003,7 +965,7 @@ function formatSummaryForLine(bets, lottery, drawDate) {
   const custList = Object.entries(byCust).sort((a, b) => b[1].intake - a[1].intake);
 
   const lines = [
-    '🎰 Royal 888',
+    '🎰 Lotto 888',
     `📋 ${lottery.name}`,
     `🗓 งวด ${formatDrawDateLong(drawDate)}`,
     '━━━━━━━━━━━━━━━',
@@ -1046,14 +1008,14 @@ function formatSummaryForLine(bets, lottery, drawDate) {
 
   lines.push(`🎯 จำนวนโพยทั้งหมด: ${bets.length} รายการ`);
   lines.push('━━━━━━━━━━━━━━━');
-  lines.push('#Royal888');
+  lines.push('#Lotto888');
   return lines.join('\n');
 }
 
 function formatCutsForLine(cuts, lottery, drawDate) {
   if (cuts.length === 0) return '';
   const lines = [
-    '🎰 Royal 888',
+    '🎰 Lotto 888',
     '✂️ สรุปเลขที่ตัด',
     `📋 ${lottery.name}`,
     `🗓 งวด ${formatDrawDateLong(drawDate)}`,
@@ -1108,7 +1070,7 @@ function formatCutsForLine(cuts, lottery, drawDate) {
   lines.push('━━━━━━━━━━━━━━━');
   lines.push(`💰 ตัดออก/ลด รวม ฿${fmt(totalAmount)}`);
   lines.push(`📦 ${totalCount} รายการ`);
-  lines.push('#Royal888');
+  lines.push('#Lotto888');
   return lines.join('\n');
 }
 
@@ -1209,15 +1171,15 @@ function ToastProvider({ children }) {
                   ? <AlertTriangle size={22}/>
                   : <AlertCircle size={22}/>}
               </div>
-              <p className="text-center text-stone-800 font-display text-lg leading-relaxed whitespace-pre-line">{confirmState.msg}</p>
+              <p className="text-center text-stone-800 font-display text-base leading-relaxed whitespace-pre-line">{confirmState.msg}</p>
             </div>
             <div className="grid grid-cols-2 border-t border-stone-100">
               <button onClick={() => confirmState.onResolve(false)}
-                className="py-4 text-stone-600 font-display text-lg border-r border-stone-100 active:bg-stone-50">
+                className="py-4 text-stone-600 font-display text-base border-r border-stone-100 active:bg-stone-50">
                 {confirmState.cancelLabel}
               </button>
               <button onClick={() => confirmState.onResolve(true)}
-                className={'py-4 font-display text-lg font-semibold active:bg-stone-50 ' + (confirmState.danger ? 'text-red-600' : 'text-red-700')}>
+                className={'py-4 font-display text-base font-semibold active:bg-stone-50 ' + (confirmState.danger ? 'text-red-600' : 'text-red-700')}>
                 {confirmState.confirmLabel}
               </button>
             </div>
@@ -1350,22 +1312,20 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
 
   return (
     <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center px-6 safe-top safe-bottom"
-      style={{ background: 'linear-gradient(180deg, #faf7f0 0%, #f5ead0 50%, #ebd9a8 100%)' }}>
+      style={{ background: 'linear-gradient(180deg, #fef7f7 0%, #fafaf9 50%)' }}>
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="text-3xl leading-none mb-1" style={{color:'#b8965a'}}>♛</div>
-          <h1 className="font-cinzel text-3xl font-bold tracking-[0.18em] leading-none" style={{color:'#2a2a2a'}}>ROYAL</h1>
-          <div className="my-3 mx-auto" style={{ width: '80px', height: '1px', background: 'linear-gradient(90deg, transparent, #b8965a 30%, #d4b572 50%, #b8965a 70%, transparent)' }}/>
-          <div className="font-bodoni text-2xl font-bold tracking-[0.3em]" style={{color:'#b8965a'}}>8 8 8</div>
-          <div className="my-3 mx-auto" style={{ width: '80px', height: '1px', background: 'linear-gradient(90deg, transparent, #b8965a 30%, #d4b572 50%, #b8965a 70%, transparent)' }}/>
-          <div className="font-cinzel text-xs font-semibold tracking-[0.4em] uppercase" style={{color:'#8a6d36'}}>Premium &middot; Est MMXXVI</div>
+          <div className="text-sm tracking-[0.4em] font-display uppercase" style={{color:'#b8860b'}}>PREMIUM LOTTERY</div>
+          <div className="my-3" style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #d4a847, transparent)' }}/>
+          <h1 className="font-serif-thai text-4xl font-black gold-text leading-none">Lotto 888</h1>
+          <div className="my-3" style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #d4a847, transparent)' }}/>
         </div>
 
         {/* Title */}
         <div className="text-center mb-5">
-          <div className="font-display text-2xl font-bold text-stone-900">{title}</div>
-          <div className="text-lg text-stone-600 font-display mt-1">{subtitle}</div>
+          <div className="font-display text-xl font-bold text-stone-900">{title}</div>
+          <div className="text-base text-stone-600 font-display mt-1">{subtitle}</div>
         </div>
 
         {/* PIN dots */}
@@ -1384,9 +1344,9 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
 
         {/* Error */}
         <div className="text-center min-h-[24px] mb-3">
-          {error && <div className="text-lg text-red-600 font-display font-semibold">{error}</div>}
+          {error && <div className="text-base text-red-600 font-display font-semibold">{error}</div>}
           {(attempts >= 3 || (!error && step === 'login')) && step === 'login' && (
-            <button onClick={() => setShowRecovery(true)} className="text-base text-stone-500 font-display underline mt-1">
+            <button onClick={() => setShowRecovery(true)} className="text-sm text-stone-500 font-display underline mt-1">
               ลืม PIN ?
             </button>
           )}
@@ -1402,7 +1362,7 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
             </button>
           ))}
           <button onClick={handleClear}
-            className="aspect-square rounded-2xl bg-transparent text-stone-500 font-display text-lg font-semibold active:scale-95">
+            className="aspect-square rounded-2xl bg-transparent text-stone-500 font-display text-base font-semibold active:scale-95">
             ล้าง
           </button>
           <button onClick={() => handleDigit('0')}
@@ -1420,18 +1380,18 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
         {(step === 'setup' || step === 'setup-confirm') && (
           <div className="space-y-2">
             <button onClick={proceedSetup} disabled={currentPin.length < 4}
-              className="w-full py-4 rounded-2xl btn-premium font-display text-xl font-bold tracking-wide disabled:opacity-40">
+              className="w-full py-4 rounded-2xl btn-premium font-display text-lg font-bold tracking-wide disabled:opacity-40">
               {step === 'setup' ? 'ถัดไป →' : '✓ ตั้ง PIN'}
             </button>
             {step === 'setup' && (
               <button onClick={skipSetup}
-                className="w-full py-2 text-base text-stone-500 font-display">
+                className="w-full py-2 text-sm text-stone-500 font-display">
                 ข้าม — ไม่ตั้ง PIN
               </button>
             )}
             {step === 'setup-confirm' && (
               <button onClick={() => { setStep('setup'); setConfirmPin(''); setError(''); }}
-                className="w-full py-2 text-base text-stone-500 font-display">
+                className="w-full py-2 text-sm text-stone-500 font-display">
                 ← เริ่มใหม่
               </button>
             )}
@@ -1445,7 +1405,7 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
               <div className="flex items-start gap-2">
                 <AlertCircle size={18} className="text-amber-700 flex-shrink-0 mt-0.5"/>
-                <div className="text-base text-amber-900 font-display leading-relaxed">
+                <div className="text-sm text-amber-900 font-display leading-relaxed">
                   <strong>เลือกวิธีกู้คืน:</strong><br/>
                   แนะนำให้สำรองข้อมูลก่อนทุกครั้ง
                 </div>
@@ -1459,15 +1419,15 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
                   <Download size={20} className="text-red-700" strokeWidth={2.5}/>
                 </div>
                 <div className="flex-1">
-                  <div className="font-display text-lg font-bold text-stone-900">1. สำรองข้อมูลก่อน</div>
-                  <div className="text-base text-stone-600 font-display mt-1 leading-relaxed">
+                  <div className="font-display text-base font-bold text-stone-900">1. สำรองข้อมูลก่อน</div>
+                  <div className="text-sm text-stone-600 font-display mt-1 leading-relaxed">
                     ดาวน์โหลดไฟล์เก็บไว้ในเครื่อง <br/>
                     หลังรีเซ็ตแอป — นำเข้าไฟล์นี้กลับมาได้
                   </div>
                 </div>
               </div>
               <button onClick={handleExportBeforeReset}
-                className="w-full py-3 rounded-xl btn-premium font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
+                className="w-full py-3 rounded-xl btn-premium font-display text-base font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
                 <Download size={16} strokeWidth={2.5}/>
                 ดาวน์โหลดไฟล์สำรอง
               </button>
@@ -1480,15 +1440,15 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
                   <Unlock size={20} className="text-amber-700" strokeWidth={2.5}/>
                 </div>
                 <div className="flex-1">
-                  <div className="font-display text-lg font-bold text-stone-900">2. เอา PIN ออก เก็บข้อมูล</div>
-                  <div className="text-base text-stone-600 font-display mt-1 leading-relaxed">
+                  <div className="font-display text-base font-bold text-stone-900">2. เอา PIN ออก เก็บข้อมูล</div>
+                  <div className="text-sm text-stone-600 font-display mt-1 leading-relaxed">
                     <strong className="text-amber-700">ทางลัด!</strong> เอา PIN ออก แต่<strong>เก็บโพยทั้งหมดไว้</strong><br/>
                     ตั้ง PIN ใหม่ทีหลังได้
                   </div>
                 </div>
               </div>
               <button onClick={handleRemovePinKeepData}
-                className="w-full py-3 rounded-xl bg-amber-600 text-white border border-amber-700 font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95"
+                className="w-full py-3 rounded-xl bg-amber-600 text-white border border-amber-700 font-display text-base font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95"
                 style={{ boxShadow: '0 4px 8px rgba(217, 119, 6, 0.25)' }}>
                 <Unlock size={16} strokeWidth={2.5}/>
                 เอา PIN ออก เก็บข้อมูลไว้
@@ -1502,15 +1462,15 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
                   <Trash2 size={20} className="text-red-600" strokeWidth={2.5}/>
                 </div>
                 <div className="flex-1">
-                  <div className="font-display text-lg font-bold text-stone-900">3. ลบทั้งหมดเริ่มใหม่</div>
-                  <div className="text-base text-stone-600 font-display mt-1 leading-relaxed">
+                  <div className="font-display text-base font-bold text-stone-900">3. ลบทั้งหมดเริ่มใหม่</div>
+                  <div className="text-sm text-stone-600 font-display mt-1 leading-relaxed">
                     ลบ PIN + ลบโพย + ลบทุกอย่าง<br/>
                     <strong className="text-red-600">ข้อมูลจะหายถาวร</strong>
                   </div>
                 </div>
               </div>
               <button onClick={handleResetEverything}
-                className="w-full py-3 rounded-xl bg-white border border-red-300 text-red-700 font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
+                className="w-full py-3 rounded-xl bg-white border border-red-300 text-red-700 font-display text-base font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
                 <Trash2 size={16} strokeWidth={2.5}/>
                 ลบทั้งหมดและเริ่มใหม่
               </button>
@@ -1547,17 +1507,17 @@ function DrawDateSelector({ config, setConfig, isGov }) {
         <div className="px-3 py-2 flex items-center justify-between gap-2 border-b border-stone-100">
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <Calendar size={11} className="text-stone-400"/>
-            <span className="text-base text-stone-500 font-display uppercase tracking-wider">วันที่ซื้อ</span>
+            <span className="text-sm text-stone-500 font-display uppercase tracking-wider">วันที่ซื้อ</span>
           </div>
           <div className="flex items-center gap-2 min-w-0">
             <input type="date" value={config.purchaseDate || today}
               onChange={e => setConfig({ ...config, purchaseDate: e.target.value })}
               max={today}
-              className="bg-transparent text-stone-800 text-base font-numeric font-semibold outline-none cursor-pointer text-right"
+              className="bg-transparent text-stone-800 text-sm font-numeric font-semibold outline-none cursor-pointer text-right"
               style={{ colorScheme: 'light', maxWidth: '130px' }}/>
             {!isToday && (
               <button onClick={() => setConfig({ ...config, purchaseDate: today })}
-                className="text-base text-red-600 font-display flex-shrink-0 active:scale-95 px-3 py-1.5 rounded-full bg-red-50 font-semibold">
+                className="text-sm text-red-600 font-display flex-shrink-0 active:scale-95 px-3 py-1.5 rounded-full bg-red-50 font-semibold">
                 วันนี้
               </button>
             )}
@@ -1569,20 +1529,20 @@ function DrawDateSelector({ config, setConfig, isGov }) {
           className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left active:bg-stone-50 transition-colors">
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <Trophy size={11} className="text-red-600"/>
-            <span className="text-base font-display uppercase tracking-wider" style={{color:'#b8860b'}}>งวด · ออกผล</span>
+            <span className="text-sm font-display uppercase tracking-wider" style={{color:'#b8860b'}}>งวด · ออกผล</span>
           </div>
           <div className="flex items-center gap-1 min-w-0">
             {isGov ? (
               <>
-                <span className="text-stone-800 text-base font-numeric font-bold truncate">
+                <span className="text-stone-800 text-sm font-numeric font-bold truncate">
                   {formatDrawDateShort(config.drawDate)}
                 </span>
-                <span className="text-stone-400 text-base flex-shrink-0">▾</span>
+                <span className="text-stone-400 text-sm flex-shrink-0">▾</span>
               </>
             ) : (
               <input type="date" value={config.drawDate}
                 onChange={e => setConfig({ ...config, drawDate: e.target.value })}
-                className="bg-transparent text-stone-800 text-base font-numeric font-semibold outline-none cursor-pointer text-right"
+                className="bg-transparent text-stone-800 text-sm font-numeric font-semibold outline-none cursor-pointer text-right"
                 style={{ colorScheme: 'light', maxWidth: '130px' }} onClick={e => e.stopPropagation()}/>
             )}
           </div>
@@ -1592,13 +1552,13 @@ function DrawDateSelector({ config, setConfig, isGov }) {
       {openSheet && (
         <BottomSheet onClose={() => setOpenSheet(false)} title="เลือกงวดหวยรัฐบาล">
           <div className="space-y-3">
-            <div className="text-base text-stone-500 font-display leading-relaxed">
+            <div className="text-sm text-stone-500 font-display leading-relaxed">
               ปกติออกวันที่ <strong>1</strong> และ <strong>16</strong> ของทุกเดือน · บางครั้งเลื่อนเป็นวันสิ้นเดือน
             </div>
             <DrawDateList dates={upcomingDraws} selected={config.drawDate}
               onSelect={d => { setConfig({ ...config, drawDate: d }); setOpenSheet(false); }}/>
             <div className="border-t border-stone-100 pt-3">
-              <div className="text-base uppercase tracking-widest text-stone-400 font-display mb-2">หรือเลือกวันที่อื่น</div>
+              <div className="text-sm uppercase tracking-widest text-stone-400 font-display mb-2">หรือเลือกวันที่อื่น</div>
               <input type="date" value={config.drawDate}
                 onChange={e => setConfig({ ...config, drawDate: e.target.value })}
                 className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2.5 text-stone-800 font-numeric font-semibold outline-none focus:border-red-300"
@@ -1635,7 +1595,7 @@ function DrawDateList({ dates, selected, onSelect }) {
         const yearBE = parseInt(y) + 543;
         return (
           <div key={ym}>
-            <div className="text-base uppercase tracking-widest text-stone-400 font-display mb-1.5">
+            <div className="text-sm uppercase tracking-widest text-stone-400 font-display mb-1.5">
               {monthName} {yearBE}
             </div>
             <div className="grid grid-cols-2 gap-1.5">
@@ -1654,12 +1614,12 @@ function DrawDateList({ dates, selected, onSelect }) {
                           : 'bg-white border-stone-200 text-stone-700 active:bg-stone-50'
                     )}>
                     <div className="flex items-baseline justify-between gap-1">
-                      <span className="font-numeric font-bold text-xl">{day}</span>
+                      <span className="font-numeric font-bold text-lg">{day}</span>
                       {isToday && (
-                        <span className={'text-base font-display ' + (isSelected ? 'text-red-100' : 'text-red-600')}>วันนี้</span>
+                        <span className={'text-sm font-display ' + (isSelected ? 'text-red-100' : 'text-red-600')}>วันนี้</span>
                       )}
                       {isPast && !isToday && (
-                        <span className="text-base font-display opacity-60">ผ่านมา</span>
+                        <span className="text-sm font-display opacity-60">ผ่านมา</span>
                       )}
                     </div>
                   </button>
@@ -1913,10 +1873,10 @@ function App() {
 
   const shareApp = async () => {
     const url = window.location.origin + window.location.pathname;
-    const shareText = `🎰 Royal 888 — ระบบจัดการโพยหวยพรีเมียม\n\n📱 เปิดใช้งานได้ที่:\n${url}\n\n• ไม่ต้องติดตั้ง — เปิดได้ทันที\n• ใช้บนมือถือทุกเครื่อง\n• ข้อมูลเก็บในเครื่องของแต่ละคน`;
+    const shareText = `🎰 Lotto 888 — ระบบจัดการโพยหวยพรีเมียม\n\n📱 เปิดใช้งานได้ที่:\n${url}\n\n• ไม่ต้องติดตั้ง — เปิดได้ทันที\n• ใช้บนมือถือทุกเครื่อง\n• ข้อมูลเก็บในเครื่องของแต่ละคน`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Royal 888', text: shareText, url });
+        await navigator.share({ title: 'Lotto 888', text: shareText, url });
         return;
       } catch (e) {
         // user cancelled or share failed
@@ -1959,65 +1919,70 @@ function App() {
 
   return (
     <div className="app-bg text-stone-900 w-full overflow-x-hidden">
-      {/* Decorative orbs — floating champagne bokeh */}
-      <div className="fixed pointer-events-none" style={{ top: '-100px', right: '-80px', width: '280px', height: '280px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201, 169, 97, 0.18) 0%, transparent 70%)', filter: 'blur(45px)', zIndex: 0 }}/>
-      <div className="fixed pointer-events-none" style={{ top: '30%', left: '-80px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(212, 181, 114, 0.14) 0%, transparent 70%)', filter: 'blur(50px)', zIndex: 0 }}/>
-      <div className="fixed pointer-events-none" style={{ bottom: '15%', right: '-100px', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(184, 150, 90, 0.16) 0%, transparent 70%)', filter: 'blur(55px)', zIndex: 0 }}/>
+      {/* Decorative orbs — floating bokeh on dark */}
+      <div className="fixed pointer-events-none" style={{ top: '-100px', right: '-80px', width: '280px', height: '280px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(220, 38, 38, 0.25) 0%, transparent 70%)', filter: 'blur(40px)', zIndex: 0 }}/>
+      <div className="fixed pointer-events-none" style={{ top: '30%', left: '-80px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(212, 168, 71, 0.18) 0%, transparent 70%)', filter: 'blur(45px)', zIndex: 0 }}/>
+      <div className="fixed pointer-events-none" style={{ bottom: '15%', right: '-100px', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(127, 29, 29, 0.30) 0%, transparent 70%)', filter: 'blur(50px)', zIndex: 0 }}/>
 
       {/* Header */}
       <div className="relative safe-top">
         {/* Top gold accent line */}
         <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(184, 134, 11, 0.4) 30%, rgba(184, 134, 11, 0.6) 50%, rgba(184, 134, 11, 0.4) 70%, transparent 100%)' }}/>
         {/* Subtle red glow at very top */}
-        <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none opacity-50" style={{ background: 'radial-gradient(ellipse 60% 100% at 50% 0%, rgba(184, 150, 90, 0.12) 0%, transparent 70%)' }}/>
+        <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none opacity-50" style={{ background: 'radial-gradient(ellipse 60% 100% at 50% 0%, rgba(220, 38, 38, 0.10) 0%, transparent 70%)' }}/>
         <div className="relative px-4 pt-6 pb-3">
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <div className="font-cinzel text-xs font-semibold tracking-[0.35em] uppercase truncate" style={{color:'#8a6d36'}}>
+              <div className="text-sm tracking-[0.3em] font-display uppercase truncate" style={{color:'#d4a847'}}>
                 {isSeller ? 'Bookie · Risk' : 'Player · Picks'}
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-2xl leading-none" style={{color:'#b8965a'}}>♛</span>
-                <h1 className="font-cinzel text-2xl font-bold tracking-[0.15em] leading-none" style={{color:'#2a2a2a'}}>ROYAL</h1>
-                <span className="text-2xl leading-none" style={{color:'#b8965a'}}>♛</span>
-              </div>
-              <div className="font-bodoni text-lg font-bold tracking-[0.3em] mt-0.5" style={{color:'#b8965a'}}>8 8 8</div>
+              <h1 className="font-serif-thai text-2xl font-black leading-none mt-1" style={{
+                background: 'linear-gradient(135deg, #fde2e2 0%, #fca5a5 35%, #fbbf24 65%, #d4a847 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>Lotto 888</h1>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {auth?.pinHash && (
                 <button
                   onClick={lockApp}
-                  className="glass rounded-full w-11 h-11 flex items-center justify-center active:scale-95"
+                  className="glass rounded-full w-10 h-10 flex items-center justify-center active:scale-95"
                   title="ล็อกแอป">
-                  <Lock size={18} style={{color:'#8a6d36'}} strokeWidth={2.5}/>
+                  <Lock size={16} className="text-red-700" strokeWidth={2.5}/>
                 </button>
               )}
               <button
                 onClick={() => setShowAuthSheet(true)}
-                className="glass rounded-full w-11 h-11 flex items-center justify-center active:scale-95"
+                className="glass rounded-full w-10 h-10 flex items-center justify-center active:scale-95"
                 title="ตั้งค่าความปลอดภัย">
-                <Settings size={17} style={{color:'#8a6d36'}} strokeWidth={2.5}/>
+                <Settings size={16} className="text-stone-700" strokeWidth={2.5}/>
               </button>
               <button
                 onClick={shareApp}
-                className="glass rounded-full w-11 h-11 flex items-center justify-center active:scale-95"
+                className="glass rounded-full w-10 h-10 flex items-center justify-center active:scale-95"
                 title="แชร์แอป">
-                <Share2 size={17} style={{color:'#8a6d36'}} strokeWidth={2.5}/>
+                <Share2 size={15} className="text-red-600" strokeWidth={2.5}/>
               </button>
               <button
                 onClick={() => setConfig({ ...config, mode: isSeller ? 'buyer' : 'seller' })}
-                className="glass rounded-full px-3 py-2 flex items-center gap-1.5 text-base font-display active:scale-95"
+                className="glass rounded-full px-3 py-2 flex items-center gap-1.5 text-sm font-display active:scale-95"
               >
-                {isSeller ? <Store size={16} style={{color:'#8a6d36'}}/> : <UserCircle2 size={16} style={{color:'#8a6d36'}}/>}
-                <span className="font-semibold" style={{color:'#2a2a2a'}}>{isSeller ? 'ผู้ขาย' : 'ผู้ซื้อ'}</span>
+                {isSeller ? <Store size={14} className="text-red-500"/> : <UserCircle2 size={14} className="text-red-500"/>}
+                <span className="text-gray-900 font-semibold">{isSeller ? 'ผู้ขาย' : 'ผู้ซื้อ'}</span>
               </button>
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="font-display text-base tracking-wider uppercase truncate" style={{color:'#8a6d36'}}>
+            <div className="text-sm font-display tracking-wider uppercase truncate" style={{color:'rgba(253, 226, 226, 0.65)'}}>
               {currentBets.length} โพย · {isSeller ? 'รับเข้า' : 'ซื้อ'}
             </div>
-            <div className="font-numeric text-2xl font-bold flex-shrink-0" style={{color:'#2a2a2a'}}>฿{fmt(totalAmt)}</div>
+            <div className="font-numeric text-xl font-bold flex-shrink-0" style={{
+              background: 'linear-gradient(135deg, #fde2e2 0%, #fbbf24 50%, #d4a847 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>฿{fmt(totalAmt)}</div>
           </div>
         </div>
 
@@ -2025,7 +1990,7 @@ function App() {
           <div className="grid grid-cols-3 gap-1.5">
             {DEFAULT_LOTTERIES.map(l => (
               <button key={l.id} type="button" onClick={() => setConfig({ ...config, lotteryId: l.id })}
-                className={'px-2 py-2.5 rounded-xl text-base font-display font-semibold tracking-wide transition-all whitespace-nowrap active:scale-95 leading-tight ' + (
+                className={'px-2 py-2.5 rounded-xl text-sm font-display font-semibold tracking-wide transition-all whitespace-nowrap active:scale-95 leading-tight ' + (
                   config.lotteryId === l.id
                     ? 'btn-premium'
                     : 'glass'
@@ -2040,7 +2005,7 @@ function App() {
       </div>
 
       {/* Tabs */}
-      <div className="px-4 mb-4 sticky top-0 z-30 pt-1 pb-2 backdrop-blur-lg" style={{ background: 'linear-gradient(180deg, rgba(250, 247, 240, 0.95) 0%, rgba(250, 247, 240, 0.70) 100%)' }}>
+      <div className="px-4 mb-4 sticky top-0 z-30 pt-1 pb-2 backdrop-blur-lg" style={{ background: 'linear-gradient(180deg, rgba(26, 6, 6, 0.85) 0%, rgba(26, 6, 6, 0.55) 100%)' }}>
         <div className="glass rounded-2xl p-1 grid grid-cols-5 gap-0.5">
           {[
             { id: 'jot', label: 'จดโพย', icon: BookOpen },
@@ -2054,7 +2019,7 @@ function App() {
             const isRisk = t.id === 'risk';
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`py-3 px-1 rounded-xl text-base font-display font-semibold tracking-wide transition-all flex flex-col items-center gap-1 min-w-0 ${
+                className={`py-3 px-1 rounded-xl text-sm font-display font-semibold tracking-wide transition-all flex flex-col items-center gap-1 min-w-0 ${
                   active
                     ? isRisk ? 'bg-gradient-to-b from-red-500/25 to-red-600/10 text-red-700'
                              : 'bg-gradient-to-b from-red-500/20 to-red-600/10 text-gray-800 glow'
@@ -2187,22 +2152,22 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
       <BottomSheet onClose={() => { setMode('main'); setNewPin(''); setConfirmPin(''); setError(''); }} title="ตั้ง PIN ใหม่">
         <div className="space-y-4">
           <div>
-            <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">PIN ใหม่ (4-6 หลัก)</div>
+            <div className="text-sm uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">PIN ใหม่ (4-6 หลัก)</div>
             <input type="tel" inputMode="numeric" value={newPin} maxLength={6}
               onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="• • • •"
               className="w-full bg-white rounded-xl px-4 py-4 outline-none font-numeric text-3xl font-black text-stone-900 text-center tracking-[0.3em] border-2 border-stone-300"/>
           </div>
           <div>
-            <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">ยืนยัน PIN อีกครั้ง</div>
+            <div className="text-sm uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">ยืนยัน PIN อีกครั้ง</div>
             <input type="tel" inputMode="numeric" value={confirmPin} maxLength={6}
               onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="• • • •"
               className="w-full bg-white rounded-xl px-4 py-4 outline-none font-numeric text-3xl font-black text-stone-900 text-center tracking-[0.3em] border-2 border-stone-300"/>
           </div>
-          {error && <div className="text-base text-red-600 font-display text-center">{error}</div>}
+          {error && <div className="text-sm text-red-600 font-display text-center">{error}</div>}
           <button onClick={handleSetPin}
-            className="w-full py-4 rounded-xl btn-premium font-display text-lg font-semibold tracking-wide">
+            className="w-full py-4 rounded-xl btn-premium font-display text-base font-semibold tracking-wide">
             บันทึก PIN
           </button>
         </div>
@@ -2215,15 +2180,15 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
       <BottomSheet onClose={() => { setMode('main'); setOldPin(''); setError(''); }} title="ยืนยัน PIN เดิม">
         <div className="space-y-4">
           <div>
-            <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">PIN เดิม</div>
+            <div className="text-sm uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">PIN เดิม</div>
             <input type="tel" inputMode="numeric" value={oldPin} maxLength={6}
               onChange={e => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="• • • •"
               className="w-full bg-white rounded-xl px-4 py-4 outline-none font-numeric text-3xl font-black text-stone-900 text-center tracking-[0.3em] border-2 border-stone-300"/>
           </div>
-          {error && <div className="text-base text-red-600 font-display text-center">{error}</div>}
+          {error && <div className="text-sm text-red-600 font-display text-center">{error}</div>}
           <button onClick={handleChangePin}
-            className="w-full py-4 rounded-xl btn-premium font-display text-lg font-semibold tracking-wide">
+            className="w-full py-4 rounded-xl btn-premium font-display text-base font-semibold tracking-wide">
             ถัดไป
           </button>
         </div>
@@ -2236,22 +2201,22 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
       <BottomSheet onClose={() => { setMode('main'); setNewPin(''); setConfirmPin(''); setError(''); }} title="ตั้ง PIN ใหม่">
         <div className="space-y-4">
           <div>
-            <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">PIN ใหม่</div>
+            <div className="text-sm uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">PIN ใหม่</div>
             <input type="tel" inputMode="numeric" value={newPin} maxLength={6}
               onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="• • • •"
               className="w-full bg-white rounded-xl px-4 py-4 outline-none font-numeric text-3xl font-black text-stone-900 text-center tracking-[0.3em] border-2 border-stone-300"/>
           </div>
           <div>
-            <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">ยืนยัน PIN ใหม่</div>
+            <div className="text-sm uppercase tracking-wider text-stone-600 font-display font-semibold mb-2">ยืนยัน PIN ใหม่</div>
             <input type="tel" inputMode="numeric" value={confirmPin} maxLength={6}
               onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="• • • •"
               className="w-full bg-white rounded-xl px-4 py-4 outline-none font-numeric text-3xl font-black text-stone-900 text-center tracking-[0.3em] border-2 border-stone-300"/>
           </div>
-          {error && <div className="text-base text-red-600 font-display text-center">{error}</div>}
+          {error && <div className="text-sm text-red-600 font-display text-center">{error}</div>}
           <button onClick={handleSaveNewPin}
-            className="w-full py-4 rounded-xl btn-premium font-display text-lg font-semibold tracking-wide">
+            className="w-full py-4 rounded-xl btn-premium font-display text-base font-semibold tracking-wide">
             บันทึก PIN ใหม่
           </button>
         </div>
@@ -2273,10 +2238,10 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
                 : <Unlock size={22} className="text-amber-700" strokeWidth={2.5}/>}
             </div>
             <div className="flex-1">
-              <div className={'font-display text-lg font-bold ' + (hasPin ? 'text-green-800' : 'text-amber-800')}>
+              <div className={'font-display text-base font-bold ' + (hasPin ? 'text-green-800' : 'text-amber-800')}>
                 {hasPin ? 'ป้องกันด้วย PIN' : 'ยังไม่มี PIN'}
               </div>
-              <div className="text-base text-stone-600 font-display">
+              <div className="text-sm text-stone-600 font-display">
                 {hasPin ? 'ต้องใส่ PIN ทุกครั้งที่เปิด' : 'ใครเปิดมือถือก็เห็นโพยได้'}
               </div>
             </div>
@@ -2287,24 +2252,24 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
         <div className="space-y-2">
           {!hasPin ? (
             <button onClick={() => setMode('set-pin')}
-              className="w-full py-4 rounded-xl btn-premium font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
+              className="w-full py-4 rounded-xl btn-premium font-display text-base font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
               <Lock size={18} strokeWidth={2.5}/>
               ตั้ง PIN ป้องกัน
             </button>
           ) : (
             <>
               <button onClick={onLockNow}
-                className="w-full py-4 rounded-xl btn-premium font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
+                className="w-full py-4 rounded-xl btn-premium font-display text-base font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
                 <LogOut size={18} strokeWidth={2.5}/>
                 ล็อกแอปทันที
               </button>
               <button onClick={() => setMode('change-pin-old')}
-                className="w-full py-3.5 rounded-xl bg-white border-2 border-stone-300 text-stone-800 font-display text-lg font-semibold flex items-center justify-center gap-2 active:scale-95">
+                className="w-full py-3.5 rounded-xl bg-white border-2 border-stone-300 text-stone-800 font-display text-base font-semibold flex items-center justify-center gap-2 active:scale-95">
                 <Settings size={16} strokeWidth={2.5}/>
                 เปลี่ยน PIN
               </button>
               <button onClick={removePin}
-                className="w-full py-3 rounded-xl bg-white border border-red-200 text-red-700 font-display text-base flex items-center justify-center gap-2 active:scale-95">
+                className="w-full py-3 rounded-xl bg-white border border-red-200 text-red-700 font-display text-sm flex items-center justify-center gap-2 active:scale-95">
                 <Unlock size={14} strokeWidth={2.5}/>
                 ปิดระบบล็อก
               </button>
@@ -2315,8 +2280,8 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
         {/* Auto-lock settings */}
         {hasPin && (
           <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200">
-            <div className="text-base uppercase tracking-wider text-stone-700 font-display font-bold mb-1">ล็อกอัตโนมัติ</div>
-            <div className="text-base text-stone-600 font-display mb-3">หลังไม่ใช้งานนานเท่าไหร่ ให้ล็อกแอปอัตโนมัติ</div>
+            <div className="text-sm uppercase tracking-wider text-stone-700 font-display font-bold mb-1">ล็อกอัตโนมัติ</div>
+            <div className="text-sm text-stone-600 font-display mb-3">หลังไม่ใช้งานนานเท่าไหร่ ให้ล็อกแอปอัตโนมัติ</div>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { v: 1, label: '1 นาที' },
@@ -2329,7 +2294,7 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
                 const active = autoLockMinutes === opt.v;
                 return (
                   <button key={opt.v} onClick={() => setAutoLock(opt.v)}
-                    className={'py-3 px-2 rounded-xl text-base font-display font-semibold border-2 transition-all active:scale-95 whitespace-pre-line leading-tight ' + (
+                    className={'py-3 px-2 rounded-xl text-sm font-display font-semibold border-2 transition-all active:scale-95 whitespace-pre-line leading-tight ' + (
                       active
                         ? 'btn-premium border-red-900'
                         : 'bg-white text-stone-700 border-stone-200'
@@ -2345,13 +2310,13 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
         {/* Auto-backup setting */}
         <div className="bg-gradient-to-br from-green-50 to-white rounded-2xl p-4 border border-green-200">
           <div className="flex items-center justify-between mb-1">
-            <div className="text-base uppercase tracking-wider text-green-800 font-display font-bold">สำรองอัตโนมัติ</div>
+            <div className="text-sm uppercase tracking-wider text-green-800 font-display font-bold">สำรองอัตโนมัติ</div>
             <button onClick={onBackupNow}
-              className="text-base text-green-700 font-display font-semibold bg-white border border-green-300 rounded-full px-3 py-1 active:scale-95">
+              className="text-sm text-green-700 font-display font-semibold bg-white border border-green-300 rounded-full px-3 py-1 active:scale-95">
               สำรองเลย
             </button>
           </div>
-          <div className="text-base text-stone-600 font-display mb-3">บันทึก snapshot อัตโนมัติ — ใช้กู้คืนข้อมูลย้อนหลังได้ (เก็บล่าสุด 7 จุด)</div>
+          <div className="text-sm text-stone-600 font-display mb-3">บันทึก snapshot อัตโนมัติ — ใช้กู้คืนข้อมูลย้อนหลังได้ (เก็บล่าสุด 7 จุด)</div>
           <div className="grid grid-cols-4 gap-1.5 mb-2">
             {[
               { v: 'hourly', label: 'ทุก 1 ชม.' },
@@ -2362,7 +2327,7 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
               const active = (auth?.autoBackup || 'daily') === opt.v;
               return (
                 <button key={opt.v} onClick={() => setAuth(prev => ({ ...prev, autoBackup: opt.v }))}
-                  className={'py-2.5 px-1 rounded-xl text-base font-display font-semibold border-2 transition-all active:scale-95 leading-tight ' + (
+                  className={'py-2.5 px-1 rounded-xl text-sm font-display font-semibold border-2 transition-all active:scale-95 leading-tight ' + (
                     active
                       ? 'bg-green-600 text-white border-green-700 shadow-md shadow-green-200'
                       : 'bg-white text-stone-700 border-stone-200'
@@ -2372,7 +2337,7 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
               );
             })}
           </div>
-          <div className="text-base text-stone-500 font-display">
+          <div className="text-sm text-stone-500 font-display">
             ล่าสุด: {auth?.lastBackupAt ? formatBackupTime(auth.lastBackupAt) : '— ยังไม่เคยสำรอง —'}
           </div>
         </div>
@@ -2380,8 +2345,8 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
         {/* Auto-backup list — restore points */}
         {backups && backups.length > 0 && (
           <div className="bg-white rounded-2xl p-4 border border-stone-200">
-            <div className="text-base uppercase tracking-wider text-stone-700 font-display font-bold mb-1">จุดกู้คืนที่บันทึกอัตโนมัติ</div>
-            <div className="text-base text-stone-500 font-display mb-3">เลือกย้อนกลับไปจุดเวลาที่ต้องการ</div>
+            <div className="text-sm uppercase tracking-wider text-stone-700 font-display font-bold mb-1">จุดกู้คืนที่บันทึกอัตโนมัติ</div>
+            <div className="text-sm text-stone-500 font-display mb-3">เลือกย้อนกลับไปจุดเวลาที่ต้องการ</div>
             <div className="space-y-2 max-h-72 overflow-y-auto">
               {backups.map(b => {
                 const d = b.data || {};
@@ -2389,15 +2354,15 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
                 return (
                   <div key={b.id} className="bg-stone-50 rounded-xl p-3 border border-stone-200 flex items-center gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="font-display text-lg font-semibold text-stone-900">
+                      <div className="font-display text-base font-semibold text-stone-900">
                         {formatBackupTime(b.createdAt)}
                       </div>
-                      <div className="text-base text-stone-500 font-display">
+                      <div className="text-sm text-stone-500 font-display">
                         {total} โพย · {(d.draws?.length || 0)} ผลรางวัล
                       </div>
                     </div>
                     <button onClick={() => onRestoreFromBackup(b.id)}
-                      className="text-base font-display font-semibold bg-red-600 text-white border border-red-700 rounded-lg px-3 py-2 active:scale-95">
+                      className="text-sm font-display font-semibold bg-red-600 text-white border border-red-700 rounded-lg px-3 py-2 active:scale-95">
                       กู้คืน
                     </button>
                     <button onClick={() => onDeleteBackup(b.id)}
@@ -2413,15 +2378,15 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
 
         {/* Backup / Restore */}
         <div className="bg-gradient-to-br from-red-50 to-white rounded-2xl p-4 border border-red-200">
-          <div className="text-base uppercase tracking-wider text-red-700 font-display font-bold mb-1">สำรอง / กู้คืน เป็นไฟล์</div>
-          <div className="text-base text-stone-600 font-display mb-3">ดาวน์โหลดไฟล์เก็บนอกแอป (แชต LINE / Google Drive) — ปลอดภัยกว่า</div>
+          <div className="text-sm uppercase tracking-wider text-red-700 font-display font-bold mb-1">สำรอง / กู้คืน เป็นไฟล์</div>
+          <div className="text-sm text-stone-600 font-display mb-3">ดาวน์โหลดไฟล์เก็บนอกแอป (แชต LINE / Google Drive) — ปลอดภัยกว่า</div>
           <div className="grid grid-cols-2 gap-2">
             <button onClick={onExport}
-              className="py-3 rounded-xl bg-white border-2 border-red-300 text-red-700 font-display text-lg font-semibold flex items-center justify-center gap-2 active:scale-95">
+              className="py-3 rounded-xl bg-white border-2 border-red-300 text-red-700 font-display text-base font-semibold flex items-center justify-center gap-2 active:scale-95">
               <Download size={16} strokeWidth={2.5}/>
               ดาวน์โหลด
             </button>
-            <label className="py-3 rounded-xl bg-white border-2 border-red-300 text-red-700 font-display text-lg font-semibold flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+            <label className="py-3 rounded-xl bg-white border-2 border-red-300 text-red-700 font-display text-base font-semibold flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
               <Plus size={16} strokeWidth={2.5}/>
               นำเข้าไฟล์
               <input type="file" accept=".json,application/json" onChange={e => {
@@ -2436,14 +2401,14 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
         {/* Reset all */}
         <div className="border-t border-stone-200 pt-3">
           <button onClick={onReset}
-            className="w-full py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 font-display text-base font-semibold flex items-center justify-center gap-2 active:scale-95">
+            className="w-full py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 font-display text-sm font-semibold flex items-center justify-center gap-2 active:scale-95">
             <Trash2 size={14} strokeWidth={2.5}/>
             ลบข้อมูลทั้งหมดและรีเซ็ตแอป
           </button>
         </div>
 
         {/* Info */}
-        <div className="bg-stone-50 rounded-xl p-3 text-base text-stone-600 font-display leading-relaxed">
+        <div className="bg-stone-50 rounded-xl p-3 text-sm text-stone-600 font-display leading-relaxed">
           <strong className="text-stone-800">หมายเหตุ:</strong> PIN เก็บเฉพาะในเครื่องนี้ — ลืม PIN มีตัวเลือก "เอา PIN ออก เก็บข้อมูลไว้"
         </div>
       </div>
@@ -2462,19 +2427,19 @@ function DownloadReminderModal({ onClose, onDownload }) {
           <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center bg-amber-100 text-amber-700">
             <Download size={26} strokeWidth={2.5}/>
           </div>
-          <h3 className="text-center text-stone-900 font-display text-xl font-bold mb-2">ถึงเวลาสำรองข้อมูล</h3>
-          <p className="text-center text-stone-600 font-display text-lg leading-relaxed">
+          <h3 className="text-center text-stone-900 font-display text-lg font-bold mb-2">ถึงเวลาสำรองข้อมูล</h3>
+          <p className="text-center text-stone-600 font-display text-base leading-relaxed">
             7 วันแล้วที่ยังไม่ได้ดาวน์โหลดไฟล์สำรอง<br/>
             แนะนำเก็บไว้ในแชต LINE หรือ Google Drive
           </p>
         </div>
         <div className="grid grid-cols-2 border-t border-stone-100">
           <button onClick={onClose}
-            className="py-4 text-stone-600 font-display text-lg font-semibold border-r border-stone-100 active:bg-stone-50">
+            className="py-4 text-stone-600 font-display text-base font-semibold border-r border-stone-100 active:bg-stone-50">
             ภายหลัง
           </button>
           <button onClick={onDownload}
-            className="py-4 text-red-700 font-display text-lg font-bold active:bg-stone-50">
+            className="py-4 text-red-700 font-display text-base font-bold active:bg-stone-50">
             ดาวน์โหลดเลย
           </button>
         </div>
@@ -2487,7 +2452,7 @@ function ShareAppSheet({ onClose }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
   const url = window.location.origin + window.location.pathname;
-  const shareText = `🎰 Royal 888 — ระบบจัดการโพยหวยพรีเมียม\n\n📱 เปิดใช้งานได้ที่:\n${url}\n\n• ไม่ต้องติดตั้ง — เปิดได้ทันที\n• ใช้บนมือถือทุกเครื่อง\n• ข้อมูลเก็บในเครื่องของแต่ละคน`;
+  const shareText = `🎰 Lotto 888 — ระบบจัดการโพยหวยพรีเมียม\n\n📱 เปิดใช้งานได้ที่:\n${url}\n\n• ไม่ต้องติดตั้ง — เปิดได้ทันที\n• ใช้บนมือถือทุกเครื่อง\n• ข้อมูลเก็บในเครื่องของแต่ละคน`;
 
   const copy = async (text) => {
     try { await navigator.clipboard.writeText(text); }
@@ -2503,23 +2468,23 @@ function ShareAppSheet({ onClose }) {
   };
 
   return (
-    <BottomSheet onClose={onClose} title="แชร์แอป Royal 888">
+    <BottomSheet onClose={onClose} title="แชร์แอป Lotto 888">
       <div className="space-y-4">
-        <div className="text-lg text-stone-600 font-display leading-relaxed">
+        <div className="text-base text-stone-600 font-display leading-relaxed">
           ส่งลิงก์ให้คนอื่นใช้แอปได้ทันที — เปิดใน Chrome หรือ Safari ใช้งานได้เลย ไม่ต้องติดตั้ง
         </div>
 
         {/* App URL */}
         <div className="bg-gradient-to-br from-red-50 to-white rounded-2xl p-4 border border-red-200">
-          <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold mb-2">ลิงก์แอป</div>
-          <div className="font-numeric text-lg font-bold text-stone-900 break-all leading-relaxed">{url}</div>
+          <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold mb-2">ลิงก์แอป</div>
+          <div className="font-numeric text-base font-bold text-stone-900 break-all leading-relaxed">{url}</div>
         </div>
 
         {/* Info box */}
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
           <div className="flex items-start gap-2">
             <AlertCircle size={16} className="text-amber-700 flex-shrink-0 mt-0.5"/>
-            <div className="text-base text-amber-900 font-display leading-relaxed">
+            <div className="text-sm text-amber-900 font-display leading-relaxed">
               <strong>ข้อมูลของใครของมัน</strong> — ลูกค้าหรือเพื่อนเปิดลิงก์ จะเริ่มแอปเปล่า ไม่เห็นโพยของคุณ และคุณก็ไม่เห็นของเขา
             </div>
           </div>
@@ -2528,12 +2493,12 @@ function ShareAppSheet({ onClose }) {
         {/* Actions */}
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => copy(url)}
-            className="py-3 rounded-xl bg-white border-2 border-red-300 text-red-700 font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
+            className="py-3 rounded-xl bg-white border-2 border-red-300 text-red-700 font-display text-base font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
             {copied ? <Check size={16} strokeWidth={3}/> : <Copy size={16} strokeWidth={2.5}/>}
             คัดลอกลิงก์
           </button>
           <button onClick={() => copy(shareText)}
-            className="py-3 rounded-xl btn-premium font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
+            className="py-3 rounded-xl btn-premium font-display text-base font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
             <Share2 size={16} strokeWidth={2.5}/>
             คัดลอกพร้อมข้อความ
           </button>
@@ -2541,7 +2506,7 @@ function ShareAppSheet({ onClose }) {
 
         {/* QR-like instructional */}
         <div className="border-t border-stone-200 pt-3">
-          <div className="text-base text-stone-500 font-display leading-relaxed">
+          <div className="text-sm text-stone-500 font-display leading-relaxed">
             <strong className="text-stone-700">วิธีส่ง:</strong> กดคัดลอก → ไปเปิด LINE / Messenger / SMS → วางลงในแชต → ส่ง
           </div>
         </div>
@@ -2571,11 +2536,11 @@ function BetTypeTile({ label, rate, active, dimmed, onClick, color = 'red', icon
   }
   return (
     <button onClick={onClick} className={base + ' ' + style}>
-      <div className="font-display text-lg font-semibold leading-tight flex items-center justify-center gap-1">
+      <div className="font-display text-base font-semibold leading-tight flex items-center justify-center gap-1">
         {Ic && <Ic size={12}/>}{label}
       </div>
       {rate !== undefined && rate !== null && (
-        <div className={'absolute top-1 right-1.5 text-base font-numeric font-bold ' + (active ? 'opacity-85' : 'opacity-60')}>
+        <div className={'absolute top-1 right-1.5 text-sm font-numeric font-bold ' + (active ? 'opacity-85' : 'opacity-60')}>
           x{rate}
         </div>
       )}
@@ -2639,8 +2604,8 @@ function PendingPill({ item, onRemove }) {
   const cls = typeColors[item.type] || 'border-red-300 text-gray-800';
   return (
     <div className={`bg-white border rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 ${cls}`}>
-      <span className="font-numeric text-xl font-bold leading-none">{item.number}</span>
-      <span className="text-base font-display opacity-70 uppercase tracking-wider">{typeShort(item.type)}</span>
+      <span className="font-numeric text-lg font-bold leading-none">{item.number}</span>
+      <span className="text-sm font-display opacity-70 uppercase tracking-wider">{typeShort(item.type)}</span>
       <button onClick={onRemove} className="opacity-50 hover:opacity-100 ml-0.5"><X size={12}/></button>
     </div>
   );
@@ -2660,27 +2625,27 @@ function PriceRow({ item, index, onUpdate, onRemove }) {
   return (
     <div className={`rounded-xl p-2.5 ${amount > 0 ? 'bg-white border border-red-200' : 'bg-gray-50 border border-gray-200'}`}>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-base text-gray-400 font-display w-5 text-right flex-shrink-0">{index + 1}.</span>
-        <span className="font-numeric text-2xl font-bold gold-text leading-none flex-shrink-0">{item.number}</span>
-        <span className={`px-1.5 py-0.5 rounded text-base font-display border ${typeColors[item.type] || 'bg-stone-800 text-gray-600 border-gray-300'}`}>
+        <span className="text-sm text-gray-400 font-display w-5 text-right flex-shrink-0">{index + 1}.</span>
+        <span className="font-numeric text-xl font-bold gold-text leading-none flex-shrink-0">{item.number}</span>
+        <span className={`px-1.5 py-0.5 rounded text-sm font-display border ${typeColors[item.type] || 'bg-stone-800 text-gray-600 border-gray-300'}`}>
           {typeShort(item.type)}
         </span>
-        <span className="text-base text-gray-300 font-numeric ml-auto">x{item.rate}</span>
+        <span className="text-sm text-gray-300 font-numeric ml-auto">x{item.rate}</span>
         <button onClick={onRemove} className="text-gray-400 hover:text-red-500 p-1 flex-shrink-0"><Trash2 size={13}/></button>
       </div>
       <div className="flex items-stretch gap-2">
         <div className="flex-1 min-w-0 bg-white rounded-lg px-2 py-1.5 border border-gray-200 focus-within:border-red-300">
-          <div className="text-base uppercase tracking-wider text-red-500 font-display">ราคา</div>
+          <div className="text-sm uppercase tracking-wider text-red-500 font-display">ราคา</div>
           <div className="flex items-baseline gap-1">
-            <span className="text-gray-300 text-lg flex-shrink-0">฿</span>
+            <span className="text-gray-300 text-base flex-shrink-0">฿</span>
             <input type="number" inputMode="decimal" value={item.amount}
               onChange={e => onUpdate(e.target.value)} placeholder="0"
-              className="w-full min-w-0 bg-transparent outline-none font-numeric text-xl font-bold text-gray-900"/>
+              className="w-full min-w-0 bg-transparent outline-none font-numeric text-lg font-bold text-gray-900"/>
           </div>
         </div>
         <div className="flex-1 min-w-0 bg-gray-50 rounded-lg px-2 py-1.5 border border-red-200">
-          <div className="text-base uppercase tracking-wider text-red-600 font-display">เรทชนะ</div>
-          <div className="font-numeric text-xl font-bold text-red-600 truncate">฿{fmt(payout)}</div>
+          <div className="text-sm uppercase tracking-wider text-red-600 font-display">เรทชนะ</div>
+          <div className="font-numeric text-lg font-bold text-red-600 truncate">฿{fmt(payout)}</div>
         </div>
       </div>
     </div>
@@ -2871,18 +2836,18 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
       {/* Step indicator */}
       <div className="glass rounded-xl p-1 grid grid-cols-2 gap-1">
         <button onClick={() => setStep('select')}
-          className={`py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1.5 transition-all ${
+          className={`py-2 rounded-lg text-sm font-display tracking-wide flex items-center justify-center gap-1.5 transition-all ${
             step === 'select' ? 'bg-red-100 text-gray-800 border border-red-300' : 'text-gray-400'
           }`}>
-          <span className={`w-4 h-4 rounded-full text-base flex items-center justify-center font-bold ${step === 'select' ? 'bg-red-400 text-white' : 'bg-red-50 text-gray-800'}`}>1</span>
+          <span className={`w-4 h-4 rounded-full text-sm flex items-center justify-center font-bold ${step === 'select' ? 'bg-red-400 text-white' : 'bg-red-50 text-gray-800'}`}>1</span>
           เลือกเลข
         </button>
         <button onClick={() => pending.length > 0 && setStep('pricing')} disabled={pending.length === 0}
-          className={`py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1.5 transition-all disabled:opacity-30 ${
+          className={`py-2 rounded-lg text-sm font-display tracking-wide flex items-center justify-center gap-1.5 transition-all disabled:opacity-30 ${
             step === 'pricing' ? 'bg-red-100 text-gray-800 border border-red-300' : 'text-gray-400'
           }`}>
-          <span className={`w-4 h-4 rounded-full text-base flex items-center justify-center font-bold ${step === 'pricing' ? 'bg-red-400 text-white' : 'bg-red-50 text-gray-800'}`}>2</span>
-          ใส่ราคา{pending.length > 0 && <span className="text-base opacity-70 font-numeric">({pending.length})</span>}
+          <span className={`w-4 h-4 rounded-full text-sm flex items-center justify-center font-bold ${step === 'pricing' ? 'bg-red-400 text-white' : 'bg-red-50 text-gray-800'}`}>2</span>
+          ใส่ราคา{pending.length > 0 && <span className="text-sm opacity-70 font-numeric">({pending.length})</span>}
         </button>
       </div>
 
@@ -2891,13 +2856,13 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
           <UserCircle2 size={13} className="text-red-500 flex-shrink-0"/>
           <input type="text" value={customer} onChange={e => setCustomer(e.target.value)}
             placeholder="ชื่อโพย / ชื่อลูกค้า (ไม่ระบุก็ได้)"
-            className="flex-1 min-w-0 bg-transparent outline-none text-base text-gray-900 placeholder-yellow-100/25 font-display"/>
+            className="flex-1 min-w-0 bg-transparent outline-none text-sm text-gray-900 placeholder-yellow-100/25 font-display"/>
           {customer && <button onClick={() => setCustomer('')} className="text-gray-300 p-1 flex-shrink-0"><X size={12}/></button>}
         </div>
 
         <div className="glass-strong rounded-2xl p-3">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display">ประเภท</div>
+            <div className="text-sm uppercase tracking-[0.25em] text-red-500 font-display">ประเภท</div>
             <div className="flex gap-1">
               <IconBtn onClick={() => setSheet('paste')} icon={Clipboard} title="วางจาก LINE"/>
               <IconBtn onClick={() => setSheet('settings')} icon={Settings} title="ตั้งค่าจ่าย"/>
@@ -2914,7 +2879,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         </div>
 
         <div className="glass-strong rounded-2xl p-3">
-          <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display mb-2 text-center">
+          <div className="text-sm uppercase tracking-[0.25em] text-red-500 font-display mb-2 text-center">
             ระบุตัวเลข {digits} หลัก
           </div>
           <div className="flex gap-2 justify-center mb-3">
@@ -2923,7 +2888,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
             ))}
           </div>
           {error && (
-            <div className="flex items-center gap-1.5 text-red-500 text-base mb-2 justify-center font-display">
+            <div className="flex items-center gap-1.5 text-red-500 text-sm mb-2 justify-center font-display">
               <AlertCircle size={12}/> {error}
             </div>
           )}
@@ -2933,10 +2898,10 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         {pending.length > 0 && (
           <div className="glass rounded-2xl p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display">
+              <div className="text-sm uppercase tracking-[0.25em] text-red-500 font-display">
                 เลขที่เลือก ({pending.length})
               </div>
-              <button onClick={clearAllPending} className="text-red-500 text-base font-display flex items-center gap-1">
+              <button onClick={clearAllPending} className="text-red-500 text-sm font-display flex items-center gap-1">
                 <X size={11}/> ล้าง
               </button>
             </div>
@@ -2947,7 +2912,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         )}
 
         <button onClick={() => setStep('pricing')} disabled={pending.length === 0}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-lg flex items-center justify-center gap-2 shadow-lg shadow-red-200 disabled:opacity-30">
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-base flex items-center justify-center gap-2 shadow-lg shadow-red-200 disabled:opacity-30">
           ใส่ราคา {pending.length > 0 ? pending.length + ' รายการ' : ''} →
         </button>
 
@@ -2955,8 +2920,8 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <div className="w-1 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-full"/>
-              <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">{isSeller ? 'โพยรับเข้า' : 'โพยงวดนี้'}</h2>
-              <span className="text-base text-gray-400 font-display">({bets.length})</span>
+              <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">{isSeller ? 'โพยรับเข้า' : 'โพยงวดนี้'}</h2>
+              <span className="text-sm text-gray-400 font-display">({bets.length})</span>
             </div>
             {bets.length > 0 && (
               <div className="flex gap-1">
@@ -2966,7 +2931,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
             )}
           </div>
           {bets.length === 0 ? (
-            <div className="text-center py-8 text-gray-300 text-base font-display tracking-wider">— ยังไม่มีโพย —</div>
+            <div className="text-center py-8 text-gray-300 text-sm font-display tracking-wider">— ยังไม่มีโพย —</div>
           ) : (<>
             <BetGroupedList
               bets={bets}
@@ -2978,12 +2943,12 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
               onRemoveBet={removeBet}/>
             <div className="border-t border-red-200 pt-3 flex items-center justify-between mt-3">
               <div>
-                <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">{isSeller ? 'รับรวม' : 'รวมซื้อ'}</div>
-                <div className="font-numeric text-2xl font-bold gold-text">฿{fmt(savedTotalAmt)}</div>
+                <div className="text-sm uppercase tracking-wider text-stone-600 font-display font-semibold">{isSeller ? 'รับรวม' : 'รวมซื้อ'}</div>
+                <div className="font-numeric text-xl font-bold gold-text">฿{fmt(savedTotalAmt)}</div>
               </div>
               <div className="text-right">
-                <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">{isSeller ? 'จ่ายสูงสุด' : 'หากถูกหมด'}</div>
-                <div className={`font-numeric text-lg font-semibold ${isSeller ? 'text-red-600' : 'text-green-600'}`}>฿{fmt(savedTotalPayout)}</div>
+                <div className="text-sm uppercase tracking-wider text-stone-600 font-display font-semibold">{isSeller ? 'จ่ายสูงสุด' : 'หากถูกหมด'}</div>
+                <div className={`font-numeric text-base font-semibold ${isSeller ? 'text-red-600' : 'text-green-600'}`}>฿{fmt(savedTotalPayout)}</div>
               </div>
             </div>
           </>)}
@@ -2992,35 +2957,35 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
 
       {step === 'pricing' && (<>
         <div className="flex items-center justify-between glass rounded-xl p-3">
-          <button onClick={() => setStep('select')} className="text-gray-800 font-display text-lg flex items-center gap-1 px-2 py-1 rounded-lg">
+          <button onClick={() => setStep('select')} className="text-gray-800 font-display text-base flex items-center gap-1 px-2 py-1 rounded-lg">
             ← กลับ
           </button>
-          <div className="font-display text-lg text-gray-900">
+          <div className="font-display text-base text-gray-900">
             ใส่ราคา <span className="text-red-500">({pending.length})</span>
           </div>
           <div className="w-12"/>
         </div>
 
         <div className="glass-strong rounded-2xl p-3">
-          <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display mb-2">
+          <div className="text-sm uppercase tracking-[0.25em] text-red-500 font-display mb-2">
             ราคาเท่ากันทุกรายการ
           </div>
           <div className="flex items-center gap-2 mb-2">
             <div className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2 border border-gray-200 focus-within:border-red-300 flex items-baseline gap-1">
-              <span className="text-gray-400 text-lg flex-shrink-0">฿</span>
+              <span className="text-gray-400 text-base flex-shrink-0">฿</span>
               <input type="number" inputMode="decimal" value={bulkPrice}
                 onChange={e => setBulkPrice(e.target.value)} placeholder="ใส่ราคา"
-                className="w-full min-w-0 bg-transparent outline-none font-numeric text-xl font-bold text-gray-900 placeholder-yellow-100/20"/>
+                className="w-full min-w-0 bg-transparent outline-none font-numeric text-lg font-bold text-gray-900 placeholder-yellow-100/20"/>
             </div>
             <button onClick={() => fillAllPrices(bulkPrice)}
-              className="py-2 px-3 rounded-lg bg-red-100 border border-red-300 text-gray-800 font-display text-lg flex items-center gap-1 flex-shrink-0">
+              className="py-2 px-3 rounded-lg bg-red-100 border border-red-300 text-gray-800 font-display text-base flex items-center gap-1 flex-shrink-0">
               <Plus size={14} strokeWidth={3}/> เติม
             </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {[5, 10, 20, 50, 100, 200, 500].map(v => (
               <button key={v} onClick={() => fillAllPrices(v)}
-                className="px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-300 text-gray-700 text-base font-display tracking-wider font-numeric">
+                className="px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-300 text-gray-700 text-sm font-display tracking-wider font-numeric">
                 ฿{v}
               </button>
             ))}
@@ -3028,7 +2993,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         </div>
 
         {error && (
-          <div className="flex items-center gap-1.5 text-red-500 text-base px-2 font-display">
+          <div className="flex items-center gap-1.5 text-red-500 text-sm px-2 font-display">
             <AlertCircle size={12}/> {error}
           </div>
         )}
@@ -3050,21 +3015,21 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
           <div className="max-w-md mx-auto space-y-2">
             <div className="glass-strong rounded-2xl p-3 grid grid-cols-2 gap-2">
               <div className="num-tile rounded-xl p-2.5">
-                <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">รับรวม</div>
-                <div className="font-numeric text-xl font-bold gold-text mt-0.5">฿{fmt(totalIntake)}</div>
+                <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">รับรวม</div>
+                <div className="font-numeric text-lg font-bold gold-text mt-0.5">฿{fmt(totalIntake)}</div>
               </div>
               <div className="risk-tile rounded-xl p-2.5">
-                <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">จ่ายเพดาน</div>
-                <div className="font-numeric text-xl font-bold text-red-600 mt-0.5">฿{fmt(totalMaxPayout)}</div>
+                <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">จ่ายเพดาน</div>
+                <div className="font-numeric text-lg font-bold text-red-600 mt-0.5">฿{fmt(totalMaxPayout)}</div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <button onClick={clearAllPending}
-                className="py-3 rounded-xl bg-gray-100 text-red-700 font-display text-lg tracking-wider border border-red-200">
+                className="py-3 rounded-xl bg-gray-100 text-red-700 font-display text-base tracking-wider border border-red-200">
                 ยกเลิก
               </button>
               <button onClick={saveBets}
-                className="col-span-2 py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-lg flex items-center justify-center gap-2 shadow-lg shadow-red-200">
+                className="col-span-2 py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-base flex items-center justify-center gap-2 shadow-lg shadow-red-200">
                 <Check size={16} strokeWidth={3}/> บันทึก {pending.length} รายการ
               </button>
             </div>
@@ -3147,18 +3112,18 @@ function BetGroupedList({ bets, caps, rates, currentDraw, isSeller, onUpdateBet,
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className={'font-display text-lg font-semibold truncate ' + (noName ? 'text-gray-500' : 'text-gray-900')}>
+                  <span className={'font-display text-base font-semibold truncate ' + (noName ? 'text-gray-500' : 'text-gray-900')}>
                     {g.name}
                   </span>
                   {anyHit && (
-                    <span className={'text-base font-display px-1.5 py-0.5 rounded ' + (
+                    <span className={'text-sm font-display px-1.5 py-0.5 rounded ' + (
                       isSeller ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
                     )}>
                       {isSeller ? '✗ มีถูก' : '✓ ถูก'}
                     </span>
                   )}
                 </div>
-                <div className="text-base text-gray-400 font-display flex items-center gap-2">
+                <div className="text-sm text-gray-400 font-display flex items-center gap-2">
                   <span>{g.items.length} รายการ</span>
                   <span>·</span>
                   <span>รับ ฿{fmt(g.totalAmt)}</span>
@@ -3166,7 +3131,7 @@ function BetGroupedList({ bets, caps, rates, currentDraw, isSeller, onUpdateBet,
                   <span className="text-red-600">จ่าย ฿{fmt(g.totalPay)}</span>
                 </div>
               </div>
-              <span className="text-gray-400 text-xl flex-shrink-0">{isOpen ? '▴' : '▾'}</span>
+              <span className="text-gray-400 text-lg flex-shrink-0">{isOpen ? '▴' : '▾'}</span>
             </button>
             {isOpen && (
               <div className="px-3 pb-3 pt-1 space-y-1.5 border-t border-gray-100 bg-gray-50/40">
@@ -3206,27 +3171,27 @@ function BetRow({ bet, draw, isSeller, onUpdate, onRemove }) {
     }`}>
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         <div className="font-numeric text-2xl font-bold gold-text leading-none">{bet.number}</div>
-        <div className="px-1.5 py-0.5 rounded text-base font-display tracking-wider bg-red-50 text-gray-700 border border-red-200">{typeShort(bet.type)}</div>
+        <div className="px-1.5 py-0.5 rounded text-sm font-display tracking-wider bg-red-50 text-gray-700 border border-red-200">{typeShort(bet.type)}</div>
         {bet.halfPay && (
-          <div className="px-1.5 py-0.5 rounded text-base font-display bg-orange-100 text-orange-700 border border-orange-400 font-bold">½ อั้น</div>
+          <div className="px-1.5 py-0.5 rounded text-sm font-display bg-orange-100 text-orange-700 border border-orange-400 font-bold">½ อั้น</div>
         )}
         {bet.customer && (
-          <div className="px-1.5 py-0.5 rounded text-base font-display bg-orange-100 text-orange-700 border border-orange-200 truncate max-w-[100px]">👤 {bet.customer}</div>
+          <div className="px-1.5 py-0.5 rounded text-sm font-display bg-orange-100 text-orange-700 border border-orange-200 truncate max-w-[100px]">👤 {bet.customer}</div>
         )}
-        {hit && <span className={`text-base font-display tracking-wider ${sellerLose ? 'text-red-600' : 'text-green-600'}`}>{sellerLose ? '✗ ต้องจ่าย' : '✓ ถูก'}</span>}
+        {hit && <span className={`text-sm font-display tracking-wider ${sellerLose ? 'text-red-600' : 'text-green-600'}`}>{sellerLose ? '✗ ต้องจ่าย' : '✓ ถูก'}</span>}
         <button onClick={onRemove} className="ml-auto text-gray-400 hover:text-red-500 p-1 flex-shrink-0"><Trash2 size={13}/></button>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
         <MiniField label={isSeller ? 'รับ' : 'ซื้อ'} value={bet.amount} onChange={v => onUpdate('amount', v)} prefix="฿"/>
         <div className="bg-white rounded-lg px-2 py-1.5 border border-gray-200">
-          <div className="text-base uppercase tracking-wider text-red-500 font-display flex items-center justify-between">
+          <div className="text-sm uppercase tracking-wider text-red-500 font-display flex items-center justify-between">
             <span>จ่าย/บ.</span><span className="text-red-300">×</span>
           </div>
-          <div className="font-numeric text-lg font-semibold text-gray-900">{bet.rate}</div>
+          <div className="font-numeric text-base font-semibold text-gray-900">{bet.rate}</div>
         </div>
         <div className={`bg-white rounded-lg px-2 py-1.5 border ${isSeller ? 'border-red-200' : 'border-green-200'}`}>
-          <div className="text-base uppercase tracking-wider text-gray-400 font-display">{isSeller ? 'จ่ายถ้าออก' : 'ได้'}</div>
-          <div className={`font-numeric text-lg font-bold truncate ${isSeller ? 'text-red-600' : 'text-green-600'}`}>฿{fmt(payout)}</div>
+          <div className="text-sm uppercase tracking-wider text-gray-400 font-display">{isSeller ? 'จ่ายถ้าออก' : 'ได้'}</div>
+          <div className={`font-numeric text-base font-bold truncate ${isSeller ? 'text-red-600' : 'text-green-600'}`}>฿{fmt(payout)}</div>
         </div>
       </div>
     </div>
@@ -3236,11 +3201,11 @@ function BetRow({ bet, draw, isSeller, onUpdate, onRemove }) {
 function MiniField({ label, value, onChange, prefix }) {
   return (
     <div className="bg-white rounded-lg px-2 py-1.5 border border-gray-200 focus-within:border-red-300">
-      <div className="text-base uppercase tracking-wider text-gray-400 font-display flex items-center justify-between">
+      <div className="text-sm uppercase tracking-wider text-gray-400 font-display flex items-center justify-between">
         <span>{label}</span><span className="text-red-300">{prefix}</span>
       </div>
       <input type="number" inputMode="decimal" value={value} onChange={e => onChange(e.target.value)}
-        className="w-full bg-transparent outline-none font-numeric text-lg font-semibold text-gray-900"/>
+        className="w-full bg-transparent outline-none font-numeric text-base font-semibold text-gray-900"/>
     </div>
   );
 }
@@ -3248,7 +3213,7 @@ function MiniField({ label, value, onChange, prefix }) {
 function ToggleChip({ label, active, onClick, accent }) {
   return (
     <button onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-base font-display whitespace-nowrap transition-all border ${
+      className={`px-3 py-1.5 rounded-lg text-sm font-display whitespace-nowrap transition-all border ${
         active
           ? accent ? 'bg-red-100 text-red-700 border-red-500' : 'bg-red-100 text-gray-800 border-red-400'
           : 'bg-gray-100 text-gray-400 border-gray-200'
@@ -3282,7 +3247,7 @@ function BottomSheet({ title, children, onClose }) {
           style={{ background: 'linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,0.95) 100%)' }}>
           <div className="w-10 h-1 bg-red-100 rounded-full mx-auto mb-3"/>
           <div className="flex items-center justify-between">
-            <h3 className="font-display text-xl tracking-wider text-gray-900">{title}</h3>
+            <h3 className="font-display text-lg tracking-wider text-gray-900">{title}</h3>
             <button onClick={onClose} className="text-gray-500 p-1"><X size={18}/></button>
           </div>
         </div>
@@ -3308,26 +3273,26 @@ function SettingsContent({ rates, setRates, onClose }) {
   };
   return (
     <div className="space-y-3">
-      <div className="text-base text-gray-500 font-display leading-relaxed">ตั้งอัตราจ่ายต่อ 1 บาท เลขใหม่ที่จดจะใช้ค่านี้</div>
+      <div className="text-sm text-gray-500 font-display leading-relaxed">ตั้งอัตราจ่ายต่อ 1 บาท เลขใหม่ที่จดจะใช้ค่านี้</div>
       {fields.map(f => (
         <div key={f.key} className="num-tile rounded-xl p-3 flex items-center gap-3">
           <div className="flex-1">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">{f.key}</div>
-            <div className="text-base text-gray-400 font-display">{f.label}</div>
+            <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">{f.key}</div>
+            <div className="text-sm text-gray-400 font-display">{f.label}</div>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-gray-400 text-lg">×</span>
+            <span className="text-gray-400 text-base">×</span>
             <input type="number" inputMode="decimal" value={draft[f.key] ?? ''}
               onChange={e => setDraft({ ...draft, [f.key]: e.target.value })}
-              className="w-20 bg-white rounded-lg px-2 py-1.5 text-right font-numeric text-xl font-bold text-gray-900 outline-none border border-gray-200 focus:border-red-300"/>
+              className="w-20 bg-white rounded-lg px-2 py-1.5 text-right font-numeric text-lg font-bold text-gray-900 outline-none border border-gray-200 focus:border-red-300"/>
           </div>
         </div>
       ))}
       <div className="grid grid-cols-2 gap-2 mt-4">
-        <button onClick={() => setDraft(INITIAL_RATES)} className="py-2.5 rounded-xl bg-gray-100 text-gray-600 font-display text-lg tracking-wider border border-gray-300 flex items-center justify-center gap-1.5">
+        <button onClick={() => setDraft(INITIAL_RATES)} className="py-2.5 rounded-xl bg-gray-100 text-gray-600 font-display text-base tracking-wider border border-gray-300 flex items-center justify-center gap-1.5">
           <RefreshCw size={13}/> ค่าเริ่มต้น
         </button>
-        <button onClick={save} className="py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold font-display text-lg tracking-wider">บันทึก</button>
+        <button onClick={save} className="py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold font-display text-base tracking-wider">บันทึก</button>
       </div>
     </div>
   );
@@ -3339,7 +3304,7 @@ function PasteContent({ lottery, rates, onAdd }) {
   const parsed = useMemo(() => parseLineText(text, lottery, parseFloat(defaultAmt) || 0, rates), [text, lottery, defaultAmt, rates]);
   return (
     <div className="space-y-3">
-      <div className="text-base text-gray-500 font-display leading-relaxed">
+      <div className="text-sm text-gray-500 font-display leading-relaxed">
         วางข้อความจาก LINE ระบบแกะเลขให้อัตโนมัติ<br/>
         <span className="text-gray-600">3 หลัก:</span><br/>
         • <span className="text-gray-600">223=100×100×100</span> → ตรงทุก perm<br/>
@@ -3349,22 +3314,22 @@ function PasteContent({ lottery, rates, onAdd }) {
         <span className="text-gray-600">หรือระบุชัด:</span> 12 บน 30 ล่าง 20
       </div>
       <textarea value={text} onChange={e => setText(e.target.value)} placeholder="วางข้อความที่นี่..." rows={6}
-        className="w-full bg-white rounded-xl p-3 border border-gray-200 focus:border-red-300 outline-none text-lg text-gray-900 font-numeric resize-none"/>
+        className="w-full bg-white rounded-xl p-3 border border-gray-200 focus:border-red-300 outline-none text-base text-gray-900 font-numeric resize-none"/>
       <div className="num-tile rounded-xl p-3 flex items-center gap-3">
-        <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold w-24">ยอดเริ่มต้น</div>
+        <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold w-24">ยอดเริ่มต้น</div>
         <input type="number" inputMode="decimal" value={defaultAmt}
           onChange={e => setDefaultAmt(e.target.value)} placeholder="0"
-          className="flex-1 bg-transparent outline-none font-numeric text-xl font-bold text-gray-900 text-right placeholder-yellow-100/15"/>
-        <span className="text-base text-gray-400 font-display">ถ้าไม่ระบุยอด</span>
+          className="flex-1 bg-transparent outline-none font-numeric text-lg font-bold text-gray-900 text-right placeholder-yellow-100/15"/>
+        <span className="text-sm text-gray-400 font-display">ถ้าไม่ระบุยอด</span>
       </div>
       {parsed.length > 0 && (
         <div className="glass rounded-xl p-3">
-          <div className="text-base uppercase tracking-[0.25em] text-red-500 mb-2 font-display">ตัวอย่าง {parsed.length} รายการ</div>
+          <div className="text-sm uppercase tracking-[0.25em] text-red-500 mb-2 font-display">ตัวอย่าง {parsed.length} รายการ</div>
           <div className="space-y-1 max-h-40 overflow-y-auto">
             {parsed.map(p => (
-              <div key={p.id} className="flex items-center justify-between text-base py-1">
+              <div key={p.id} className="flex items-center justify-between text-sm py-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-numeric text-xl font-bold gold-text">{p.number}</span>
+                  <span className="font-numeric text-lg font-bold gold-text">{p.number}</span>
                   <span className="text-gray-600 font-display">{typeShort(p.type)}</span>
                 </div>
                 <span className="font-numeric text-gray-800">฿{fmt(p.amount)} × {p.rate}</span>
@@ -3374,7 +3339,7 @@ function PasteContent({ lottery, rates, onAdd }) {
         </div>
       )}
       <button onClick={() => onAdd(parsed)} disabled={parsed.length === 0}
-        className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-lg flex items-center justify-center gap-2 shadow-lg shadow-red-200 disabled:opacity-40">
+        className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-base flex items-center justify-center gap-2 shadow-lg shadow-red-200 disabled:opacity-40">
         <Plus size={16} strokeWidth={3}/> เพิ่ม {parsed.length} รายการ
       </button>
     </div>
@@ -3385,7 +3350,7 @@ function formatPerCustomerForLine(bets, lottery, drawDate, customerName) {
   const items = bets.filter(b => (b.customer || '— ไม่ระบุ —') === customerName);
   if (items.length === 0) return '';
   const lines = [
-    `🎰 Royal 888`,
+    `🎰 Lotto 888`,
     `📋 ${lottery.name}`,
     `🗓 งวด ${formatDrawDateLong(drawDate)}`,
     `👤 ${customerName}`,
@@ -3455,26 +3420,26 @@ function ShareContent({ bets, lottery, drawDate, caps = [], rates = {} }) {
     <div className="space-y-3">
       <div className="bg-gray-50 rounded-xl p-1 grid grid-cols-3 gap-1">
         <button onClick={() => { setMode('summary'); setSelectedCustomer(null); }}
-          className={'py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1 ' + (
+          className={'py-2 rounded-lg text-sm font-display tracking-wide flex items-center justify-center gap-1 ' + (
             mode === 'summary' ? 'bg-red-100 text-stone-800 border border-red-300' : 'text-stone-400'
           )}>
           <BarChart3 size={12}/> สรุปยอด
         </button>
         <button onClick={() => { setMode('list'); setSelectedCustomer(null); }}
-          className={'py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1 ' + (
+          className={'py-2 rounded-lg text-sm font-display tracking-wide flex items-center justify-center gap-1 ' + (
             mode === 'list' ? 'bg-red-100 text-stone-800 border border-red-300' : 'text-stone-400'
           )}>
           <List size={12}/> ทุกคน
         </button>
         <button onClick={() => { setMode('customer'); if (customers.length > 0 && !selectedCustomer) setSelectedCustomer(customers[0]); }}
-          className={'py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1 ' + (
+          className={'py-2 rounded-lg text-sm font-display tracking-wide flex items-center justify-center gap-1 ' + (
             mode === 'customer' ? 'bg-red-100 text-stone-800 border border-red-300' : 'text-stone-400'
           )}>
           <UserCircle2 size={12}/> รายคน
         </button>
       </div>
 
-      <div className="text-base text-stone-400 font-display leading-relaxed">
+      <div className="text-sm text-stone-400 font-display leading-relaxed">
         {mode === 'summary' && 'รวมรับ/จ่าย กำไรขาดทุน + ความเสี่ยง'}
         {mode === 'list' && 'รายการเลขทุกตัว · แยกตามลูกค้า'}
         {mode === 'customer' && 'แชร์ให้ลูกค้าแต่ละคนแยกใบ'}
@@ -3482,18 +3447,18 @@ function ShareContent({ bets, lottery, drawDate, caps = [], rates = {} }) {
 
       {mode === 'customer' && customers.length > 0 && (
         <div className="space-y-1">
-          <div className="text-base uppercase tracking-widest text-stone-400 font-display">เลือกลูกค้า</div>
+          <div className="text-sm uppercase tracking-widest text-stone-400 font-display">เลือกลูกค้า</div>
           <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
             {customers.map(c => {
               const count = enrichedBets.filter(b => (b.customer || '— ไม่ระบุ —') === c).length;
               const isSel = c === selectedCustomer;
               return (
                 <button key={c} onClick={() => setSelectedCustomer(c)}
-                  className={'rounded-lg px-2 py-1.5 text-left text-base font-display flex items-center justify-between gap-1 border transition-all active:scale-95 ' + (
+                  className={'rounded-lg px-2 py-1.5 text-left text-sm font-display flex items-center justify-between gap-1 border transition-all active:scale-95 ' + (
                     isSel ? 'btn-premium border-red-900' : 'bg-white border-stone-200 text-stone-700'
                   )}>
                   <span className="truncate flex-1 min-w-0">{c}</span>
-                  <span className={'text-base font-numeric flex-shrink-0 ' + (isSel ? 'opacity-80' : 'text-stone-400')}>×{count}</span>
+                  <span className={'text-sm font-numeric flex-shrink-0 ' + (isSel ? 'opacity-80' : 'text-stone-400')}>×{count}</span>
                 </button>
               );
             })}
@@ -3501,15 +3466,15 @@ function ShareContent({ bets, lottery, drawDate, caps = [], rates = {} }) {
         </div>
       )}
 
-      <div className="bg-white rounded-xl p-3 border border-stone-200 font-numeric text-base text-stone-900 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">{text || 'เลือกลูกค้าก่อน'}</div>
+      <div className="bg-white rounded-xl p-3 border border-stone-200 font-numeric text-sm text-stone-900 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">{text || 'เลือกลูกค้าก่อน'}</div>
 
       <div className="grid grid-cols-2 gap-2">
         <button onClick={copy} disabled={!text}
-          className="py-3 rounded-xl bg-red-50 border border-red-300 text-stone-800 font-display text-lg tracking-wider flex items-center justify-center gap-2 disabled:opacity-40">
+          className="py-3 rounded-xl bg-red-50 border border-red-300 text-stone-800 font-display text-base tracking-wider flex items-center justify-center gap-2 disabled:opacity-40">
           {copied ? (<><Check size={14} strokeWidth={3}/>คัดลอกแล้ว</>) : (<><Copy size={14} strokeWidth={3}/>คัดลอก</>)}
         </button>
         <button onClick={shareApi} disabled={!text}
-          className="py-3 rounded-xl btn-premium font-display text-lg tracking-wider flex items-center justify-center gap-2 disabled:opacity-40">
+          className="py-3 rounded-xl btn-premium font-display text-base tracking-wider flex items-center justify-center gap-2 disabled:opacity-40">
           <Share2 size={14} strokeWidth={3}/>ส่ง
         </button>
       </div>
@@ -3687,8 +3652,8 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
   if (bets.length === 0) {
     return (
       <div className="glass rounded-2xl p-8 text-center slide-in">
-        <div className="text-gray-400 text-base font-display tracking-wider">— ยังไม่มีโพยในงวดนี้ —</div>
-        <div className="text-gray-300 text-base mt-2">จดโพยที่แท็บ "จดโพย" ก่อน</div>
+        <div className="text-gray-400 text-sm font-display tracking-wider">— ยังไม่มีโพยในงวดนี้ —</div>
+        <div className="text-gray-300 text-sm mt-2">จดโพยที่แท็บ "จดโพย" ก่อน</div>
       </div>
     );
   }
@@ -3702,9 +3667,9 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
       <div className="glass-strong rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-full"/>
-          <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">วิเคราะห์ความเสี่ยง</h2>
+          <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">วิเคราะห์ความเสี่ยง</h2>
           {caps.filter(c => c.lotteryId === lottery.id && c.drawDate === drawDate).length > 0 && (
-            <div className="ml-auto px-2 py-0.5 rounded-full text-base font-display bg-orange-100 text-orange-700 border border-orange-300">
+            <div className="ml-auto px-2 py-0.5 rounded-full text-sm font-display bg-orange-100 text-orange-700 border border-orange-300">
               ½ อั้น {caps.filter(c => c.lotteryId === lottery.id && c.drawDate === drawDate).length}
             </div>
           )}
@@ -3712,12 +3677,12 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
 
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="num-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">รับเข้ารวม</div>
-            <div className="font-numeric text-2xl font-bold gold-text mt-1">฿{fmt(totalIntake)}</div>
+            <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">รับเข้ารวม</div>
+            <div className="font-numeric text-xl font-bold gold-text mt-1">฿{fmt(totalIntake)}</div>
           </div>
           <div className="risk-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">จ่ายเพดาน</div>
-            <div className="font-numeric text-2xl font-bold text-red-600 mt-1">฿{fmt(totalMaxPayout)}</div>
+            <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">จ่ายเพดาน</div>
+            <div className="font-numeric text-xl font-bold text-red-600 mt-1">฿{fmt(totalMaxPayout)}</div>
           </div>
         </div>
 
@@ -3725,10 +3690,10 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
           <div className="rounded-xl p-3 bg-gradient-to-br from-green-500/12 to-green-700/4 border border-green-300">
             <div className="flex items-center gap-1.5 mb-1">
               <TrendingUp size={13} className="text-green-600"/>
-              <div className="text-base uppercase tracking-widest text-green-700 font-display">เสี่ยงได้สูงสุด</div>
+              <div className="text-sm uppercase tracking-widest text-green-700 font-display">เสี่ยงได้สูงสุด</div>
             </div>
             <div className="font-numeric text-2xl font-bold text-green-600">+฿{fmt(best.net)}</div>
-            <div className="text-base text-green-600 mt-1 font-display">
+            <div className="text-sm text-green-600 mt-1 font-display">
               ถ้าออก <span className="font-numeric font-bold">{best.num3}</span>
               {best.num2low && <> / <span className="font-numeric font-bold">{best.num2low}</span></>}
               {' '}• จ่าย ฿{fmt(best.payout)}
@@ -3737,10 +3702,10 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
           <div className="rounded-xl p-3 bg-gradient-to-br from-red-500/15 to-red-700/4 border border-red-400 pulse-warn">
             <div className="flex items-center gap-1.5 mb-1">
               <TrendingDown size={13} className="text-red-600"/>
-              <div className="text-base uppercase tracking-widest text-red-700 font-display">เสี่ยงเสียสุด</div>
+              <div className="text-sm uppercase tracking-widest text-red-700 font-display">เสี่ยงเสียสุด</div>
             </div>
             <div className={`font-numeric text-2xl font-bold ${worst.net < 0 ? 'text-red-600' : 'text-green-600'}`}>{worst.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(worst.net))}</div>
-            <div className="text-base text-red-600 mt-1 font-display">
+            <div className="text-sm text-red-600 mt-1 font-display">
               ถ้าออก <span className="font-numeric font-bold">{worst.num3}</span>
               {worst.num2low && <> / <span className="font-numeric font-bold">{worst.num2low}</span></>}
               {' '}• จ่าย ฿{fmt(worst.payout)}
@@ -3783,17 +3748,17 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-full"/>
-          <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">ตัดเลขเสี่ยงเป็นกลุ่ม</h2>
+          <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">ตัดเลขเสี่ยงเป็นกลุ่ม</h2>
         </div>
         <div className="num-tile rounded-xl p-3 mb-2 flex items-center gap-3">
-          <div className="text-base uppercase tracking-widest text-red-700 font-display w-24">ตัดที่จ่ายเกิน</div>
+          <div className="text-sm uppercase tracking-widest text-red-700 font-display w-24">ตัดที่จ่ายเกิน</div>
           <input type="number" inputMode="decimal" value={cutThreshold}
             onChange={e => setCutThreshold(e.target.value)} placeholder="0"
-            className="flex-1 min-w-0 bg-transparent outline-none font-numeric text-2xl font-bold text-red-700 text-right placeholder-rose-100/15"/>
-          <span className="text-base text-red-400 font-display flex-shrink-0">บาท</span>
+            className="flex-1 min-w-0 bg-transparent outline-none font-numeric text-xl font-bold text-red-700 text-right placeholder-rose-100/15"/>
+          <span className="text-sm text-red-400 font-display flex-shrink-0">บาท</span>
         </div>
         <button onClick={cutAboveThreshold} disabled={!cutThreshold}
-          className="w-full py-2.5 rounded-xl bg-red-100 border border-red-500 text-red-700 font-display text-lg tracking-wider flex items-center justify-center gap-2 disabled:opacity-40">
+          className="w-full py-2.5 rounded-xl bg-red-100 border border-red-500 text-red-700 font-display text-base tracking-wider flex items-center justify-center gap-2 disabled:opacity-40">
           <Scissors size={14}/> ตัดเลขที่เสี่ยงเกิน
         </button>
       </div>
@@ -3802,10 +3767,10 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-full"/>
-          <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">สรุปทุกโพย</h2>
-          <span className="text-base text-gray-400 font-display">({perCombo.length})</span>
+          <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">สรุปทุกโพย</h2>
+          <span className="text-sm text-gray-400 font-display">({perCombo.length})</span>
         </div>
-        <div className="text-base text-gray-400 font-display mb-2 leading-relaxed">
+        <div className="text-sm text-gray-400 font-display mb-2 leading-relaxed">
           แต่ละแถวมี <span className="text-orange-700">½</span> อั้นครึ่ง · <span className="text-red-600">📉</span> ลดยอด · <span className="text-red-700">✂️</span> ตัดทั้งหมด
         </div>
         <div className="space-y-1.5 max-h-96 overflow-y-auto">
@@ -3816,14 +3781,14 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                 : 'bg-white border-gray-200'
             }`}>
               <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                <div className="font-numeric text-xl font-bold gold-text leading-none">{c.number}</div>
-                <div className="px-1.5 py-0.5 rounded text-base font-display bg-red-50 text-gray-700 border border-red-200">{typeShort(c.type)}</div>
+                <div className="font-numeric text-lg font-bold gold-text leading-none">{c.number}</div>
+                <div className="px-1.5 py-0.5 rounded text-sm font-display bg-red-50 text-gray-700 border border-red-200">{typeShort(c.type)}</div>
                 {c.halfPay && (
-                  <div className="px-1.5 py-0.5 rounded text-base font-display bg-orange-100 text-orange-700 border border-orange-400 font-bold">½ อั้น</div>
+                  <div className="px-1.5 py-0.5 rounded text-sm font-display bg-orange-100 text-orange-700 border border-orange-400 font-bold">½ อั้น</div>
                 )}
                 <div className="ml-auto flex items-center gap-1">
                   <button onClick={() => toggleHalfPay(c)}
-                    className={`w-7 h-7 rounded-lg text-base font-bold font-display flex items-center justify-center transition-all ${
+                    className={`w-7 h-7 rounded-lg text-sm font-bold font-display flex items-center justify-center transition-all ${
                       c.halfPay
                         ? 'bg-orange-200 text-orange-800 border border-orange-400'
                         : 'text-orange-400 hover:bg-orange-100 border border-transparent'
@@ -3843,13 +3808,13 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-right text-base">
+              <div className="grid grid-cols-2 gap-2 text-right text-sm">
                 <div>
-                  <span className="text-base uppercase text-red-300 font-display mr-1">รับ</span>
+                  <span className="text-sm uppercase text-red-300 font-display mr-1">รับ</span>
                   <span className="font-numeric font-semibold text-gray-900">฿{fmt(c.intake)}</span>
                 </div>
                 <div>
-                  <span className="text-base uppercase text-red-500 font-display mr-1">จ่าย</span>
+                  <span className="text-sm uppercase text-red-500 font-display mr-1">จ่าย</span>
                   <span className="font-numeric font-semibold text-red-600">฿{fmt(c.payout)}</span>
                 </div>
               </div>
@@ -3862,32 +3827,32 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1.5 h-5 rounded-full" style={{ background: 'linear-gradient(180deg, #fb923c 0%, #ea580c 100%)' }}/>
-          <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">ลองสมมุติ</h2>
+          <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">ลองสมมุติ</h2>
         </div>
-        <div className="text-base text-stone-600 font-display mb-3 leading-relaxed">
+        <div className="text-sm text-stone-600 font-display mb-3 leading-relaxed">
           ใส่เลขที่คิดว่าจะออก เพื่อดูว่าจะจ่ายเท่าไหร่ — กรอกได้ทั้ง 2 ช่องอิสระ
         </div>
 
         <div className="grid grid-cols-2 gap-2 mb-3">
           {/* 3 ตัวบน */}
           <div className="num-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold mb-1">3 ตัวบน</div>
+            <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold mb-1">3 ตัวบน</div>
             <input type="tel" inputMode="numeric" value={simNumber}
               onChange={e => setSimNumber(e.target.value.replace(/\D/g, '').slice(0, 3))} placeholder="000"
               className="w-full bg-transparent outline-none font-numeric text-3xl font-black gold-text placeholder-red-200 tracking-[0.2em] text-center"/>
             {simNumber.length === 3 && (
-              <div className="text-base text-stone-500 font-display mt-1 text-center">
+              <div className="text-sm text-stone-500 font-display mt-1 text-center">
                 2 บน = <span className="font-numeric font-bold text-red-700">{simNumber.slice(-2)}</span>
               </div>
             )}
           </div>
           {/* 2 ตัวล่าง */}
           <div className="rounded-xl p-3 bg-gradient-to-br from-green-50 to-white border border-green-200">
-            <div className="text-base uppercase tracking-wider text-green-700 font-display font-semibold mb-1">2 ตัวล่าง</div>
+            <div className="text-sm uppercase tracking-wider text-green-700 font-display font-semibold mb-1">2 ตัวล่าง</div>
             <input type="tel" inputMode="numeric" value={simNumber2low}
               onChange={e => setSimNumber2low(e.target.value.replace(/\D/g, '').slice(0, 2))} placeholder="00"
               className="w-full bg-transparent outline-none font-numeric text-3xl font-black green-text placeholder-green-200 tracking-[0.2em] text-center"/>
-            <div className="text-base text-stone-400 font-display mt-1 text-center">เลขอิสระ ไม่เกี่ยว 3 บน</div>
+            <div className="text-sm text-stone-400 font-display mt-1 text-center">เลขอิสระ ไม่เกี่ยว 3 บน</div>
           </div>
         </div>
 
@@ -3905,18 +3870,18 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
             )}
             <div className="border-t border-stone-200 pt-2 grid grid-cols-2 gap-2">
               <div className="bg-red-50 rounded-lg p-2.5 border border-red-200">
-                <div className="text-base uppercase text-red-700 font-display font-semibold tracking-wider">จ่ายรวม</div>
-                <div className="font-numeric text-xl font-bold text-red-700 mt-0.5">฿{fmt(simResult.payout)}</div>
+                <div className="text-sm uppercase text-red-700 font-display font-semibold tracking-wider">จ่ายรวม</div>
+                <div className="font-numeric text-lg font-bold text-red-700 mt-0.5">฿{fmt(simResult.payout)}</div>
               </div>
               <div className={`rounded-lg p-2.5 border ${simResult.net >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-                <div className={`text-base uppercase font-display font-semibold tracking-wider ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>กำไร/ขาดทุน</div>
-                <div className={`font-numeric text-xl font-bold mt-0.5 ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>{simResult.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(simResult.net))}</div>
+                <div className={`text-sm uppercase font-display font-semibold tracking-wider ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>กำไร/ขาดทุน</div>
+                <div className={`font-numeric text-lg font-bold mt-0.5 ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>{simResult.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(simResult.net))}</div>
               </div>
             </div>
           </div>
         ) : (
           <div className="text-center py-4 bg-stone-50 rounded-xl border border-dashed border-stone-200">
-            <div className="text-stone-400 text-base font-display">ใส่เลขในช่องด้านบนเพื่อดูผล</div>
+            <div className="text-stone-400 text-sm font-display">ใส่เลขในช่องด้านบนเพื่อดูผล</div>
           </div>
         )}
       </div>
@@ -3961,27 +3926,27 @@ function ReduceSheet({ combo, onReduce, onClose }) {
   return (
     <div className="space-y-3">
       <div className="num-tile rounded-xl p-3">
-        <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold mb-1">ยอดปัจจุบัน</div>
+        <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold mb-1">ยอดปัจจุบัน</div>
         <div className="grid grid-cols-2 gap-2 text-right">
           <div>
-            <div className="text-base uppercase text-red-300 font-display">รับ</div>
-            <div className="font-numeric font-bold text-gray-900 text-xl">฿{fmt(currentIntake)}</div>
+            <div className="text-sm uppercase text-red-300 font-display">รับ</div>
+            <div className="font-numeric font-bold text-gray-900 text-lg">฿{fmt(currentIntake)}</div>
           </div>
           <div>
-            <div className="text-base uppercase text-red-500 font-display">จ่ายเพดาน</div>
-            <div className="font-numeric font-bold text-red-600 text-xl">฿{fmt(currentPayout)}</div>
+            <div className="text-sm uppercase text-red-500 font-display">จ่ายเพดาน</div>
+            <div className="font-numeric font-bold text-red-600 text-lg">฿{fmt(currentPayout)}</div>
           </div>
         </div>
       </div>
 
       <div>
-        <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display mb-2">ลดเหลือกี่ %</div>
+        <div className="text-sm uppercase tracking-[0.25em] text-red-500 font-display mb-2">ลดเหลือกี่ %</div>
         <div className="grid grid-cols-3 gap-2">
           {[75, 50, 25].map(p => (
             <button key={p} onClick={() => applyPreset(p)}
               className="num-tile rounded-xl p-3 active:scale-95">
               <div className="font-numeric text-2xl font-bold gold-text">{p}%</div>
-              <div className="text-base text-gray-500 font-display mt-1">
+              <div className="text-sm text-gray-500 font-display mt-1">
                 ฿{fmt(currentIntake * p / 100)}
               </div>
             </button>
@@ -3990,23 +3955,23 @@ function ReduceSheet({ combo, onReduce, onClose }) {
       </div>
 
       <div>
-        <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display mb-2">หรือกำหนดยอดเอง</div>
+        <div className="text-sm uppercase tracking-[0.25em] text-red-500 font-display mb-2">หรือกำหนดยอดเอง</div>
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2 border border-gray-200 focus-within:border-red-300 flex items-baseline gap-1">
-            <span className="text-gray-400 text-lg flex-shrink-0">฿</span>
+            <span className="text-gray-400 text-base flex-shrink-0">฿</span>
             <input type="number" inputMode="decimal" value={custom}
               onChange={e => setCustom(e.target.value)} placeholder="ลดเหลือ"
-              className="w-full min-w-0 bg-transparent outline-none font-numeric text-xl font-bold text-gray-900 placeholder-yellow-100/20"/>
+              className="w-full min-w-0 bg-transparent outline-none font-numeric text-lg font-bold text-gray-900 placeholder-yellow-100/20"/>
           </div>
           <button onClick={applyCustom} disabled={!custom}
-            className="py-2 px-4 rounded-lg bg-red-100 border border-red-400 text-red-600 font-display text-lg disabled:opacity-40">
+            className="py-2 px-4 rounded-lg bg-red-100 border border-red-400 text-red-600 font-display text-base disabled:opacity-40">
             ลด
           </button>
         </div>
       </div>
 
       <button onClick={onClose}
-        className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-600 font-display text-lg tracking-wider border border-gray-300">
+        className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-600 font-display text-base tracking-wider border border-gray-300">
         ยกเลิก
       </button>
     </div>
@@ -4145,16 +4110,16 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
     <div className="glass rounded-2xl p-4">
       <button onClick={() => setExpanded(e => !e)} className="w-full flex items-center gap-2 mb-3 text-left">
         <div className="w-1.5 h-5 rounded-full" style={{ background: 'linear-gradient(180deg, #ea580c 0%, #c2410c 100%)' }}/>
-        <h2 className="font-display text-xl font-bold tracking-wide text-orange-900">เลขอั้นจ่ายครึ่ง</h2>
-        <span className="text-base font-display font-semibold bg-orange-100 text-orange-800 border border-orange-300 rounded-full px-2.5 py-0.5">
+        <h2 className="font-display text-lg font-bold tracking-wide text-orange-900">เลขอั้นจ่ายครึ่ง</h2>
+        <span className="text-sm font-display font-semibold bg-orange-100 text-orange-800 border border-orange-300 rounded-full px-2.5 py-0.5">
           {currentCaps.length}
         </span>
-        <span className="ml-auto text-orange-700 text-xl font-bold">{expanded ? '▴' : '▾'}</span>
+        <span className="ml-auto text-orange-700 text-lg font-bold">{expanded ? '▴' : '▾'}</span>
       </button>
 
       {expanded && (
         <div className="space-y-3">
-          <div className="text-base text-stone-600 font-display leading-relaxed">
+          <div className="text-sm text-stone-600 font-display leading-relaxed">
             เลขที่อั้นไว้ — ถ้าออกตรง ระบบจะคำนวณจ่ายแค่<strong className="text-orange-700"> ครึ่งของอัตราปกติ</strong>
           </div>
 
@@ -4162,7 +4127,7 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
           <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-3 space-y-3">
             {/* Type chips */}
             <div>
-              <div className="text-base uppercase tracking-[0.2em] text-stone-700 font-display font-semibold mb-2">ประเภท</div>
+              <div className="text-sm uppercase tracking-[0.2em] text-stone-700 font-display font-semibold mb-2">ประเภท</div>
               <div className="grid grid-cols-2 gap-1.5">
                 {[
                   { k: t3, label: t3Label, color: 'red' },
@@ -4175,7 +4140,7 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
                   const active = !!pickedTypes[opt.k];
                   return (
                     <button key={opt.k} onClick={() => toggleType(opt.k)}
-                      className={'rounded-xl px-3 py-2.5 text-lg font-display font-semibold border-2 transition-all active:scale-95 ' + (
+                      className={'rounded-xl px-3 py-2.5 text-base font-display font-semibold border-2 transition-all active:scale-95 ' + (
                         active
                           ? (opt.color === 'red' ? 'bg-red-600 text-white border-red-700 shadow-md shadow-red-200' : 'bg-green-600 text-white border-green-700 shadow-md shadow-green-200')
                           : dimmed
@@ -4190,7 +4155,7 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
               {/* Reverse options */}
               <div className="grid grid-cols-2 gap-1.5 mt-1.5">
                 <button onClick={onReverse3}
-                  className={'rounded-xl px-3 py-2 text-base font-display font-semibold border-2 transition-all active:scale-95 flex items-center justify-center gap-1 ' + (
+                  className={'rounded-xl px-3 py-2 text-sm font-display font-semibold border-2 transition-all active:scale-95 flex items-center justify-center gap-1 ' + (
                     reverse3
                       ? 'bg-red-100 text-red-800 border-red-400'
                       : has2
@@ -4200,7 +4165,7 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
                   <Shuffle size={11}/>{reverse3 && '✓ '}กลับ 3 ตัว
                 </button>
                 <button onClick={onReverse2}
-                  className={'rounded-xl px-3 py-2 text-base font-display font-semibold border-2 transition-all active:scale-95 flex items-center justify-center gap-1 ' + (
+                  className={'rounded-xl px-3 py-2 text-sm font-display font-semibold border-2 transition-all active:scale-95 flex items-center justify-center gap-1 ' + (
                     reverse2
                       ? 'bg-green-100 text-green-800 border-green-400'
                       : has3
@@ -4214,7 +4179,7 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
 
             {/* Number input */}
             <div>
-              <div className="text-base uppercase tracking-[0.2em] text-stone-700 font-display font-semibold mb-2">
+              <div className="text-sm uppercase tracking-[0.2em] text-stone-700 font-display font-semibold mb-2">
                 ระบุตัวเลข {digitsNeeded ? digitsNeeded + ' หลัก' : ''}
               </div>
               <div className="flex items-center gap-2">
@@ -4224,7 +4189,7 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
                   disabled={!digitsNeeded}
                   className="flex-1 min-w-0 bg-white rounded-xl px-3 py-3 outline-none font-numeric text-3xl font-black text-orange-900 text-center tracking-[0.2em] border-2 border-orange-300 placeholder-orange-200 disabled:bg-gray-100 disabled:placeholder-gray-300"/>
                 <button onClick={addCap} disabled={!num || (digitsNeeded && num.length !== digitsNeeded)}
-                  className="flex-shrink-0 py-3 px-5 rounded-xl bg-orange-600 text-white font-display text-lg font-bold border-2 border-orange-700 active:scale-95 disabled:opacity-40 flex items-center gap-1"
+                  className="flex-shrink-0 py-3 px-5 rounded-xl bg-orange-600 text-white font-display text-base font-bold border-2 border-orange-700 active:scale-95 disabled:opacity-40 flex items-center gap-1"
                   style={{ boxShadow: '0 4px 8px rgba(234,88,12,0.3)' }}>
                   <Plus size={16} strokeWidth={3}/> อั้น
                 </button>
@@ -4233,10 +4198,10 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
               {/* Preview when reverse is on */}
               {previewNumbers.length > 1 && (
                 <div className="mt-2 bg-white rounded-lg px-2.5 py-2 border border-orange-200">
-                  <div className="text-base uppercase tracking-wider text-orange-700 font-display font-semibold mb-1">จะอั้น {previewNumbers.length} เลข</div>
+                  <div className="text-sm uppercase tracking-wider text-orange-700 font-display font-semibold mb-1">จะอั้น {previewNumbers.length} เลข</div>
                   <div className="flex flex-wrap gap-1">
                     {previewNumbers.map(n => (
-                      <span key={n} className="bg-orange-50 border border-orange-200 rounded px-2 py-0.5 font-numeric text-lg font-bold text-orange-800">{n}</span>
+                      <span key={n} className="bg-orange-50 border border-orange-200 rounded px-2 py-0.5 font-numeric text-base font-bold text-orange-800">{n}</span>
                     ))}
                   </div>
                 </div>
@@ -4248,16 +4213,16 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
           {capsByType.length > 0 ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <div className="text-lg font-display font-bold text-orange-900">
-                  เลขที่อั้นไว้ <span className="text-base font-semibold text-stone-500">({currentCaps.length})</span>
+                <div className="text-base font-display font-bold text-orange-900">
+                  เลขที่อั้นไว้ <span className="text-sm font-semibold text-stone-500">({currentCaps.length})</span>
                 </div>
-                <button onClick={removeAll} className="text-base text-red-600 font-display font-semibold flex items-center gap-1 active:scale-95 px-2 py-1 rounded-lg bg-red-50">
+                <button onClick={removeAll} className="text-sm text-red-600 font-display font-semibold flex items-center gap-1 active:scale-95 px-2 py-1 rounded-lg bg-red-50">
                   <Trash2 size={12}/> ลบทั้งหมด
                 </button>
               </div>
               {capsByType.map(group => (
                 <div key={group.type} className="bg-white rounded-xl border border-orange-200 p-2.5">
-                  <div className="text-base uppercase tracking-wider text-orange-700 font-display font-bold mb-2 flex items-center gap-1.5">
+                  <div className="text-sm uppercase tracking-wider text-orange-700 font-display font-bold mb-2 flex items-center gap-1.5">
                     <div className="w-1 h-3 rounded-full bg-orange-500"/>
                     {typeFullName(group.type)}
                     <span className="text-stone-500 font-numeric font-semibold">· {group.items.length}</span>
@@ -4266,7 +4231,7 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
                     {group.items.map(c => (
                       <div key={c.id}
                         className="bg-orange-100 border border-orange-300 rounded-lg pl-2.5 pr-1 py-1 flex items-center gap-1.5 active:scale-95 transition-transform">
-                        <span className="font-numeric font-bold text-orange-900 text-xl">{c.number}</span>
+                        <span className="font-numeric font-bold text-orange-900 text-lg">{c.number}</span>
                         <button onClick={() => removeCap(c)} className="text-orange-600 active:text-red-600 p-1 -ml-0.5">
                           <X size={13} strokeWidth={2.5}/>
                         </button>
@@ -4278,8 +4243,8 @@ function HalfPaySection({ lottery, drawDate, caps, setCaps, rates, toast }) {
             </div>
           ) : (
             <div className="text-center py-6 bg-stone-50 rounded-xl border border-dashed border-stone-200">
-              <div className="text-stone-400 text-base font-display">— ยังไม่ได้อั้นเลขใด —</div>
-              <div className="text-stone-300 text-base font-display mt-1">เลือกประเภท → ใส่เลข → กดอั้น</div>
+              <div className="text-stone-400 text-sm font-display">— ยังไม่ได้อั้นเลขใด —</div>
+              <div className="text-stone-300 text-sm font-display mt-1">เลือกประเภท → ใส่เลข → กดอั้น</div>
             </div>
           )}
         </div>
@@ -4384,7 +4349,7 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
   const lineText = useMemo(() => {
     if (forwardsSummary.length === 0) return '';
     const lines = [
-      '🎰 Royal 888',
+      '🎰 Lotto 888',
       '➡️ เลขส่งต่อ',
       `📋 ${lottery.name}`,
       `🗓 งวด ${formatDrawDateLong(drawDate)}`,
@@ -4406,7 +4371,7 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
     lines.push('');
     lines.push('━━━━━━━━━━━━━━━');
     lines.push(`💰 ยอดส่งต่อรวม ฿${fmt(totalForwarded)}`);
-    lines.push('#Royal888');
+    lines.push('#Lotto888');
     return lines.join('\n');
   }, [forwardsSummary, lottery.name, drawDate, totalForwarded]);
 
@@ -4437,18 +4402,18 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
     <div className="glass rounded-2xl p-4">
       <button onClick={() => setExpanded(e => !e)} className="w-full flex items-center gap-2 mb-3 text-left">
         <div className="w-1.5 h-5 rounded-full" style={{ background: 'linear-gradient(180deg, #0891b2 0%, #155e75 100%)' }}/>
-        <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">เลขส่งต่อเจ้ามือใหญ่</h2>
+        <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">เลขส่งต่อเจ้ามือใหญ่</h2>
         {hasAnyForward && (
-          <span className="text-base font-display font-semibold bg-cyan-100 text-cyan-800 border border-cyan-300 rounded-full px-2.5 py-0.5">
+          <span className="text-sm font-display font-semibold bg-cyan-100 text-cyan-800 border border-cyan-300 rounded-full px-2.5 py-0.5">
             {forwardsSummary.length}
           </span>
         )}
-        <span className="ml-auto text-cyan-700 text-xl font-bold">{expanded ? '▴' : '▾'}</span>
+        <span className="ml-auto text-cyan-700 text-lg font-bold">{expanded ? '▴' : '▾'}</span>
       </button>
 
       {expanded && (
         <div className="space-y-3">
-          <div className="text-base text-stone-600 font-display leading-relaxed">
+          <div className="text-sm text-stone-600 font-display leading-relaxed">
             ตั้งเพดานรับเข้าต่อเลข — ส่วนที่<strong>เกินเพดาน</strong>จะส่งต่อไปยังเจ้ามือใหญ่ <br/>
             <strong className="text-cyan-800">ลูกค้าไม่เห็น</strong> · โพยลูกค้าไม่เปลี่ยน · ใช้ดูภาระเสี่ยงของพี่จริงๆ
           </div>
@@ -4456,15 +4421,15 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
           {/* Mode tabs */}
           <div className="grid grid-cols-3 gap-1.5">
             <button onClick={() => setMode('view')}
-              className={'py-2 rounded-lg text-base font-display font-semibold border transition-all active:scale-95 ' + (
+              className={'py-2 rounded-lg text-sm font-display font-semibold border transition-all active:scale-95 ' + (
                 mode === 'view' ? 'bg-cyan-600 text-white border-cyan-700' : 'bg-white text-stone-700 border-stone-200'
               )}>📊 สรุป</button>
             <button onClick={() => setMode('default')}
-              className={'py-2 rounded-lg text-base font-display font-semibold border transition-all active:scale-95 ' + (
+              className={'py-2 rounded-lg text-sm font-display font-semibold border transition-all active:scale-95 ' + (
                 mode === 'default' ? 'bg-cyan-600 text-white border-cyan-700' : 'bg-white text-stone-700 border-stone-200'
               )}>⚙️ ทุกเลข</button>
             <button onClick={() => setMode('perCombo')}
-              className={'py-2 rounded-lg text-base font-display font-semibold border transition-all active:scale-95 ' + (
+              className={'py-2 rounded-lg text-sm font-display font-semibold border transition-all active:scale-95 ' + (
                 mode === 'perCombo' ? 'bg-cyan-600 text-white border-cyan-700' : 'bg-white text-stone-700 border-stone-200'
               )}>🎯 เฉพาะเลข</button>
           </div>
@@ -4474,7 +4439,7 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
             <>
               {/* Current default */}
               {hasDefault && (
-                <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-3 text-base font-display text-stone-700 flex items-center justify-between">
+                <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-3 text-sm font-display text-stone-700 flex items-center justify-between">
                   <div>
                     <span className="font-bold text-cyan-800">เพดานเริ่มต้น: </span>
                     {forwardSettings?.defaultMaxKeep3D > 0 && <>3 ตัว ฿{fmt(forwardSettings.defaultMaxKeep3D)}</>}
@@ -4489,16 +4454,16 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
                   {/* Summary numbers */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className="rounded-xl p-2.5 bg-stone-50 border border-stone-200">
-                      <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">รับเข้า</div>
-                      <div className="font-numeric text-lg font-bold text-stone-700 mt-0.5">฿{fmt(totalIntake)}</div>
+                      <div className="text-sm uppercase tracking-wider text-stone-600 font-display font-semibold">รับเข้า</div>
+                      <div className="font-numeric text-base font-bold text-stone-700 mt-0.5">฿{fmt(totalIntake)}</div>
                     </div>
                     <div className="rounded-xl p-2.5 bg-green-50 border border-green-200">
-                      <div className="text-base uppercase tracking-wider text-green-700 font-display font-semibold">พี่เก็บ</div>
-                      <div className="font-numeric text-lg font-bold text-green-700 mt-0.5">฿{fmt(totalKept)}</div>
+                      <div className="text-sm uppercase tracking-wider text-green-700 font-display font-semibold">พี่เก็บ</div>
+                      <div className="font-numeric text-base font-bold text-green-700 mt-0.5">฿{fmt(totalKept)}</div>
                     </div>
                     <div className="rounded-xl p-2.5 bg-cyan-50 border border-cyan-300">
-                      <div className="text-base uppercase tracking-wider text-cyan-700 font-display font-semibold">ส่งต่อ</div>
-                      <div className="font-numeric text-lg font-bold text-cyan-700 mt-0.5">฿{fmt(totalForwarded)}</div>
+                      <div className="text-sm uppercase tracking-wider text-cyan-700 font-display font-semibold">ส่งต่อ</div>
+                      <div className="font-numeric text-base font-bold text-cyan-700 mt-0.5">฿{fmt(totalForwarded)}</div>
                     </div>
                   </div>
 
@@ -4507,21 +4472,21 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
                     {forwardsSummary.map(f => (
                       <div key={f.type+f.number} className="bg-cyan-50 border border-cyan-200 rounded-lg px-2.5 py-2 flex items-center gap-2">
                         <div className="flex-shrink-0">
-                          <div className="font-numeric font-bold text-cyan-900 text-xl leading-none">{f.number}</div>
-                          <div className="text-base text-cyan-700 font-display uppercase mt-0.5">{typeShort(f.type)}</div>
+                          <div className="font-numeric font-bold text-cyan-900 text-lg leading-none">{f.number}</div>
+                          <div className="text-sm text-cyan-700 font-display uppercase mt-0.5">{typeShort(f.type)}</div>
                         </div>
                         <div className="flex-1 min-w-0 grid grid-cols-3 gap-1 text-center">
                           <div>
-                            <div className="text-base text-stone-500 font-display">รับ</div>
-                            <div className="font-numeric text-base font-semibold text-stone-700">฿{fmt(f.intake)}</div>
+                            <div className="text-sm text-stone-500 font-display">รับ</div>
+                            <div className="font-numeric text-sm font-semibold text-stone-700">฿{fmt(f.intake)}</div>
                           </div>
                           <div>
-                            <div className="text-base text-green-600 font-display">เก็บ</div>
-                            <div className="font-numeric text-base font-semibold text-green-700">฿{fmt(f.kept)}</div>
+                            <div className="text-sm text-green-600 font-display">เก็บ</div>
+                            <div className="font-numeric text-sm font-semibold text-green-700">฿{fmt(f.kept)}</div>
                           </div>
                           <div>
-                            <div className="text-base text-cyan-600 font-display">ส่ง</div>
-                            <div className="font-numeric text-base font-bold text-cyan-700">฿{fmt(f.forwarded)}</div>
+                            <div className="text-sm text-cyan-600 font-display">ส่ง</div>
+                            <div className="font-numeric text-sm font-bold text-cyan-700">฿{fmt(f.forwarded)}</div>
                           </div>
                         </div>
                       </div>
@@ -4531,12 +4496,12 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
                   {/* Share buttons */}
                   <div className="grid grid-cols-2 gap-2">
                     <button onClick={copy}
-                      className="py-2.5 rounded-xl bg-white border border-cyan-300 text-cyan-700 font-display text-base tracking-wider flex items-center justify-center gap-1.5 active:scale-95">
+                      className="py-2.5 rounded-xl bg-white border border-cyan-300 text-cyan-700 font-display text-sm tracking-wider flex items-center justify-center gap-1.5 active:scale-95">
                       {copied ? <Check size={13} strokeWidth={3}/> : <Copy size={13}/>}
                       คัดลอก
                     </button>
                     <button onClick={share}
-                      className="py-2.5 rounded-xl font-display text-base tracking-wider flex items-center justify-center gap-1.5 active:scale-95 text-white font-semibold"
+                      className="py-2.5 rounded-xl font-display text-sm tracking-wider flex items-center justify-center gap-1.5 active:scale-95 text-white font-semibold"
                       style={{ background: 'linear-gradient(180deg, #0891b2 0%, #155e75 100%)' }}>
                       <Share2 size={13} strokeWidth={3}/>
                       ส่ง LINE
@@ -4545,14 +4510,14 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
 
                   {/* Preview */}
                   <details className="bg-stone-50 rounded-lg">
-                    <summary className="cursor-pointer px-3 py-2 text-base text-stone-500 font-display tracking-wider uppercase">ดูข้อความที่จะส่ง</summary>
-                    <div className="px-3 pb-3 pt-1 font-numeric text-base text-stone-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">{lineText}</div>
+                    <summary className="cursor-pointer px-3 py-2 text-sm text-stone-500 font-display tracking-wider uppercase">ดูข้อความที่จะส่ง</summary>
+                    <div className="px-3 pb-3 pt-1 font-numeric text-sm text-stone-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">{lineText}</div>
                   </details>
                 </>
               ) : (
                 <div className="text-center py-6 bg-stone-50 rounded-xl border border-dashed border-stone-200">
-                  <div className="text-stone-400 text-base font-display">— ยังไม่มีเลขที่ต้องส่งต่อ —</div>
-                  <div className="text-stone-300 text-base font-display mt-1">ตั้งเพดานในแท็บ "ทุกเลข" หรือ "เฉพาะเลข"</div>
+                  <div className="text-stone-400 text-sm font-display">— ยังไม่มีเลขที่ต้องส่งต่อ —</div>
+                  <div className="text-stone-300 text-sm font-display mt-1">ตั้งเพดานในแท็บ "ทุกเลข" หรือ "เฉพาะเลข"</div>
                 </div>
               )}
             </>
@@ -4561,36 +4526,36 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
           {/* === DEFAULT mode === */}
           {mode === 'default' && (
             <>
-              <div className="text-base text-stone-500 font-display">
+              <div className="text-sm text-stone-500 font-display">
                 ตั้งครั้งเดียวใช้กับทุกเลข — ถ้ามียอดเกิน ระบบจะส่งส่วนเกินต่ออัตโนมัติ
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="num-tile rounded-xl p-3">
-                  <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold mb-2">เพดาน 3 ตัว</div>
+                  <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold mb-2">เพดาน 3 ตัว</div>
                   <div className="flex items-center gap-1">
                     <input type="number" inputMode="decimal" value={def3D}
                       onChange={e => setDef3D(e.target.value)} placeholder="500"
                       className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2.5 outline-none font-numeric text-2xl font-bold text-red-700 text-right border border-red-200"/>
-                    <span className="text-base text-red-400 font-display flex-shrink-0">บ.</span>
+                    <span className="text-sm text-red-400 font-display flex-shrink-0">บ.</span>
                   </div>
                 </div>
                 <div className="rounded-xl p-3 bg-gradient-to-br from-green-50 to-white border border-green-200">
-                  <div className="text-base uppercase tracking-wider text-green-700 font-display font-semibold mb-2">เพดาน 2 ตัว</div>
+                  <div className="text-sm uppercase tracking-wider text-green-700 font-display font-semibold mb-2">เพดาน 2 ตัว</div>
                   <div className="flex items-center gap-1">
                     <input type="number" inputMode="decimal" value={def2D}
                       onChange={e => setDef2D(e.target.value)} placeholder="300"
                       className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2.5 outline-none font-numeric text-2xl font-bold text-green-700 text-right border border-green-200"/>
-                    <span className="text-base text-green-400 font-display flex-shrink-0">บ.</span>
+                    <span className="text-sm text-green-400 font-display flex-shrink-0">บ.</span>
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={clearDefaults}
-                  className="py-3 rounded-xl bg-white border border-stone-300 text-stone-600 font-display text-lg font-semibold active:scale-95">
+                  className="py-3 rounded-xl bg-white border border-stone-300 text-stone-600 font-display text-base font-semibold active:scale-95">
                   ยกเลิก
                 </button>
                 <button onClick={saveDefaults}
-                  className="py-3 rounded-xl text-white font-display text-lg font-semibold tracking-wide active:scale-95"
+                  className="py-3 rounded-xl text-white font-display text-base font-semibold tracking-wide active:scale-95"
                   style={{ background: 'linear-gradient(180deg, #0891b2 0%, #155e75 100%)' }}>
                   บันทึกเพดาน
                 </button>
@@ -4601,7 +4566,7 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
           {/* === PER-COMBO mode === */}
           {mode === 'perCombo' && (
             <>
-              <div className="text-base text-stone-500 font-display">
+              <div className="text-sm text-stone-500 font-display">
                 ตั้งเพดานเฉพาะเลข — override เพดานเริ่มต้น
               </div>
 
@@ -4620,7 +4585,7 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
                       const active = overrideType === opt.k;
                       return (
                         <button key={opt.k} onClick={() => { setOverrideType(opt.k); setOverrideNum(''); }}
-                          className={'rounded-lg px-2 py-2 text-base font-display font-semibold border transition-all active:scale-95 ' + (
+                          className={'rounded-lg px-2 py-2 text-sm font-display font-semibold border transition-all active:scale-95 ' + (
                             active ? 'bg-cyan-600 text-white border-cyan-700' : 'bg-white text-stone-700 border-stone-200'
                           )}>
                           {active && '✓ '}{opt.label}
@@ -4634,12 +4599,12 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
                     onChange={e => setOverrideNum(e.target.value.replace(/\D/g, '').slice(0, (overrideType === '2บน' || overrideType === '2ล่าง') ? 2 : 3))}
                     placeholder={overrideType ? '0'.repeat((overrideType === '2บน' || overrideType === '2ล่าง') ? 2 : 3) : '?'}
                     disabled={!overrideType}
-                    className="bg-white rounded-lg px-2 py-2.5 outline-none font-numeric text-2xl font-bold text-stone-900 text-center tracking-widest border border-stone-300 disabled:bg-gray-100"/>
+                    className="bg-white rounded-lg px-2 py-2.5 outline-none font-numeric text-xl font-bold text-stone-900 text-center tracking-widest border border-stone-300 disabled:bg-gray-100"/>
                   <input type="number" inputMode="decimal" value={overrideMax}
                     onChange={e => setOverrideMax(e.target.value)} placeholder="เพดาน"
-                    className="bg-white rounded-lg px-2 py-2.5 outline-none font-numeric text-lg font-bold text-cyan-700 text-right border border-stone-300"/>
+                    className="bg-white rounded-lg px-2 py-2.5 outline-none font-numeric text-base font-bold text-cyan-700 text-right border border-stone-300"/>
                   <button onClick={addOverride}
-                    className="rounded-lg px-2 py-2 text-base font-display font-semibold text-white border active:scale-95"
+                    className="rounded-lg px-2 py-2 text-sm font-display font-semibold text-white border active:scale-95"
                     style={{ background: 'linear-gradient(180deg, #0891b2 0%, #155e75 100%)', borderColor: '#155e75' }}>
                     + เพิ่ม
                   </button>
@@ -4650,18 +4615,18 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
               {currentOverrides.length > 0 ? (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-base font-display font-bold text-cyan-900">เพดานเฉพาะเลข ({currentOverrides.length})</div>
-                    <button onClick={clearAllOverrides} className="text-base text-red-600 font-display font-semibold flex items-center gap-1 active:scale-95">
+                    <div className="text-sm font-display font-bold text-cyan-900">เพดานเฉพาะเลข ({currentOverrides.length})</div>
+                    <button onClick={clearAllOverrides} className="text-sm text-red-600 font-display font-semibold flex items-center gap-1 active:scale-95">
                       <Trash2 size={11}/> ลบทั้งหมด
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {currentOverrides.map(o => (
                       <div key={o.id} className="bg-cyan-100 border border-cyan-300 rounded-lg pl-2.5 pr-1 py-1 flex items-center gap-1.5">
-                        <span className="font-numeric font-bold text-cyan-900 text-lg">{o.number}</span>
-                        <span className="text-base font-display text-cyan-700">{typeShort(o.type)}</span>
-                        <span className="text-base font-display text-stone-500">→</span>
-                        <span className="font-numeric font-bold text-cyan-800 text-base">฿{fmt(o.maxKeep)}</span>
+                        <span className="font-numeric font-bold text-cyan-900 text-base">{o.number}</span>
+                        <span className="text-sm font-display text-cyan-700">{typeShort(o.type)}</span>
+                        <span className="text-sm font-display text-stone-500">→</span>
+                        <span className="font-numeric font-bold text-cyan-800 text-sm">฿{fmt(o.maxKeep)}</span>
                         <button onClick={() => removeOverride(o.id)} className="text-cyan-500 active:text-red-600 p-1">
                           <X size={11} strokeWidth={2.5}/>
                         </button>
@@ -4670,7 +4635,7 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-3 text-stone-400 text-base font-display">— ยังไม่มีเพดานเฉพาะเลข —</div>
+                <div className="text-center py-3 text-stone-400 text-sm font-display">— ยังไม่มีเพดานเฉพาะเลข —</div>
               )}
             </>
           )}
@@ -4759,30 +4724,30 @@ function CutsSection({ lottery, drawDate, cuts, onRemove, onClearAll, toast }) {
     <div className="glass rounded-2xl p-4">
       <button onClick={() => setExpanded(e => !e)} className="w-full flex items-center gap-2 mb-3 text-left">
         <div className="w-1.5 h-5 rounded-full" style={{ background: 'linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%)' }}/>
-        <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">เลขที่ตัด/ลดออก</h2>
-        <span className="text-base font-display font-semibold bg-red-100 text-red-800 border border-red-300 rounded-full px-2.5 py-0.5">
+        <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">เลขที่ตัด/ลดออก</h2>
+        <span className="text-sm font-display font-semibold bg-red-100 text-red-800 border border-red-300 rounded-full px-2.5 py-0.5">
           {grouped.length}
         </span>
-        <span className="ml-auto text-red-700 text-xl font-bold">{expanded ? '▴' : '▾'}</span>
+        <span className="ml-auto text-red-700 text-lg font-bold">{expanded ? '▴' : '▾'}</span>
       </button>
 
       {expanded && (
         cuts.length === 0 ? (
           <div className="text-center py-6 bg-stone-50 rounded-xl border border-dashed border-stone-200">
-            <div className="text-stone-400 text-base font-display">— ยังไม่ได้ตัดเลขใด —</div>
-            <div className="text-stone-300 text-base font-display mt-1">ตัด/ลดเลขจาก "สรุปทุกโพย" ด้านล่าง</div>
+            <div className="text-stone-400 text-sm font-display">— ยังไม่ได้ตัดเลขใด —</div>
+            <div className="text-stone-300 text-sm font-display mt-1">ตัด/ลดเลขจาก "สรุปทุกโพย" ด้านล่าง</div>
           </div>
         ) : (
           <div className="space-y-3">
             {/* Summary */}
             <div className="grid grid-cols-2 gap-2">
               <div className="num-tile rounded-xl p-3">
-                <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">ตัดออก/ลด</div>
-                <div className="font-numeric text-2xl font-bold gold-text mt-1">฿{fmt(totalAmount)}</div>
+                <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">ตัดออก/ลด</div>
+                <div className="font-numeric text-xl font-bold gold-text mt-1">฿{fmt(totalAmount)}</div>
               </div>
               <div className="rounded-xl p-3 bg-red-50 border border-red-200">
-                <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">รายการ</div>
-                <div className="font-numeric text-2xl font-bold text-red-700 mt-1">{totalCount}</div>
+                <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">รายการ</div>
+                <div className="font-numeric text-xl font-bold text-red-700 mt-1">{totalCount}</div>
               </div>
             </div>
 
@@ -4790,7 +4755,7 @@ function CutsSection({ lottery, drawDate, cuts, onRemove, onClearAll, toast }) {
             <div className="space-y-2">
               {byType.map(([type, items]) => (
                 <div key={type} className="bg-white rounded-xl border border-red-200 p-2.5">
-                  <div className="text-base uppercase tracking-wider text-red-700 font-display font-bold mb-2 flex items-center gap-1.5">
+                  <div className="text-sm uppercase tracking-wider text-red-700 font-display font-bold mb-2 flex items-center gap-1.5">
                     <div className="w-1 h-3 rounded-full bg-red-500"/>
                     {typeFullName(type)}
                     <span className="text-stone-500 font-numeric font-semibold">· {items.length} เลข</span>
@@ -4802,15 +4767,15 @@ function CutsSection({ lottery, drawDate, cuts, onRemove, onClearAll, toast }) {
                       return (
                         <div key={item.type + item.number}
                           className="bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5 flex items-center gap-2">
-                          <div className="font-numeric font-bold text-red-900 text-xl flex-shrink-0">{item.number}</div>
+                          <div className="font-numeric font-bold text-red-900 text-lg flex-shrink-0">{item.number}</div>
                           <div className="flex-1 min-w-0">
-                            <div className="font-numeric text-lg font-semibold text-red-800">฿{fmt(item.amount)}</div>
-                            <div className="text-base text-stone-600 font-display flex items-center gap-1 flex-wrap">
+                            <div className="font-numeric text-base font-semibold text-red-800">฿{fmt(item.amount)}</div>
+                            <div className="text-sm text-stone-600 font-display flex items-center gap-1 flex-wrap">
                               {isCap
-                                ? <span className="bg-amber-100 text-amber-800 rounded px-1.5 py-0.5 text-base font-semibold">📏 จำกัด ฿{fmt(item.capToLatest)}</span>
+                                ? <span className="bg-amber-100 text-amber-800 rounded px-1.5 py-0.5 text-sm font-semibold">📏 จำกัด ฿{fmt(item.capToLatest)}</span>
                                 : isReduce
-                                  ? <span className="bg-amber-100 text-amber-800 rounded px-1.5 py-0.5 text-base font-semibold">📉 เหลือ {item.reduceLatest}%</span>
-                                  : <span className="bg-red-100 text-red-800 rounded px-1.5 py-0.5 text-base font-semibold">✂ ตัดทิ้ง</span>}
+                                  ? <span className="bg-amber-100 text-amber-800 rounded px-1.5 py-0.5 text-sm font-semibold">📉 เหลือ {item.reduceLatest}%</span>
+                                  : <span className="bg-red-100 text-red-800 rounded px-1.5 py-0.5 text-sm font-semibold">✂ ตัดทิ้ง</span>}
                               <span>{item.count} โพย</span>
                             </div>
                           </div>
@@ -4825,17 +4790,17 @@ function CutsSection({ lottery, drawDate, cuts, onRemove, onClearAll, toast }) {
             {/* Actions */}
             <div className="grid grid-cols-3 gap-2">
               <button onClick={copy}
-                className="py-2.5 rounded-xl bg-white border border-red-300 text-red-700 font-display text-base tracking-wider flex items-center justify-center gap-1.5 active:scale-95">
+                className="py-2.5 rounded-xl bg-white border border-red-300 text-red-700 font-display text-sm tracking-wider flex items-center justify-center gap-1.5 active:scale-95">
                 {copied ? <Check size={13} strokeWidth={3}/> : <Copy size={13}/>}
                 {copied ? 'คัดลอก' : 'คัดลอก'}
               </button>
               <button onClick={shareApi}
-                className="py-2.5 rounded-xl btn-premium font-display text-base tracking-wider flex items-center justify-center gap-1.5 active:scale-95">
+                className="py-2.5 rounded-xl btn-premium font-display text-sm tracking-wider flex items-center justify-center gap-1.5 active:scale-95">
                 <Share2 size={13} strokeWidth={3}/>
                 ส่ง LINE
               </button>
               <button onClick={onClearAll}
-                className="py-2.5 rounded-xl bg-stone-100 text-stone-600 font-display text-base tracking-wider border border-stone-300 flex items-center justify-center gap-1.5 active:scale-95">
+                className="py-2.5 rounded-xl bg-stone-100 text-stone-600 font-display text-sm tracking-wider border border-stone-300 flex items-center justify-center gap-1.5 active:scale-95">
                 <Trash2 size={13}/>
                 ล้าง
               </button>
@@ -4843,8 +4808,8 @@ function CutsSection({ lottery, drawDate, cuts, onRemove, onClearAll, toast }) {
 
             {/* Preview text */}
             <details className="bg-stone-50 rounded-lg">
-              <summary className="cursor-pointer px-3 py-2 text-base text-stone-500 font-display tracking-wider uppercase">ดูข้อความที่จะส่ง</summary>
-              <div className="px-3 pb-3 pt-1 font-numeric text-base text-stone-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">{text}</div>
+              <summary className="cursor-pointer px-3 py-2 text-sm text-stone-500 font-display tracking-wider uppercase">ดูข้อความที่จะส่ง</summary>
+              <div className="px-3 pb-3 pt-1 font-numeric text-sm text-stone-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">{text}</div>
             </details>
           </div>
         )
@@ -4857,8 +4822,8 @@ function SimRow({ label, value }) {
   if (!value) return null;
   return (
     <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-1.5">
-      <span className="text-base text-gray-600 font-display">{label}</span>
-      <span className="font-numeric text-lg font-semibold text-red-600">฿{fmt(value)}</span>
+      <span className="text-sm text-gray-600 font-display">{label}</span>
+      <span className="font-numeric text-base font-semibold text-red-600">฿{fmt(value)}</span>
     </div>
   );
 }
@@ -4877,7 +4842,7 @@ function PickTab({ lottery, draws }) {
           const Ic = t.icon;
           return (
             <button key={t.id} onClick={() => setSubTab(t.id)}
-              className={`py-2 rounded-xl text-base font-display tracking-wide flex items-center justify-center gap-1.5 ${
+              className={`py-2 rounded-xl text-sm font-display tracking-wide flex items-center justify-center gap-1.5 ${
                 subTab === t.id ? 'bg-red-100 text-gray-800' : 'text-gray-400'
               }`}><Ic size={13}/> {t.label}</button>
           );
@@ -4914,17 +4879,17 @@ function FrequencyView({ draws, lottery }) {
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Flame size={14} className="text-red-500"/>
-          <h3 className="font-display text-xl font-bold tracking-wide text-stone-900">เลขเด่นบ่อย</h3>
-          <span className="text-base text-gray-400 font-display ml-auto">{data.totalDraws} งวด</span>
+          <h3 className="font-display text-lg font-bold tracking-wide text-stone-900">เลขเด่นบ่อย</h3>
+          <span className="text-sm text-gray-400 font-display ml-auto">{data.totalDraws} งวด</span>
         </div>
         {data.hot2.length === 0 ? (
-          <div className="text-center py-4 text-gray-300 text-base">ยังไม่มีข้อมูล</div>
+          <div className="text-center py-4 text-gray-300 text-sm">ยังไม่มีข้อมูล</div>
         ) : (
           <div className="grid grid-cols-4 gap-2">
             {data.hot2.map(([n, c]) => (
               <div key={n} className="num-tile rounded-lg p-2 text-center">
-                <div className="font-numeric text-xl font-bold gold-text">{n}</div>
-                <div className="text-base text-gray-500 font-display">{c}×</div>
+                <div className="font-numeric text-lg font-bold gold-text">{n}</div>
+                <div className="text-sm text-gray-500 font-display">{c}×</div>
               </div>
             ))}
           </div>
@@ -4933,13 +4898,13 @@ function FrequencyView({ draws, lottery }) {
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Snowflake size={14} className="text-green-500"/>
-          <h3 className="font-display text-xl font-bold tracking-wide text-stone-900">เลขเย็น</h3>
+          <h3 className="font-display text-lg font-bold tracking-wide text-stone-900">เลขเย็น</h3>
         </div>
         <div className="grid grid-cols-4 gap-2">
           {data.cold2.map(n => (
             <div key={n} className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
-              <div className="font-numeric text-xl font-bold text-green-600">{n}</div>
-              <div className="text-base text-green-400 font-display">0×</div>
+              <div className="font-numeric text-lg font-bold text-green-600">{n}</div>
+              <div className="text-sm text-green-400 font-display">0×</div>
             </div>
           ))}
         </div>
@@ -4965,34 +4930,34 @@ function RandomGen() {
     <div className="glass rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <Shuffle size={14} className="text-red-500"/>
-        <h3 className="font-display text-xl font-bold tracking-wide text-stone-900">สุ่มเลข</h3>
+        <h3 className="font-display text-lg font-bold tracking-wide text-stone-900">สุ่มเลข</h3>
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="num-tile rounded-lg p-2.5">
-          <div className="text-base uppercase text-red-500 font-display">จำนวน</div>
+          <div className="text-sm uppercase text-red-500 font-display">จำนวน</div>
           <input type="number" value={count} onChange={e=>setCount(parseInt(e.target.value)||1)}
-            className="w-full bg-transparent outline-none font-numeric text-2xl font-bold text-gray-900 mt-1"/>
+            className="w-full bg-transparent outline-none font-numeric text-xl font-bold text-gray-900 mt-1"/>
         </div>
         <div className="num-tile rounded-lg p-2.5">
-          <div className="text-base uppercase text-red-500 font-display">หลัก</div>
+          <div className="text-sm uppercase text-red-500 font-display">หลัก</div>
           <div className="flex gap-1 mt-1">
             {[2,3].map(d => (
               <button key={d} onClick={()=>setDigits(d)}
-                className={`flex-1 py-1 rounded-md text-base font-display ${
+                className={`flex-1 py-1 rounded-md text-sm font-display ${
                   digits === d ? 'bg-red-100 text-gray-800' : 'text-gray-400 border border-gray-300'
                 }`}>{d}</button>
             ))}
           </div>
         </div>
       </div>
-      <button onClick={roll} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold font-display text-lg tracking-wider flex items-center justify-center gap-2 mb-3">
+      <button onClick={roll} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold font-display text-base tracking-wider flex items-center justify-center gap-2 mb-3">
         <RotateCcw size={14} strokeWidth={3}/> สุ่ม
       </button>
       {gen.length > 0 && (
         <div className="grid grid-cols-4 gap-2">
           {gen.map((n,i) => (
             <div key={i} className="num-tile rounded-lg py-2 text-center">
-              <div className="font-numeric text-xl font-bold gold-text">{n}</div>
+              <div className="font-numeric text-lg font-bold gold-text">{n}</div>
             </div>
           ))}
         </div>
@@ -5023,20 +4988,20 @@ function ToolsView() {
       <ToolRow title="บวกหา 2 ตัว / 3 ตัว" icon={Plus}>
         <div className="flex items-center gap-2 min-w-0">
           <input type="number" inputMode="numeric" value={num1} onChange={e=>setNum1(e.target.value)} placeholder="A"
-            className="flex-1 min-w-0 bg-white rounded-lg px-2 py-2 outline-none font-numeric text-xl font-bold text-gray-900 text-center border border-gray-200"/>
-          <span className="text-red-400 text-2xl flex-shrink-0">+</span>
+            className="flex-1 min-w-0 bg-white rounded-lg px-2 py-2 outline-none font-numeric text-lg font-bold text-gray-900 text-center border border-gray-200"/>
+          <span className="text-red-400 text-xl flex-shrink-0">+</span>
           <input type="number" inputMode="numeric" value={num2} onChange={e=>setNum2(e.target.value)} placeholder="B"
-            className="flex-1 min-w-0 bg-white rounded-lg px-2 py-2 outline-none font-numeric text-xl font-bold text-gray-900 text-center border border-gray-200"/>
+            className="flex-1 min-w-0 bg-white rounded-lg px-2 py-2 outline-none font-numeric text-lg font-bold text-gray-900 text-center border border-gray-200"/>
         </div>
         {sum && (
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="num-tile rounded-lg p-2 text-center">
-              <div className="text-base uppercase text-red-500 font-display">2 ตัวล่าง</div>
-              <div className="font-numeric text-2xl font-bold gold-text">{sum.last2}</div>
+              <div className="text-sm uppercase text-red-500 font-display">2 ตัวล่าง</div>
+              <div className="font-numeric text-xl font-bold gold-text">{sum.last2}</div>
             </div>
             <div className="num-tile rounded-lg p-2 text-center">
-              <div className="text-base uppercase text-red-500 font-display">3 ตัวบน</div>
-              <div className="font-numeric text-2xl font-bold gold-text">{sum.last3}</div>
+              <div className="text-sm uppercase text-red-500 font-display">3 ตัวบน</div>
+              <div className="font-numeric text-xl font-bold gold-text">{sum.last3}</div>
             </div>
           </div>
         )}
@@ -5044,12 +5009,12 @@ function ToolsView() {
       <ToolRow title="กลับเลข 3 ตัว (โต๊ด)" icon={RotateCcw}>
         <input type="tel" inputMode="numeric" value={revInput}
           onChange={e=>setRevInput(e.target.value.replace(/\D/g,'').slice(0,3))} placeholder="000"
-          className="w-full bg-white rounded-lg px-3 py-2 outline-none font-numeric text-2xl font-bold gold-text text-center tracking-widest border border-gray-200"/>
+          className="w-full bg-white rounded-lg px-3 py-2 outline-none font-numeric text-xl font-bold gold-text text-center tracking-widest border border-gray-200"/>
         {reverses.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mt-3">
             {reverses.map(n => (
               <div key={n} className="num-tile rounded-lg py-2 text-center">
-                <div className="font-numeric text-xl font-bold gold-text">{n}</div>
+                <div className="font-numeric text-lg font-bold gold-text">{n}</div>
               </div>
             ))}
           </div>
@@ -5064,7 +5029,7 @@ function ToolRow({ title, icon: Ic, children }) {
     <div className="glass rounded-2xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <Ic size={14} className="text-red-500"/>
-        <h3 className="font-display text-xl font-bold tracking-wide text-stone-900">{title}</h3>
+        <h3 className="font-display text-lg font-bold tracking-wide text-stone-900">{title}</h3>
       </div>
       {children}
     </div>
@@ -5233,31 +5198,31 @@ function ResultTab({ lottery, drawDate, draws, setDraws, currentDraw }) {
         <div className="glass-strong rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-1 h-4 bg-gradient-to-b from-red-500 to-red-700 rounded-full"/>
-            <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">ดึงผลจากกองสลาก</h2>
+            <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">ดึงผลจากกองสลาก</h2>
           </div>
-          <div className="text-base text-gray-500 font-display mb-3 leading-relaxed">
+          <div className="text-sm text-gray-500 font-display mb-3 leading-relaxed">
             ดึงผลรางวัลที่ 1 + เลขท้าย 2 ตัวอัตโนมัติ (รัฐบาลเท่านั้น · ออกทุก 1 และ 16)
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button onClick={fetchLatest} disabled={fetching}
-              className="py-2.5 rounded-xl bg-white border border-red-200 text-red-700 font-display text-lg tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-40">
+              className="py-2.5 rounded-xl bg-white border border-red-200 text-red-700 font-display text-base tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-40">
               {fetching ? <RefreshCw size={13} className="shimmer"/> : <Download size={13}/>}
               งวดล่าสุด
             </button>
             <button onClick={fetchSpecificDate} disabled={fetching}
-              className="py-2.5 rounded-xl bg-white border border-red-200 text-red-700 font-display text-lg tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-40">
+              className="py-2.5 rounded-xl bg-white border border-red-200 text-red-700 font-display text-base tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-40">
               {fetching ? <RefreshCw size={13} className="shimmer"/> : <Calendar size={13}/>}
               ตามวันที่
             </button>
           </div>
           {fetchError && (
-            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-2.5 text-base text-red-700 font-display flex items-start gap-2">
+            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-2.5 text-sm text-red-700 font-display flex items-start gap-2">
               <AlertCircle size={13} className="flex-shrink-0 mt-0.5"/>
               <div>{fetchError}</div>
             </div>
           )}
           {fetchedInfo && (
-            <div className={'mt-3 rounded-lg p-2.5 text-base font-display border ' + (fetchedInfo.matchesDraw ? 'bg-green-50 border-green-200 text-green-700' : 'bg-orange-50 border-orange-300 text-orange-700')}>
+            <div className={'mt-3 rounded-lg p-2.5 text-sm font-display border ' + (fetchedInfo.matchesDraw ? 'bg-green-50 border-green-200 text-green-700' : 'bg-orange-50 border-orange-300 text-orange-700')}>
               <div className="flex items-start gap-2">
                 {fetchedInfo.matchesDraw
                   ? <Check size={13} className="flex-shrink-0 mt-0.5" strokeWidth={3}/>
@@ -5278,13 +5243,13 @@ function ResultTab({ lottery, drawDate, draws, setDraws, currentDraw }) {
       <div className="glass-strong rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Trophy size={14} className="text-red-500"/>
-          <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">ใส่ผลรางวัล</h2>
-          <span className="text-base text-gray-400 font-display">{formatDate(drawDate)}</span>
+          <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">ใส่ผลรางวัล</h2>
+          <span className="text-sm text-gray-400 font-display">{formatDate(drawDate)}</span>
         </div>
         <div className="space-y-2">
           {lottery.types.map(t => (
             <div key={t} className="num-tile rounded-xl p-3 flex items-center gap-3">
-              <div className="text-base text-gray-600 font-display tracking-wider w-16">{t}</div>
+              <div className="text-sm text-gray-600 font-display tracking-wider w-16">{t}</div>
               <input type="tel" inputMode="numeric"
                 value={results[t] || ''}
                 onChange={e => setResults({ ...results, [t]: e.target.value.replace(/\D/g, '').slice(0, t.startsWith('3') ? 3 : 2) })}
@@ -5295,11 +5260,11 @@ function ResultTab({ lottery, drawDate, draws, setDraws, currentDraw }) {
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
           <button onClick={clear} disabled={!currentDraw}
-            className="py-2.5 rounded-xl bg-gray-100 text-red-700 font-display text-lg tracking-wider border border-red-200 disabled:opacity-30">
+            className="py-2.5 rounded-xl bg-gray-100 text-red-700 font-display text-base tracking-wider border border-red-200 disabled:opacity-30">
             ลบผล
           </button>
           <button onClick={save}
-            className="py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold font-display text-lg tracking-wider">บันทึก</button>
+            className="py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold font-display text-base tracking-wider">บันทึก</button>
         </div>
       </div>
     </div>
@@ -5339,29 +5304,29 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
       <div className="glass-strong rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 size={14} className="text-red-500"/>
-          <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">สรุปทั้งหมด</h2>
+          <h2 className="font-display text-lg font-bold tracking-wide text-stone-900">สรุปทั้งหมด</h2>
         </div>
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="num-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">{isSeller ? 'รับเข้า' : 'เงินซื้อ'}</div>
-            <div className="font-numeric text-2xl font-bold gold-text mt-1">฿{fmt(stats.totalIntake)}</div>
+            <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">{isSeller ? 'รับเข้า' : 'เงินซื้อ'}</div>
+            <div className="font-numeric text-xl font-bold gold-text mt-1">฿{fmt(stats.totalIntake)}</div>
           </div>
           <div className="num-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">{isSeller ? 'จ่ายออก' : 'เงินที่ได้'}</div>
-            <div className="font-numeric text-2xl font-bold text-red-600 mt-1">฿{fmt(stats.totalPayout)}</div>
+            <div className="text-sm uppercase tracking-wider text-red-700 font-display font-semibold">{isSeller ? 'จ่ายออก' : 'เงินที่ได้'}</div>
+            <div className="font-numeric text-xl font-bold text-red-600 mt-1">฿{fmt(stats.totalPayout)}</div>
           </div>
         </div>
         <div className={`rounded-xl p-3 border ${stats.profit >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-400'}`}>
-          <div className={`text-base uppercase tracking-widest font-display ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>กำไร/ขาดทุน</div>
+          <div className={`text-sm uppercase tracking-widest font-display ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>กำไร/ขาดทุน</div>
           <div className={`font-numeric text-2xl font-bold mt-1 ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{stats.profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(stats.profit))}</div>
-          <div className="text-base text-gray-500 mt-1 font-display">{stats.wonCount} / {stats.totalCount} โพยถูก</div>
+          <div className="text-sm text-gray-500 mt-1 font-display">{stats.wonCount} / {stats.totalCount} โพยถูก</div>
         </div>
       </div>
       {stats.byLottery.length > 0 && (
         <div className="glass rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <FileText size={14} className="text-red-500"/>
-            <h3 className="font-display text-xl font-bold tracking-wide text-stone-900">แยกตามหวย</h3>
+            <h3 className="font-display text-lg font-bold tracking-wide text-stone-900">แยกตามหวย</h3>
           </div>
           <div className="space-y-2">
             {stats.byLottery.map((l, i) => {
@@ -5369,10 +5334,10 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
               return (
                 <div key={i} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-base text-gray-900 font-display">{l.name}</span>
-                    <span className={`font-numeric text-lg font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(profit))}</span>
+                    <span className="text-sm text-gray-900 font-display">{l.name}</span>
+                    <span className={`font-numeric text-base font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(profit))}</span>
                   </div>
-                  <div className="flex items-center justify-between text-base text-gray-400 font-display">
+                  <div className="flex items-center justify-between text-sm text-gray-400 font-display">
                     <span>รับ ฿{fmt(l.intake)} · จ่าย ฿{fmt(l.payout)}</span>
                     <span>{l.won}/{l.total}</span>
                   </div>
@@ -5464,7 +5429,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
       console.log('[PWA] User choice:', result.outcome);
       deferredInstallPrompt = null;
       if (installBanner) { installBanner.remove(); installBanner = null; }
-    }, 'ติดตั้ง Royal 888 เป็นแอป — เปิดได้แม้ไม่มีเน็ต');
+    }, 'ติดตั้ง Lotto 888 เป็นแอป — เปิดได้แม้ไม่มีเน็ต');
   }, 3000);
 });
 
