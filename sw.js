@@ -1,5 +1,5 @@
-// Lotto 888 Service Worker v2
-const CACHE = 'lotto888-v2';
+// Royal 888 Service Worker v3 — Champagne edition
+const CACHE = 'royal888-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -27,8 +27,12 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     Promise.all([
+      // Delete ALL old caches (not just non-current)
       caches.keys().then(keys =>
-        Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+        Promise.all(keys.filter(k => k !== CACHE).map(k => {
+          console.log('[SW] Deleting old cache:', k);
+          return caches.delete(k);
+        }))
       ),
       self.clients.claim()
     ])
@@ -42,12 +46,26 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   const isCDN = CDN_PATTERNS.some(p => p.test(req.url));
   const isApp = url.origin === self.location.origin;
+  const isIcon = /icon.*\.png$/i.test(url.pathname) || url.pathname.endsWith('manifest.json');
 
   if (isApp || isCDN) {
+    // Network-first for icons + manifest — always grab latest
+    if (isIcon) {
+      e.respondWith(
+        fetch(req).then(resp => {
+          if (resp && resp.status === 200) {
+            const copy = resp.clone();
+            caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+          }
+          return resp;
+        }).catch(() => caches.match(req))
+      );
+      return;
+    }
+    // Cache-first for everything else (with background refresh)
     e.respondWith(
       caches.match(req).then(cached => {
         if (cached) {
-          // Refresh in background
           fetch(req).then(resp => {
             if (resp && resp.status === 200) {
               caches.open(CACHE).then(c => c.put(req, resp.clone())).catch(() => {});
