@@ -788,58 +788,99 @@ function computeScenarios(bets) {
   if (bets.length === 0) return { best: null, worst: null, intake: 0 };
   const totalIntake = bets.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
 
-  // Collect 3-digit candidates from bets (ตรง, โต๊ด, 2บน — derived 3-digit)
-  // Only check numbers that exist in the bet list. Each 3-digit number that someone bet on
-  // is a real risk scenario. Don't check 000-999 randomly.
+  // === 3-digit payout analysis ===
+  // For "worst case" (max payout), check all 3-digit numbers that someone bet on.
+  // For "best case" (min payout), if there's ANY 3-digit number not in bets, payout = 0.
+  // Since 1000 possible 3-digit numbers exist, and bets typically cover < 1000 unique,
+  // best case is almost always 0 — but we verify by checking coverage.
   const candidates3D = new Set();
   bets.forEach(b => {
     if (b.type === '3บน' || b.type === '3ตัว') {
       candidates3D.add(b.number);
     } else if (b.type === 'โต๊ด') {
-      // Toad bets cover all permutations
       getToadVariations(b.number).forEach(p => candidates3D.add(p));
     } else if (b.type === '2บน') {
-      // 2บน triggers on last 2 of 3-digit prize. We need to know which 3-digit prize
-      // could trigger this 2บน. Since we only test bets that exist, we can derive:
-      // any number ending in this 2-digit string. We'll skip exhaustive search here —
-      // because if no 3-digit bet exists for it, the worst case is just 2บน hit alone.
-      // To be safe, add at least one representative 3-digit ending with this 2บน.
+      // 2บน triggers on last 2 of 3-digit prize.
+      // Best case for 2บน: any number that does NOT end with this 2-digit.
+      // Just add one representative to compute worst case payout.
       candidates3D.add('0' + b.number);
     }
   });
 
-  let min3 = { num: null, pay: 0 };
   let max3 = { num: null, pay: 0 };
+  let min3 = { num: null, pay: 0 };  // Best case = 0 by default (if not all 3-digit covered)
+
   if (candidates3D.size > 0) {
-    min3 = { num: null, pay: Infinity };
-    max3 = { num: null, pay: -Infinity };
+    // Find worst case payout (max)
+    max3 = { num: null, pay: 0 };
     candidates3D.forEach(n => {
       const p = computePayoutFor3D(n, bets).total;
-      if (p < min3.pay) min3 = { num: n, pay: p };
       if (p > max3.pay) max3 = { num: n, pay: p };
     });
-    if (min3.pay === Infinity) min3 = { num: null, pay: 0 };
-    if (max3.pay === -Infinity) max3 = { num: null, pay: 0 };
+
+    // Find best case payout (min)
+    // First: check if any 3-digit number NOT in bets exists → those give payout 0
+    // Since 3-digit space is 000-999 (1000 numbers), if bets cover less than 1000 distinct combos,
+    // best case = 0
+    // Need to also account for "2บน" coverage — a number not ending in any 2บน will be safer
+    const all2BNs = new Set();
+    bets.forEach(b => { if (b.type === '2บน') all2BNs.add(b.number); });
+
+    // If we have less than 100 distinct 2บน + less than 1000 distinct 3-digit bets,
+    // there exists at least one 3-digit number that:
+    //   - is not in candidates3D AND last-2-digits not in all2BNs
+    //   - that's an "untouched" number → payout 0
+    // For practical purposes: just check candidates3D + look for non-matching
+    let foundZero = false;
+    // Quick check: scan some non-bet numbers
+    for (let i = 0; i < 1000 && !foundZero; i++) {
+      const n = i.toString().padStart(3, '0');
+      if (candidates3D.has(n)) continue;
+      const p = computePayoutFor3D(n, bets).total;
+      if (p === 0) { min3 = { num: n, pay: 0 }; foundZero = true; }
+    }
+    // Fallback: if all numbers happen to be in candidates3D, find minimum among them
+    if (!foundZero) {
+      min3 = { num: null, pay: Infinity };
+      candidates3D.forEach(n => {
+        const p = computePayoutFor3D(n, bets).total;
+        if (p < min3.pay) min3 = { num: n, pay: p };
+      });
+      if (min3.pay === Infinity) min3 = { num: null, pay: 0 };
+    }
   }
 
-  // 2 ล่าง — collect candidates from bets only
+  // === 2 ล่าง payout analysis ===
   const candidates2L = new Set();
-  bets.forEach(b => {
-    if (b.type === '2ล่าง') candidates2L.add(b.number);
-  });
+  bets.forEach(b => { if (b.type === '2ล่าง') candidates2L.add(b.number); });
 
-  let min2 = { num: null, pay: 0 };
   let max2 = { num: null, pay: 0 };
+  let min2 = { num: null, pay: 0 };  // Best case = 0 by default
+
   if (candidates2L.size > 0) {
-    min2 = { num: null, pay: Infinity };
-    max2 = { num: null, pay: -Infinity };
+    // Worst case
+    max2 = { num: null, pay: 0 };
     candidates2L.forEach(n => {
       const p = computePayoutFor2DLow(n, bets);
-      if (p < min2.pay) min2 = { num: n, pay: p };
       if (p > max2.pay) max2 = { num: n, pay: p };
     });
-    if (min2.pay === Infinity) min2 = { num: null, pay: 0 };
-    if (max2.pay === -Infinity) max2 = { num: null, pay: 0 };
+
+    // Best case: if not all 100 numbers in bets, there's a 0-payout number
+    if (candidates2L.size < 100) {
+      // Find one number not in bets
+      for (let i = 0; i < 100; i++) {
+        const n = i.toString().padStart(2, '0');
+        if (!candidates2L.has(n)) { min2 = { num: n, pay: 0 }; break; }
+      }
+    } else {
+      // All 100 covered — find minimum
+      min2 = { num: null, pay: Infinity };
+      candidates2L.forEach(n => {
+        const p = computePayoutFor2DLow(n, bets);
+        if (p < min2.pay) min2 = { num: n, pay: p };
+      });
+      if (min2.pay === Infinity) min2 = { num: null, pay: 0 };
+    }
   }
 
   return {
