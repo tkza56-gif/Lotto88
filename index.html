@@ -236,6 +236,13 @@
   input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
   input[type="number"] { -moz-appearance: textfield; }
 
+  /* Better placeholder readability for senior users */
+  input::placeholder, textarea::placeholder {
+    color: #a89870 !important;
+    opacity: 0.6;
+    font-weight: 500;
+  }
+
   /* Loader screen */
   #loader {
     position: fixed; inset: 0; display: flex; flex-direction: column;
@@ -1453,7 +1460,7 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
             </div>
 
             {/* Option 1: Export backup */}
-            <div className="bg-white rounded-2xl p-4 border-2 border-red-300">
+            <div className="bg-white rounded-2xl p-4 border-2" style={{borderColor:'#b8965a'}}>
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
                   <Download size={20} className="text-red-700" strokeWidth={2.5}/>
@@ -1544,20 +1551,21 @@ function DrawDateSelector({ config, setConfig, isGov }) {
     <>
       <div className="glass rounded-xl overflow-hidden">
         {/* วันที่ซื้อ */}
-        <div className="px-3 py-2 flex items-center justify-between gap-2 border-b border-stone-100">
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <Calendar size={11} className="text-stone-400"/>
-            <span className="text-base text-stone-500 font-display uppercase tracking-wider">วันที่ซื้อ</span>
+        <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-b border-stone-100">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Calendar size={16} style={{color:'#8a6d36'}} strokeWidth={2.5}/>
+            <span className="text-base font-display uppercase tracking-wider font-semibold" style={{color:'#8a6d36'}}>วันที่ซื้อ</span>
           </div>
           <div className="flex items-center gap-2 min-w-0">
             <input type="date" value={config.purchaseDate || today}
               onChange={e => setConfig({ ...config, purchaseDate: e.target.value })}
               max={today}
-              className="bg-transparent text-stone-800 text-base font-numeric font-semibold outline-none cursor-pointer text-right"
-              style={{ colorScheme: 'light', maxWidth: '130px' }}/>
+              className="bg-transparent text-base font-numeric font-bold outline-none cursor-pointer text-right"
+              style={{ colorScheme: 'light', maxWidth: '130px', color: '#2a2a2a' }}/>
             {!isToday && (
               <button onClick={() => setConfig({ ...config, purchaseDate: today })}
-                className="text-base text-red-600 font-display flex-shrink-0 active:scale-95 px-3 py-1.5 rounded-full bg-red-50 font-semibold">
+                className="text-base font-display flex-shrink-0 active:scale-95 px-3 py-1.5 rounded-full font-semibold"
+                style={{ background: '#fdf9ed', color: '#8a6d36', border: '1px solid #dccfa6' }}>
                 วันนี้
               </button>
             )}
@@ -1566,24 +1574,24 @@ function DrawDateSelector({ config, setConfig, isGov }) {
 
         {/* งวด */}
         <button onClick={() => isGov ? setOpenSheet(true) : null}
-          className="w-full px-3 py-2 flex items-center justify-between gap-2 text-left active:bg-stone-50 transition-colors">
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <Trophy size={11} className="text-red-600"/>
-            <span className="text-base font-display uppercase tracking-wider" style={{color:'#b8860b'}}>งวด · ออกผล</span>
+          className="w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left active:bg-stone-50 transition-colors">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Trophy size={16} style={{color:'#8a6d36'}} strokeWidth={2.5}/>
+            <span className="text-base font-display uppercase tracking-wider font-semibold" style={{color:'#8a6d36'}}>งวด · ออกผล</span>
           </div>
-          <div className="flex items-center gap-1 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
             {isGov ? (
               <>
-                <span className="text-stone-800 text-base font-numeric font-bold truncate">
+                <span className="text-base font-numeric font-bold truncate" style={{color:'#2a2a2a'}}>
                   {formatDrawDateShort(config.drawDate)}
                 </span>
-                <span className="text-stone-400 text-base flex-shrink-0">▾</span>
+                <span className="text-base flex-shrink-0" style={{color:'#b8965a'}}>▾</span>
               </>
             ) : (
               <input type="date" value={config.drawDate}
                 onChange={e => setConfig({ ...config, drawDate: e.target.value })}
-                className="bg-transparent text-stone-800 text-base font-numeric font-semibold outline-none cursor-pointer text-right"
-                style={{ colorScheme: 'light', maxWidth: '130px' }} onClick={e => e.stopPropagation()}/>
+                className="bg-transparent text-base font-numeric font-bold outline-none cursor-pointer text-right"
+                style={{ colorScheme: 'light', maxWidth: '130px', color: '#2a2a2a' }} onClick={e => e.stopPropagation()}/>
             )}
           </div>
         </button>
@@ -1971,15 +1979,15 @@ function App() {
         {/* Subtle red glow at very top */}
         <div className="absolute top-0 left-0 right-0 h-32 pointer-events-none opacity-50" style={{ background: 'radial-gradient(ellipse 60% 100% at 50% 0%, rgba(184, 150, 90, 0.12) 0%, transparent 70%)' }}/>
         <div className="relative px-4 pt-6 pb-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <div className="font-cinzel text-xs font-semibold tracking-[0.35em] uppercase truncate" style={{color:'#8a6d36'}}>
                 {isSeller ? 'Bookie · Risk' : 'Player · Picks'}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-2xl leading-none" style={{color:'#b8965a'}}>♛</span>
+                <span className="text-2xl leading-none flex-shrink-0" style={{color:'#b8965a'}}>♛</span>
                 <h1 className="font-cinzel text-2xl font-bold tracking-[0.15em] leading-none" style={{color:'#2a2a2a'}}>ROYAL</h1>
-                <span className="text-2xl leading-none" style={{color:'#b8965a'}}>♛</span>
+                <span className="text-2xl leading-none flex-shrink-0" style={{color:'#b8965a'}}>♛</span>
               </div>
               <div className="font-bodoni text-lg font-bold tracking-[0.3em] mt-0.5" style={{color:'#b8965a'}}>8 8 8</div>
             </div>
@@ -2004,20 +2012,22 @@ function App() {
                 title="แชร์แอป">
                 <Share2 size={17} style={{color:'#8a6d36'}} strokeWidth={2.5}/>
               </button>
-              <button
-                onClick={() => setConfig({ ...config, mode: isSeller ? 'buyer' : 'seller' })}
-                className="glass rounded-full px-3 py-2 flex items-center gap-1.5 text-base font-display active:scale-95"
-              >
-                {isSeller ? <Store size={16} style={{color:'#8a6d36'}}/> : <UserCircle2 size={16} style={{color:'#8a6d36'}}/>}
-                <span className="font-semibold" style={{color:'#2a2a2a'}}>{isSeller ? 'ผู้ขาย' : 'ผู้ซื้อ'}</span>
-              </button>
             </div>
           </div>
           <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="font-display text-base tracking-wider uppercase truncate" style={{color:'#8a6d36'}}>
-              {currentBets.length} โพย · {isSeller ? 'รับเข้า' : 'ซื้อ'}
+            <button
+              onClick={() => setConfig({ ...config, mode: isSeller ? 'buyer' : 'seller' })}
+              className="glass rounded-full px-3 py-2 flex items-center gap-1.5 text-base font-display active:scale-95 flex-shrink-0"
+            >
+              {isSeller ? <Store size={16} style={{color:'#8a6d36'}}/> : <UserCircle2 size={16} style={{color:'#8a6d36'}}/>}
+              <span className="font-semibold" style={{color:'#2a2a2a'}}>{isSeller ? 'ผู้ขาย' : 'ผู้ซื้อ'}</span>
+            </button>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-display text-sm tracking-wider uppercase truncate" style={{color:'#8a6d36'}}>
+                {currentBets.length} โพย
+              </span>
+              <span className="font-numeric text-xl font-bold flex-shrink-0" style={{color:'#2a2a2a'}}>฿{fmt(totalAmt)}</span>
             </div>
-            <div className="font-numeric text-2xl font-bold flex-shrink-0" style={{color:'#2a2a2a'}}>฿{fmt(totalAmt)}</div>
           </div>
         </div>
 
@@ -2025,11 +2035,13 @@ function App() {
           <div className="grid grid-cols-3 gap-1.5">
             {DEFAULT_LOTTERIES.map(l => (
               <button key={l.id} type="button" onClick={() => setConfig({ ...config, lotteryId: l.id })}
-                className={'px-2 py-2.5 rounded-xl text-base font-display font-semibold tracking-wide transition-all whitespace-nowrap active:scale-95 leading-tight ' + (
-                  config.lotteryId === l.id
-                    ? 'btn-premium'
-                    : 'glass'
-                )} style={config.lotteryId !== l.id ? { color: '#1c1917' } : {}}>{l.name}</button>
+                className="px-1 py-3 rounded-xl text-sm font-display font-semibold transition-all active:scale-95 leading-tight border-2 text-center whitespace-nowrap"
+                style={config.lotteryId === l.id ? {
+                  background: '#2a2a2a', color: '#f5e8c8', borderColor: '#1a1a1a',
+                  boxShadow: '0 2px 6px rgba(42,42,42,0.18)'
+                } : {
+                  background: '#ffffff', color: '#2a2a2a', borderColor: '#dccfa6'
+                }}>{l.name}</button>
             ))}
           </div>
         </div>
@@ -2052,15 +2064,20 @@ function App() {
             const Ic = t.icon;
             const active = tab === t.id;
             const isRisk = t.id === 'risk';
+            const activeColor = isRisk ? '#b91c1c' : '#2a2a2a';
+            const inactiveColor = isRisk ? '#dc8c8c' : '#8a7e5e';
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`py-3 px-1 rounded-xl text-base font-display font-semibold tracking-wide transition-all flex flex-col items-center gap-1 min-w-0 ${
-                  active
-                    ? isRisk ? 'bg-gradient-to-b from-red-500/25 to-red-600/10 text-red-700'
-                             : 'bg-gradient-to-b from-red-500/20 to-red-600/10 text-gray-800 glow'
-                    : isRisk ? 'text-red-400' : 'text-gray-500'
-                }`}>
-                <Ic size={18} strokeWidth={active ? 2.5 : 2}/>{t.label}
+                className="py-3 px-1 rounded-xl text-sm font-display font-semibold transition-all flex flex-col items-center gap-1 min-w-0"
+                style={active ? {
+                  background: 'linear-gradient(180deg, rgba(184, 150, 90, 0.16) 0%, rgba(184, 150, 90, 0.06) 100%)',
+                  color: activeColor,
+                  boxShadow: '0 0 0 1px rgba(184, 150, 90, 0.18), 0 2px 6px rgba(184, 150, 90, 0.10)'
+                } : {
+                  color: inactiveColor
+                }}>
+                <Ic size={20} strokeWidth={active ? 2.5 : 2}/>
+                <span className="leading-tight whitespace-nowrap">{t.label}</span>
               </button>
             );
           })}
@@ -2412,12 +2429,12 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
         )}
 
         {/* Backup / Restore */}
-        <div className="bg-gradient-to-br from-red-50 to-white rounded-2xl p-4 border border-red-200">
-          <div className="text-base uppercase tracking-wider text-red-700 font-display font-bold mb-1">สำรอง / กู้คืน เป็นไฟล์</div>
+        <div className="rounded-2xl p-4 border" style={{background:'linear-gradient(135deg, #fdf9ed, #ffffff)', borderColor:'#dccfa6'}}>
+          <div className="text-base uppercase tracking-wider font-display font-bold mb-1" style={{color:'#8a6d36'}}>สำรอง / กู้คืน เป็นไฟล์</div>
           <div className="text-base text-stone-600 font-display mb-3">ดาวน์โหลดไฟล์เก็บนอกแอป (แชต LINE / Google Drive) — ปลอดภัยกว่า</div>
           <div className="grid grid-cols-2 gap-2">
             <button onClick={onExport}
-              className="py-3 rounded-xl bg-white border-2 border-red-300 text-red-700 font-display text-lg font-semibold flex items-center justify-center gap-2 active:scale-95">
+              className="py-3 rounded-xl bg-white border-2 font-display text-lg font-semibold flex items-center justify-center gap-2 active:scale-95" style={{color:'#8a6d36', borderColor:'#b8965a'}}>
               <Download size={16} strokeWidth={2.5}/>
               ดาวน์โหลด
             </button>
@@ -2510,8 +2527,8 @@ function ShareAppSheet({ onClose }) {
         </div>
 
         {/* App URL */}
-        <div className="bg-gradient-to-br from-red-50 to-white rounded-2xl p-4 border border-red-200">
-          <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold mb-2">ลิงก์แอป</div>
+        <div className="rounded-2xl p-4 border" style={{background:'linear-gradient(135deg, #fdf9ed, #ffffff)', borderColor:'#dccfa6'}}>
+          <div className="text-base uppercase tracking-wider font-display font-semibold mb-2" style={{color:'#8a6d36'}}>ลิงก์แอป</div>
           <div className="font-numeric text-lg font-bold text-stone-900 break-all leading-relaxed">{url}</div>
         </div>
 
@@ -2528,7 +2545,7 @@ function ShareAppSheet({ onClose }) {
         {/* Actions */}
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => copy(url)}
-            className="py-3 rounded-xl bg-white border-2 border-red-300 text-red-700 font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95">
+            className="py-3 rounded-xl bg-white border-2 font-display text-lg font-semibold tracking-wide flex items-center justify-center gap-2 active:scale-95" style={{color:'#8a6d36', borderColor:'#b8965a'}}>
             {copied ? <Check size={16} strokeWidth={3}/> : <Copy size={16} strokeWidth={2.5}/>}
             คัดลอกลิงก์
           </button>
@@ -2552,38 +2569,45 @@ function ShareAppSheet({ onClose }) {
 
 // ==================== JOT TAB COMPONENTS ====================
 function BetTypeTile({ label, rate, active, dimmed, onClick, color = 'red', icon: Ic }) {
-  const base = 'relative px-2.5 py-2.5 rounded-xl border-2 transition-all active:scale-95';
-  let style = '';
+  // Champagne & Charcoal palette
+  let bg, fg, bd, shadow;
   if (dimmed && !active) {
-    style = 'bg-gray-50 text-gray-300 border-gray-200';
+    bg = '#f5f1e8'; fg = '#c8bfa6'; bd = '#e8dfc8'; shadow = 'none';
   } else if (active) {
-    if (color === 'red') style = 'bg-red-600 text-white border-red-700 shadow-md shadow-red-200';
-    else if (color === 'red-light') style = 'bg-red-500 text-white border-red-600 shadow-md shadow-red-200';
-    else if (color === 'red-outline') style = 'bg-red-100 text-red-700 border-red-400 shadow-sm';
-    else if (color === 'green') style = 'bg-green-600 text-white border-green-700 shadow-md shadow-green-200';
-    else if (color === 'green-light') style = 'bg-green-500 text-white border-green-600 shadow-md shadow-green-200';
-    else if (color === 'green-outline') style = 'bg-green-100 text-green-700 border-green-400 shadow-sm';
+    if (color === 'red' || color === 'green') {
+      bg = '#2a2a2a'; fg = '#f5e8c8'; bd = '#1a1a1a';
+      shadow = '0 4px 10px rgba(42, 42, 42, 0.20)';
+    } else if (color === 'red-light' || color === 'green-light') {
+      bg = '#b8965a'; fg = '#ffffff'; bd = '#8a6d36';
+      shadow = '0 4px 10px rgba(184, 150, 90, 0.25)';
+    } else {
+      bg = '#fdf9ed'; fg = '#8a6d36'; bd = '#b8965a';
+      shadow = '0 2px 4px rgba(184, 150, 90, 0.12)';
+    }
   } else {
-    if (color === 'red' || color === 'red-light' || color === 'red-outline')
-      style = 'bg-white text-red-600 border-red-200';
-    else
-      style = 'bg-white text-green-600 border-green-200';
+    bg = '#ffffff'; fg = '#2a2a2a'; bd = '#dccfa6';
+    shadow = '0 1px 2px rgba(184, 150, 90, 0.06)';
   }
+
   return (
-    <button onClick={onClick} className={base + ' ' + style}>
-      <div className="font-display text-lg font-semibold leading-tight flex items-center justify-center gap-1">
-        {Ic && <Ic size={12}/>}{label}
+    <button onClick={onClick}
+      className="relative rounded-xl border-2 transition-all active:scale-95 px-3 py-3 overflow-hidden"
+      style={{ background: bg, color: fg, borderColor: bd, boxShadow: shadow }}>
+      {active && !dimmed && (
+        <div className="absolute top-1.5 left-2">
+          <Check size={13} strokeWidth={3} style={{color: fg}}/>
+        </div>
+      )}
+      <div className="flex flex-col items-center justify-center gap-1">
+        <div className="font-display text-lg font-bold leading-tight flex items-center gap-1.5 text-center">
+          {Ic && <Ic size={14} strokeWidth={2.5}/>}<span>{label}</span>
+        </div>
+        {rate !== undefined && rate !== null && (
+          <div className="font-numeric text-sm font-semibold opacity-75 leading-tight">
+            จ่าย ×{rate}
+          </div>
+        )}
       </div>
-      {rate !== undefined && rate !== null && (
-        <div className={'absolute top-1 right-1.5 text-base font-numeric font-bold ' + (active ? 'opacity-85' : 'opacity-60')}>
-          x{rate}
-        </div>
-      )}
-      {active && (
-        <div className="absolute top-1 left-1.5">
-          <Check size={11} strokeWidth={3}/>
-        </div>
-      )}
     </button>
   );
 }
@@ -2869,20 +2893,35 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
   return (
     <div className="space-y-3 slide-in">
       {/* Step indicator */}
-      <div className="glass rounded-xl p-1 grid grid-cols-2 gap-1">
+      <div className="glass rounded-xl p-1.5 grid grid-cols-2 gap-1.5">
         <button onClick={() => setStep('select')}
-          className={`py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1.5 transition-all ${
-            step === 'select' ? 'bg-red-100 text-gray-800 border border-red-300' : 'text-gray-400'
-          }`}>
-          <span className={`w-4 h-4 rounded-full text-base flex items-center justify-center font-bold ${step === 'select' ? 'bg-red-400 text-white' : 'bg-red-50 text-gray-800'}`}>1</span>
-          เลือกเลข
+          className="py-3 rounded-lg text-lg font-display font-semibold tracking-wide flex items-center justify-center gap-2 transition-all border-2"
+          style={step === 'select' ? {
+            background: '#2a2a2a', color: '#f5e8c8', borderColor: '#1a1a1a',
+            boxShadow: '0 2px 6px rgba(42,42,42,0.18)'
+          } : {
+            background: '#ffffff', color: '#8a6d36', borderColor: '#dccfa6'
+          }}>
+          <span className="w-6 h-6 rounded-full text-base flex items-center justify-center font-bold flex-shrink-0"
+            style={step === 'select'
+              ? { background: '#b8965a', color: '#ffffff' }
+              : { background: '#f5ead0', color: '#8a6d36' }}>1</span>
+          <span>เลือกเลข</span>
         </button>
         <button onClick={() => pending.length > 0 && setStep('pricing')} disabled={pending.length === 0}
-          className={`py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1.5 transition-all disabled:opacity-30 ${
-            step === 'pricing' ? 'bg-red-100 text-gray-800 border border-red-300' : 'text-gray-400'
-          }`}>
-          <span className={`w-4 h-4 rounded-full text-base flex items-center justify-center font-bold ${step === 'pricing' ? 'bg-red-400 text-white' : 'bg-red-50 text-gray-800'}`}>2</span>
-          ใส่ราคา{pending.length > 0 && <span className="text-base opacity-70 font-numeric">({pending.length})</span>}
+          className="py-3 rounded-lg text-lg font-display font-semibold tracking-wide flex items-center justify-center gap-2 transition-all border-2 disabled:opacity-30"
+          style={step === 'pricing' ? {
+            background: '#2a2a2a', color: '#f5e8c8', borderColor: '#1a1a1a',
+            boxShadow: '0 2px 6px rgba(42,42,42,0.18)'
+          } : {
+            background: '#ffffff', color: '#8a6d36', borderColor: '#dccfa6'
+          }}>
+          <span className="w-6 h-6 rounded-full text-base flex items-center justify-center font-bold flex-shrink-0"
+            style={step === 'pricing'
+              ? { background: '#b8965a', color: '#ffffff' }
+              : { background: '#f5ead0', color: '#8a6d36' }}>2</span>
+          <span>ใส่ราคา</span>
+          {pending.length > 0 && <span className="text-base opacity-80 font-numeric font-bold">({pending.length})</span>}
         </button>
       </div>
 
@@ -2895,13 +2934,10 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
             style={{color:'#2a2a2a'}}/>
           {customer && <button onClick={() => setCustomer('')} className="p-1 flex-shrink-0" style={{color:'#8a6d36'}}><X size={18} strokeWidth={2.5}/></button>}
         </div>
-        <style>{`
-          input[type="text"]::placeholder { color: #b8a570 !important; opacity: 0.7; font-weight: 500; }
-        `}</style>
 
         <div className="glass-strong rounded-2xl p-3">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display">ประเภท</div>
+            <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>ประเภท</div>
             <div className="flex gap-2">
               <IconBtn onClick={() => setSheet('paste')} icon={Clipboard} title="วางจาก LINE"/>
               <IconBtn onClick={() => setSheet('settings')} icon={Settings} title="ตั้งค่าจ่าย"/>
@@ -2918,7 +2954,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         </div>
 
         <div className="glass-strong rounded-2xl p-3">
-          <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display mb-2 text-center">
+          <div className="text-base uppercase tracking-wider font-display font-semibold mb-2 text-center" style={{color:'#8a6d36'}}>
             ระบุตัวเลข {digits} หลัก
           </div>
           <div className="flex gap-2 justify-center mb-3">
@@ -2937,7 +2973,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         {pending.length > 0 && (
           <div className="glass rounded-2xl p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display">
+              <div className="text-base uppercase tracking-wider font-display font-semibold">
                 เลขที่เลือก ({pending.length})
               </div>
               <button onClick={clearAllPending} className="text-red-500 text-base font-display flex items-center gap-1">
@@ -2951,14 +2987,14 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         )}
 
         <button onClick={() => setStep('pricing')} disabled={pending.length === 0}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-lg flex items-center justify-center gap-2 shadow-lg shadow-red-200 disabled:opacity-30">
+          className="w-full py-4 rounded-xl btn-premium font-semibold tracking-wider font-display text-lg flex items-center justify-center gap-2 disabled:opacity-30">
           ใส่ราคา {pending.length > 0 ? pending.length + ' รายการ' : ''} →
         </button>
 
         <div className="glass rounded-2xl p-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-1 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-full"/>
+              <div className="w-1 h-4 rounded-full" style={{background:'linear-gradient(180deg, #d4b572, #b8965a)'}}/>
               <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">{isSeller ? 'โพยรับเข้า' : 'โพยงวดนี้'}</h2>
               <span className="text-base text-gray-400 font-display">({bets.length})</span>
             </div>
@@ -3006,7 +3042,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         </div>
 
         <div className="glass-strong rounded-2xl p-3">
-          <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display mb-2">
+          <div className="text-base uppercase tracking-wider font-display font-semibold mb-2" style={{color:'#8a6d36'}}>
             ราคาเท่ากันทุกรายการ
           </div>
           <div className="flex items-center gap-2 mb-2">
@@ -3050,26 +3086,27 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
 
         {/* Sticky summary + save buttons */}
         <div className="fixed bottom-0 left-0 right-0 z-40 safe-bottom px-4 pb-3 pt-2"
-          style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(250,250,249,0.92) 35%, #fafaf9 100%)' }}>
+          style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(250,247,240,0.94) 35%, #faf7f0 100%)' }}>
           <div className="max-w-md mx-auto space-y-2">
             <div className="glass-strong rounded-2xl p-3 grid grid-cols-2 gap-2">
               <div className="num-tile rounded-xl p-2.5">
-                <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">รับรวม</div>
+                <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>รับรวม</div>
                 <div className="font-numeric text-xl font-bold gold-text mt-0.5">฿{fmt(totalIntake)}</div>
               </div>
               <div className="risk-tile rounded-xl p-2.5">
-                <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">จ่ายเพดาน</div>
-                <div className="font-numeric text-xl font-bold text-red-600 mt-0.5">฿{fmt(totalMaxPayout)}</div>
+                <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>จ่ายเพดาน</div>
+                <div className="font-numeric text-xl font-bold mt-0.5" style={{color:'#8a6d36'}}>฿{fmt(totalMaxPayout)}</div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <button onClick={clearAllPending}
-                className="py-3 rounded-xl bg-gray-100 text-red-700 font-display text-lg tracking-wider border border-red-200">
+                className="py-3 rounded-xl font-display text-lg font-semibold tracking-wide border-2 active:scale-95"
+                style={{background:'#fdfbf6', color:'#8a6d36', borderColor:'#dccfa6'}}>
                 ยกเลิก
               </button>
               <button onClick={saveBets}
-                className="col-span-2 py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-lg flex items-center justify-center gap-2 shadow-lg shadow-red-200">
-                <Check size={16} strokeWidth={3}/> บันทึก {pending.length} รายการ
+                className="col-span-2 py-3 rounded-xl btn-premium font-semibold tracking-wider font-display text-lg flex items-center justify-center gap-2">
+                <Check size={18} strokeWidth={3}/> บันทึก {pending.length} รายการ
               </button>
             </div>
           </div>
@@ -3320,7 +3357,7 @@ function SettingsContent({ rates, setRates, onClose }) {
       {fields.map(f => (
         <div key={f.key} className="num-tile rounded-xl p-3 flex items-center gap-3">
           <div className="flex-1">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">{f.key}</div>
+            <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>{f.key}</div>
             <div className="text-base text-gray-400 font-display">{f.label}</div>
           </div>
           <div className="flex items-baseline gap-1">
@@ -3709,7 +3746,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
       {/* Summary */}
       <div className="glass-strong rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-1 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-full"/>
+          <div className="w-1 h-4 rounded-full" style={{background:'linear-gradient(180deg, #d4b572, #b8965a)'}}/>
           <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">วิเคราะห์ความเสี่ยง</h2>
           {caps.filter(c => c.lotteryId === lottery.id && c.drawDate === drawDate).length > 0 && (
             <div className="ml-auto px-2 py-0.5 rounded-full text-base font-display bg-orange-100 text-orange-700 border border-orange-300">
@@ -3720,11 +3757,11 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
 
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="num-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">รับเข้ารวม</div>
+            <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>รับเข้ารวม</div>
             <div className="font-numeric text-2xl font-bold gold-text mt-1">฿{fmt(totalIntake)}</div>
           </div>
           <div className="risk-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">จ่ายเพดาน</div>
+            <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>จ่ายเพดาน</div>
             <div className="font-numeric text-2xl font-bold text-red-600 mt-1">฿{fmt(totalMaxPayout)}</div>
           </div>
         </div>
@@ -3790,7 +3827,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
       {/* Quick threshold cut */}
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-1 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-full"/>
+          <div className="w-1 h-4 rounded-full" style={{background:'linear-gradient(180deg, #d4b572, #b8965a)'}}/>
           <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">ตัดเลขเสี่ยงเป็นกลุ่ม</h2>
         </div>
         <div className="num-tile rounded-xl p-3 mb-2 flex items-center gap-3">
@@ -3809,7 +3846,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
       {/* Per-combo */}
       <div className="glass rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-1 h-4 bg-gradient-to-b from-red-400 to-red-600 rounded-full"/>
+          <div className="w-1 h-4 rounded-full" style={{background:'linear-gradient(180deg, #d4b572, #b8965a)'}}/>
           <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">สรุปทุกโพย</h2>
           <span className="text-base text-gray-400 font-display">({perCombo.length})</span>
         </div>
@@ -3983,7 +4020,7 @@ function ReduceSheet({ combo, onReduce, onClose }) {
       </div>
 
       <div>
-        <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display mb-2">ลดเหลือกี่ %</div>
+        <div className="text-base uppercase tracking-wider font-display font-semibold mb-2" style={{color:'#8a6d36'}}>ลดเหลือกี่ %</div>
         <div className="grid grid-cols-3 gap-2">
           {[75, 50, 25].map(p => (
             <button key={p} onClick={() => applyPreset(p)}
@@ -3998,7 +4035,7 @@ function ReduceSheet({ combo, onReduce, onClose }) {
       </div>
 
       <div>
-        <div className="text-base uppercase tracking-[0.25em] text-red-500 font-display mb-2">หรือกำหนดยอดเอง</div>
+        <div className="text-base uppercase tracking-wider font-display font-semibold mb-2" style={{color:'#8a6d36'}}>หรือกำหนดยอดเอง</div>
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0 bg-white rounded-lg px-3 py-2 border border-gray-200 focus-within:border-red-300 flex items-baseline gap-1">
             <span className="text-gray-400 text-lg flex-shrink-0">฿</span>
@@ -4574,7 +4611,7 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="num-tile rounded-xl p-3">
-                  <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold mb-2">เพดาน 3 ตัว</div>
+                  <div className="text-base uppercase tracking-wider font-display font-semibold mb-2" style={{color:'#8a6d36'}}>เพดาน 3 ตัว</div>
                   <div className="flex items-center gap-1">
                     <input type="number" inputMode="decimal" value={def3D}
                       onChange={e => setDef3D(e.target.value)} placeholder="500"
@@ -4785,11 +4822,11 @@ function CutsSection({ lottery, drawDate, cuts, onRemove, onClearAll, toast }) {
             {/* Summary */}
             <div className="grid grid-cols-2 gap-2">
               <div className="num-tile rounded-xl p-3">
-                <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">ตัดออก/ลด</div>
+                <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>ตัดออก/ลด</div>
                 <div className="font-numeric text-2xl font-bold gold-text mt-1">฿{fmt(totalAmount)}</div>
               </div>
               <div className="rounded-xl p-3 bg-red-50 border border-red-200">
-                <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">รายการ</div>
+                <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>รายการ</div>
                 <div className="font-numeric text-2xl font-bold text-red-700 mt-1">{totalCount}</div>
               </div>
             </div>
@@ -5240,7 +5277,7 @@ function ResultTab({ lottery, drawDate, draws, setDraws, currentDraw }) {
       {isGov && (
         <div className="glass-strong rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-1 h-4 bg-gradient-to-b from-red-500 to-red-700 rounded-full"/>
+            <div className="w-1 h-4 rounded-full" style={{background:'linear-gradient(180deg, #d4b572, #b8965a)'}}/>
             <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">ดึงผลจากกองสลาก</h2>
           </div>
           <div className="text-base text-gray-500 font-display mb-3 leading-relaxed">
@@ -5351,11 +5388,11 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
         </div>
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="num-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">{isSeller ? 'รับเข้า' : 'เงินซื้อ'}</div>
+            <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>{isSeller ? 'รับเข้า' : 'เงินซื้อ'}</div>
             <div className="font-numeric text-2xl font-bold gold-text mt-1">฿{fmt(stats.totalIntake)}</div>
           </div>
           <div className="num-tile rounded-xl p-3">
-            <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold">{isSeller ? 'จ่ายออก' : 'เงินที่ได้'}</div>
+            <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>{isSeller ? 'จ่ายออก' : 'เงินที่ได้'}</div>
             <div className="font-numeric text-2xl font-bold text-red-600 mt-1">฿{fmt(stats.totalPayout)}</div>
           </div>
         </div>
