@@ -2116,11 +2116,11 @@ function App() {
               {isSeller ? <Store size={16} style={{color:'#8a6d36'}}/> : <UserCircle2 size={16} style={{color:'#8a6d36'}}/>}
               <span className="font-semibold" style={{color:'#2a2a2a'}}>{isSeller ? 'ผู้ขาย' : 'ผู้ซื้อ'}</span>
             </button>
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-display text-sm tracking-wider uppercase truncate" style={{color:'#8a6d36'}}>
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+              <span className="font-display text-sm tracking-wider uppercase flex-shrink-0" style={{color:'#8a6d36'}}>
                 {currentBets.length} โพย
               </span>
-              <span className="font-numeric text-xl font-bold flex-shrink-0" style={{color:'#2a2a2a'}}>฿{fmt(totalAmt)}</span>
+              <span className="font-numeric font-bold truncate" style={{color:'#2a2a2a', fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2, minWidth: 0}}>฿{fmt(totalAmt)}</span>
             </div>
           </div>
         </div>
@@ -2796,9 +2796,9 @@ function PriceRow({ item, index, onUpdate, onRemove }) {
               className="w-full min-w-0 bg-transparent outline-none font-numeric text-xl font-bold text-gray-900"/>
           </div>
         </div>
-        <div className="flex-1 min-w-0 bg-gray-50 rounded-lg px-2 py-1.5 border border-red-200">
+        <div className="flex-1 min-w-0 bg-gray-50 rounded-lg px-2 py-1.5 border border-red-200 overflow-hidden">
           <div className="text-base uppercase tracking-wider text-red-600 font-display">เรทชนะ</div>
-          <div className="font-numeric text-xl font-bold text-red-600 truncate">฿{fmt(payout)}</div>
+          <div className="font-numeric font-bold text-red-600 truncate" style={{fontSize: 'clamp(0.9rem, 4vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(payout)}</div>
         </div>
       </div>
     </div>
@@ -3110,14 +3110,14 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
               isSeller={isSeller}
               onUpdateBet={updateBet}
               onRemoveBet={removeBet}/>
-            <div className="border-t border-red-200 pt-3 flex items-center justify-between mt-3">
-              <div>
+            <div className="border-t border-red-200 pt-3 flex items-center justify-between gap-2 mt-3">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">{isSeller ? 'รับรวม' : 'รวมซื้อ'}</div>
-                <div className="font-numeric text-2xl font-bold gold-text">฿{fmt(savedTotalAmt)}</div>
+                <div className="font-numeric font-bold gold-text truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(savedTotalAmt)}</div>
               </div>
-              <div className="text-right">
+              <div className="text-right min-w-0 flex-1 overflow-hidden">
                 <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">{isSeller ? 'จ่ายสูงสุด' : 'หากถูกหมด'}</div>
-                <div className={`font-numeric text-lg font-semibold ${isSeller ? 'text-red-600' : 'text-green-600'}`}>฿{fmt(savedTotalPayout)}</div>
+                <div className={`font-numeric font-semibold truncate ${isSeller ? 'text-red-600' : 'text-green-600'}`} style={{fontSize: 'clamp(0.9rem, 4vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(savedTotalPayout)}</div>
               </div>
             </div>
           </>)}
@@ -3183,13 +3183,13 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
           style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(250,247,240,0.94) 35%, #faf7f0 100%)' }}>
           <div className="max-w-md mx-auto space-y-2">
             <div className="glass-strong rounded-2xl p-3 grid grid-cols-2 gap-2">
-              <div className="num-tile rounded-xl p-2.5">
+              <div className="num-tile rounded-xl p-2.5 min-w-0 overflow-hidden">
                 <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>รับรวม</div>
-                <div className="font-numeric text-xl font-bold gold-text mt-0.5">฿{fmt(totalIntake)}</div>
+                <div className="font-numeric font-bold gold-text mt-0.5 truncate" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
               </div>
-              <div className="risk-tile rounded-xl p-2.5">
+              <div className="risk-tile rounded-xl p-2.5 min-w-0 overflow-hidden">
                 <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>จ่ายเพดาน</div>
-                <div className="font-numeric text-xl font-bold mt-0.5" style={{color:'#8a6d36'}}>฿{fmt(totalMaxPayout)}</div>
+                <div className="font-numeric font-bold mt-0.5 truncate" style={{color:'#8a6d36', fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(totalMaxPayout)}</div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -3850,19 +3850,19 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
         </div>
 
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="num-tile rounded-xl p-3">
+          <div className="num-tile rounded-xl p-3 min-w-0 overflow-hidden">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>รับเข้ารวม</div>
-            <div className="font-numeric text-2xl font-bold gold-text mt-1">฿{fmt(totalIntake)}</div>
+            <div className="font-numeric font-bold gold-text mt-1 truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
           </div>
-          <div className="risk-tile rounded-xl p-3">
+          <div className="risk-tile rounded-xl p-3 min-w-0 overflow-hidden">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>จ่ายเพดาน</div>
-            <div className="font-numeric text-2xl font-bold text-red-600 mt-1">฿{fmt(totalMaxPayout)}</div>
+            <div className="font-numeric font-bold text-red-600 mt-1 truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(totalMaxPayout)}</div>
           </div>
         </div>
 
         <div className="space-y-2">
           {/* Scenario 1: ไม่มีใครถูก — เสี่ยงได้สูงสุด (always show) */}
-          <div className="rounded-xl p-3 border-2" style={{
+          <div className="rounded-xl p-3 border-2 overflow-hidden" style={{
             background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.10) 0%, rgba(22, 163, 74, 0.04) 100%)',
             borderColor: '#86efac'
           }}>
@@ -3870,7 +3870,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
               <span className="text-base">🟢</span>
               <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#15803d'}}>ไม่มีใครถูกเลย</div>
             </div>
-            <div className="font-numeric text-2xl font-bold" style={{color:'#15803d'}}>+฿{fmt(scenarios.scenarios.noWin.net)}</div>
+            <div className="font-numeric font-bold truncate" style={{color:'#15803d', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>+฿{fmt(scenarios.scenarios.noWin.net)}</div>
             <div className="text-base mt-1 font-display" style={{color:'#16a34a'}}>
               จ่าย ฿0 · เก็บเต็มที่รับมา
             </div>
@@ -3878,7 +3878,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
 
           {/* Scenario 2: ถูกแค่บน — show only if has upper bets */}
           {scenarios.hasUpper && (
-            <div className="rounded-xl p-3 border-2" style={{
+            <div className="rounded-xl p-3 border-2 overflow-hidden" style={{
               background: scenarios.scenarios.onlyUpper.net >= 0
                 ? 'linear-gradient(135deg, rgba(217, 119, 6, 0.10) 0%, rgba(180, 83, 9, 0.04) 100%)'
                 : 'linear-gradient(135deg, rgba(220, 38, 38, 0.10) 0%, rgba(185, 28, 28, 0.04) 100%)',
@@ -3890,8 +3890,8 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                   {scenarios.hasLower ? 'ถูกแค่ข้างบน' : (scenarios.hasUpper3 ? 'ถูก 3 ตัวบน/โต๊ด' : 'ถูก 2 ตัวบน')}
                 </div>
               </div>
-              <div className="font-numeric text-2xl font-bold" style={{color: scenarios.scenarios.onlyUpper.net >= 0 ? '#a16207' : '#b91c1c'}}>{scenarios.scenarios.onlyUpper.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.onlyUpper.net))}</div>
-              <div className="text-base mt-1 font-display" style={{color: scenarios.scenarios.onlyUpper.net >= 0 ? '#a16207' : '#b91c1c'}}>
+              <div className="font-numeric font-bold truncate" style={{color: scenarios.scenarios.onlyUpper.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.onlyUpper.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.onlyUpper.net))}</div>
+              <div className="text-base mt-1 font-display break-words" style={{color: scenarios.scenarios.onlyUpper.net >= 0 ? '#a16207' : '#b91c1c'}}>
                 ถ้าออก <span className="font-numeric font-bold">{scenarios.scenarios.onlyUpper.num3 || '—'}</span>
                 {' '}· จ่าย ฿{fmt(scenarios.scenarios.onlyUpper.payout)}
               </div>
@@ -3900,7 +3900,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
 
           {/* Scenario 3: ถูกแค่ล่าง — show only if has lower bets */}
           {scenarios.hasLower && (
-            <div className="rounded-xl p-3 border-2" style={{
+            <div className="rounded-xl p-3 border-2 overflow-hidden" style={{
               background: scenarios.scenarios.onlyLower.net >= 0
                 ? 'linear-gradient(135deg, rgba(217, 119, 6, 0.10) 0%, rgba(180, 83, 9, 0.04) 100%)'
                 : 'linear-gradient(135deg, rgba(220, 38, 38, 0.10) 0%, rgba(185, 28, 28, 0.04) 100%)',
@@ -3912,8 +3912,8 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                   {scenarios.hasUpper ? 'ถูกแค่ข้างล่าง' : 'ถูก 2 ตัวล่าง'}
                 </div>
               </div>
-              <div className="font-numeric text-2xl font-bold" style={{color: scenarios.scenarios.onlyLower.net >= 0 ? '#a16207' : '#b91c1c'}}>{scenarios.scenarios.onlyLower.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.onlyLower.net))}</div>
-              <div className="text-base mt-1 font-display" style={{color: scenarios.scenarios.onlyLower.net >= 0 ? '#a16207' : '#b91c1c'}}>
+              <div className="font-numeric font-bold truncate" style={{color: scenarios.scenarios.onlyLower.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.onlyLower.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.onlyLower.net))}</div>
+              <div className="text-base mt-1 font-display break-words" style={{color: scenarios.scenarios.onlyLower.net >= 0 ? '#a16207' : '#b91c1c'}}>
                 ถ้าออก 2 ล่าง <span className="font-numeric font-bold">{scenarios.scenarios.onlyLower.num2low || '—'}</span>
                 {' '}· จ่าย ฿{fmt(scenarios.scenarios.onlyLower.payout)}
               </div>
@@ -3922,7 +3922,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
 
           {/* Scenario 4: ถูกทั้งบนทั้งล่าง — show only if has BOTH upper AND lower */}
           {scenarios.hasUpper && scenarios.hasLower && (
-            <div className="rounded-xl p-3 border-2 pulse-warn" style={{
+            <div className="rounded-xl p-3 border-2 pulse-warn overflow-hidden" style={{
               background: scenarios.scenarios.bothWin.net >= 0
                 ? 'linear-gradient(135deg, rgba(217, 119, 6, 0.12) 0%, rgba(180, 83, 9, 0.04) 100%)'
                 : 'linear-gradient(135deg, rgba(220, 38, 38, 0.15) 0%, rgba(185, 28, 28, 0.04) 100%)',
@@ -3932,8 +3932,8 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                 <span className="text-base">🔴</span>
                 <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c'}}>ถูกทั้งบนและล่าง</div>
               </div>
-              <div className="font-numeric text-2xl font-bold" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c'}}>{scenarios.scenarios.bothWin.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.bothWin.net))}</div>
-              <div className="text-base mt-1 font-display" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c'}}>
+              <div className="font-numeric font-bold truncate" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.bothWin.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.bothWin.net))}</div>
+              <div className="text-base mt-1 font-display break-words" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c'}}>
                 ถ้าออก <span className="font-numeric font-bold">{scenarios.scenarios.bothWin.num3 || '—'}</span>
                 {scenarios.scenarios.bothWin.num2low && <> / <span className="font-numeric font-bold">{scenarios.scenarios.bothWin.num2low}</span></>}
                 {' '}· จ่าย ฿{fmt(scenarios.scenarios.bothWin.payout)}
@@ -4098,13 +4098,13 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
               <SimRow label="2 ตัวล่าง" value={simResult.low}/>
             )}
             <div className="border-t border-stone-200 pt-2 grid grid-cols-2 gap-2">
-              <div className="bg-red-50 rounded-lg p-2.5 border border-red-200">
+              <div className="bg-red-50 rounded-lg p-2.5 border border-red-200 min-w-0 overflow-hidden">
                 <div className="text-base uppercase text-red-700 font-display font-semibold tracking-wider">จ่ายรวม</div>
-                <div className="font-numeric text-xl font-bold text-red-700 mt-0.5">฿{fmt(simResult.payout)}</div>
+                <div className="font-numeric font-bold text-red-700 mt-0.5 truncate" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(simResult.payout)}</div>
               </div>
-              <div className={`rounded-lg p-2.5 border ${simResult.net >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
+              <div className={`rounded-lg p-2.5 border min-w-0 overflow-hidden ${simResult.net >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
                 <div className={`text-base uppercase font-display font-semibold tracking-wider ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>กำไร/ขาดทุน</div>
-                <div className={`font-numeric text-xl font-bold mt-0.5 ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>{simResult.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(simResult.net))}</div>
+                <div className={`font-numeric font-bold mt-0.5 truncate ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`} style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>{simResult.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(simResult.net))}</div>
               </div>
             </div>
           </div>
@@ -4155,15 +4155,15 @@ function ReduceSheet({ combo, onReduce, onClose }) {
   return (
     <div className="space-y-3">
       <div className="num-tile rounded-xl p-3">
-        <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold mb-1">ยอดปัจจุบัน</div>
+        <div className="text-base uppercase tracking-wider font-display font-semibold mb-1" style={{color:'#8a6d36'}}>ยอดปัจจุบัน</div>
         <div className="grid grid-cols-2 gap-2 text-right">
-          <div>
-            <div className="text-base uppercase text-red-300 font-display">รับ</div>
-            <div className="font-numeric font-bold text-gray-900 text-xl">฿{fmt(currentIntake)}</div>
+          <div className="min-w-0 overflow-hidden">
+            <div className="text-base uppercase font-display" style={{color:'#8a6d36'}}>รับ</div>
+            <div className="font-numeric font-bold text-gray-900 truncate" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(currentIntake)}</div>
           </div>
-          <div>
+          <div className="min-w-0 overflow-hidden">
             <div className="text-base uppercase text-red-500 font-display">จ่ายเพดาน</div>
-            <div className="font-numeric font-bold text-red-600 text-xl">฿{fmt(currentPayout)}</div>
+            <div className="font-numeric font-bold text-red-600 truncate" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(currentPayout)}</div>
           </div>
         </div>
       </div>
@@ -4173,9 +4173,9 @@ function ReduceSheet({ combo, onReduce, onClose }) {
         <div className="grid grid-cols-3 gap-2">
           {[75, 50, 25].map(p => (
             <button key={p} onClick={() => applyPreset(p)}
-              className="num-tile rounded-xl p-3 active:scale-95">
+              className="num-tile rounded-xl p-3 active:scale-95 min-w-0 overflow-hidden">
               <div className="font-numeric text-2xl font-bold gold-text">{p}%</div>
-              <div className="text-base text-gray-500 font-display mt-1">
+              <div className="text-base text-gray-500 font-display mt-1 truncate">
                 ฿{fmt(currentIntake * p / 100)}
               </div>
             </button>
@@ -4682,17 +4682,17 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
                 <>
                   {/* Summary numbers */}
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="rounded-xl p-2.5 bg-stone-50 border border-stone-200">
+                    <div className="rounded-xl p-2.5 bg-stone-50 border border-stone-200 min-w-0 overflow-hidden">
                       <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">รับเข้า</div>
-                      <div className="font-numeric text-lg font-bold text-stone-700 mt-0.5">฿{fmt(totalIntake)}</div>
+                      <div className="font-numeric font-bold text-stone-700 mt-0.5 truncate" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
                     </div>
-                    <div className="rounded-xl p-2.5 bg-green-50 border border-green-200">
+                    <div className="rounded-xl p-2.5 bg-green-50 border border-green-200 min-w-0 overflow-hidden">
                       <div className="text-base uppercase tracking-wider text-green-700 font-display font-semibold">พี่เก็บ</div>
-                      <div className="font-numeric text-lg font-bold text-green-700 mt-0.5">฿{fmt(totalKept)}</div>
+                      <div className="font-numeric font-bold text-green-700 mt-0.5 truncate" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalKept)}</div>
                     </div>
-                    <div className="rounded-xl p-2.5 bg-cyan-50 border border-cyan-300">
+                    <div className="rounded-xl p-2.5 bg-cyan-50 border border-cyan-300 min-w-0 overflow-hidden">
                       <div className="text-base uppercase tracking-wider text-cyan-700 font-display font-semibold">ส่งต่อ</div>
-                      <div className="font-numeric text-lg font-bold text-cyan-700 mt-0.5">฿{fmt(totalForwarded)}</div>
+                      <div className="font-numeric font-bold text-cyan-700 mt-0.5 truncate" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalForwarded)}</div>
                     </div>
                   </div>
 
@@ -5536,18 +5536,18 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
           <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">สรุปทั้งหมด</h2>
         </div>
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="num-tile rounded-xl p-3">
+          <div className="num-tile rounded-xl p-3 min-w-0 overflow-hidden">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>{isSeller ? 'รับเข้า' : 'เงินซื้อ'}</div>
-            <div className="font-numeric text-2xl font-bold gold-text mt-1">฿{fmt(stats.totalIntake)}</div>
+            <div className="font-numeric font-bold gold-text mt-1 truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(stats.totalIntake)}</div>
           </div>
-          <div className="num-tile rounded-xl p-3">
+          <div className="num-tile rounded-xl p-3 min-w-0 overflow-hidden">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>{isSeller ? 'จ่ายออก' : 'เงินที่ได้'}</div>
-            <div className="font-numeric text-2xl font-bold text-red-600 mt-1">฿{fmt(stats.totalPayout)}</div>
+            <div className="font-numeric font-bold text-red-600 mt-1 truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(stats.totalPayout)}</div>
           </div>
         </div>
-        <div className={`rounded-xl p-3 border ${stats.profit >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-400'}`}>
+        <div className={`rounded-xl p-3 border overflow-hidden ${stats.profit >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-400'}`}>
           <div className={`text-base uppercase tracking-widest font-display ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>กำไร/ขาดทุน</div>
-          <div className={`font-numeric text-2xl font-bold mt-1 ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{stats.profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(stats.profit))}</div>
+          <div className={`font-numeric font-bold mt-1 truncate ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{stats.profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(stats.profit))}</div>
           <div className="text-base text-gray-500 mt-1 font-display">{stats.wonCount} / {stats.totalCount} โพยถูก</div>
         </div>
       </div>
@@ -5562,13 +5562,13 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
               const profit = isSeller ? l.intake - l.payout : l.payout - l.intake;
               return (
                 <div key={i} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-base text-gray-900 font-display">{l.name}</span>
-                    <span className={`font-numeric text-lg font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(profit))}</span>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-base text-gray-900 font-display truncate">{l.name}</span>
+                    <span className={`font-numeric font-bold truncate ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{fontSize: 'clamp(0.9rem, 4vw, 1.125rem)', lineHeight: 1.2}}>{profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(profit))}</span>
                   </div>
-                  <div className="flex items-center justify-between text-base text-gray-400 font-display">
-                    <span>รับ ฿{fmt(l.intake)} · จ่าย ฿{fmt(l.payout)}</span>
-                    <span>{l.won}/{l.total}</span>
+                  <div className="flex items-center justify-between gap-2 text-base text-gray-400 font-display flex-wrap">
+                    <span className="truncate">รับ ฿{fmt(l.intake)} · จ่าย ฿{fmt(l.payout)}</span>
+                    <span className="flex-shrink-0">{l.won}/{l.total}</span>
                   </div>
                 </div>
               );
