@@ -45,6 +45,19 @@
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   .font-display { font-family: 'Mitr', sans-serif; letter-spacing: 0.01em; font-feature-settings: 'cv11' 1; }
   .font-numeric { font-family: 'Mitr', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+  /* ตัวเลขเงิน: ห้ามตัดหาย (…) — ยาวเกินให้ขึ้นบรรทัดใหม่ */
+  .num-wrap { min-width: 0; white-space: nowrap; }
+  /* หน้าเข้าแอปบนจอเตี้ย: ซ่อนลายประดับ ให้ปุ่ม ถัดไป/ข้าม อยู่ในจอโดยไม่ต้องเลื่อน */
+  .login-head-compact { display: none; }
+  @media (max-height: 700px) {
+    .login-head, .login-deco { display: none; }
+    .login-head-compact { display: block; }
+    .login-keys > button.h-16 { height: 3.5rem; }
+    .login-wrap.py-5 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .login-keys.grid { gap: 0.6rem; margin-bottom: 0.5rem; }
+    .login-err.mb-3 { min-height: 0; margin-bottom: 0.5rem; }
+  }
+  .num-wrap.num-wrap-multi { white-space: normal; overflow-wrap: anywhere; }
   .font-serif-thai { font-family: 'Noto Serif Thai', serif; }
   .font-cinzel { font-family: 'Cinzel', serif; }
   .font-bodoni { font-family: 'Bodoni Moda', serif; }
@@ -308,7 +321,7 @@
     left: 0;
     right: 0;
     padding: 12px;
-    z-index: 9997;
+    z-index: 10030;
     pointer-events: none;
     display: flex;
     flex-direction: column;
@@ -451,13 +464,109 @@ const DEFAULT_LOTTERIES = [
   { id: 'gov',    name: 'หวยรัฐบาล',  types: ['3บน', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'stock',  name: 'หวยหุ้น',     types: ['3บน', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'lao',    name: 'หวยลาว',     types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },
-  { id: 'hanoi',  name: 'หวยฮานอย',   types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },
+  { id: 'hanoi',  name: 'ฮานอยปกติ',  types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },   // 18:30 · ผลทางการ XSMB (อัตโนมัติ)
+  { id: 'hanoi_sp', name: 'ฮานอยพิเศษ', types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] }, // 17:00 · ไม่มีแหล่งทางการ (กรอกเอง)
   { id: 'malay',  name: 'หวยมาเลย์',   types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'yeekee', name: 'หวยยี่กี',    types: ['3บน', '2บน', '2ล่าง', 'โต๊ด'] },
 ];
 
 const INITIAL_RATES = { '3บน': 800, '3ตัว': 800, 'โต๊ด': 130, '2บน': 90, '2ล่าง': 90 };
 const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lotto888-config', rates: 'lotto888-rates', caps: 'lotto888-caps', cuts: 'lotto888-cuts', auth: 'lotto888-auth', backups: 'lotto888-backups', forwards: 'lotto888-forwards', forwardSettings: 'lotto888-forward-settings' };
+
+// ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
+// ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron 16:15–21:45 ทุก 30 นาที)
+// คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
+const APP_VERSION = 'v4 · 16 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4
+
+// ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
+// เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
+const SHARE_KEY = 'lotto888-share-pending';
+(function captureShare() {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('text') && !q.has('title') && !q.has('url')) return;
+    // ใช้ text เป็นหลัก (title บางแอปเป็นชื่อแอป เช่น "LINE" → จะกลายเป็นชื่อลูกค้าผิดๆ)
+    const body = (q.get('text') || '').trim() || (q.get('title') || '').trim() || (q.get('url') || '').trim();
+    if (body) sessionStorage.setItem(SHARE_KEY, body);
+    history.replaceState(null, '', location.pathname + location.hash);
+  } catch (e) {}
+})();
+const SUPA_REST = 'https://tlykaqoypstvdrlivwvu.supabase.co/rest/v1/';
+const SUPA_KEY = 'sb_publishable_IAmYP1QeDb5otH0sjMZaMA_Bme1gxwG';
+const AUTO_LOTTERIES = {
+  gov:   { table: 'thai_draws',  cols: 'draw_date,first_prize,last2,front3,back3', time: '16:00', days: 'ทุกวันที่ 1 และ 16', src: 'กองสลาก (GLO)', tag: 'ทางการ' },
+  lao:   { table: 'lao_draws',   cols: 'draw_date,six,top3,top2,bottom2',          time: '20:00', days: 'จ.–ศ. 20:00',      src: 'ข่าวสด · เทียบ 2 แหล่ง', tag: 'อัตโนมัติ' },
+  hanoi: { table: 'hanoi_draws', cols: 'draw_date,special,prize1,top3,top2,bottom2', time: '18:30', days: 'ทุกวัน 18:30',   src: 'ผลทางการเวียดนาม (XSMB)', tag: 'ทางการ' },
+};
+const AUTO_IDS = ['gov', 'lao', 'hanoi'];
+
+async function supaGet(path, ms = 15000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(SUPA_REST + path, { headers: { apikey: SUPA_KEY }, signal: ctrl.signal, cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+// แถวจากฐานข้อมูล → รูปแบบ draw ของแอป (results ใช้กับ checkWin ตัวเดิมได้ทันที)
+function autoRowToDraw(lotteryId, r) {
+  let results, meta;
+  if (lotteryId === 'gov') {
+    const fp = String(r.first_prize || '');
+    if (!/^\d{6}$/.test(fp) || !/^\d{2}$/.test(String(r.last2 || ''))) return null;
+    results = { '3บน': fp.slice(-3), '2บน': fp.slice(-2), '2ล่าง': r.last2 };
+    meta = { first: fp, front3: r.front3 || [], back3: r.back3 || [] };
+  } else {
+    if (!/^\d{3}$/.test(String(r.top3 || '')) || !/^\d{2}$/.test(String(r.bottom2 || ''))) return null;
+    results = { '3ตัว': r.top3, '2บน': r.top2, '2ล่าง': r.bottom2 };
+    meta = lotteryId === 'lao' ? { six: r.six } : { special: r.special, prize1: r.prize1 };
+  }
+  return { id: 'auto:' + lotteryId + ':' + r.draw_date, lotteryId, date: r.draw_date, results, meta, source: 'auto', createdAt: Date.now() };
+}
+
+const sameResults = (a = {}, b = {}) => ['3บน', '3ตัว', '2บน', '2ล่าง'].every(k => (a[k] || '') === (b[k] || ''));
+
+// รวมผลอัตโนมัติเข้า draws — กติกา: ผลที่ผู้ใช้กรอกเองจะไม่ถูกทับ ถ้าไม่ตรงจะเก็บ autoResults ไว้เตือน
+// กันพื้นที่เครื่องเต็ม: ผลอัตโนมัติที่เก่ากว่า 120 วันและไม่มีโพยอ้างถึง จะถูกลบ (ผลกรอกเองไม่ลบ)
+const AUTO_KEEP_DAYS = { gov: 400, lao: 120, hanoi: 120 };   // ไทยออกเดือนละ 2 งวด → เก็บนานกว่า
+function autoCutDate(lotteryId) {
+  const c = new Date(Date.now() - (AUTO_KEEP_DAYS[lotteryId] || 120) * 864e5);
+  return c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0');
+}
+function mergeAutoDraws(prev, autoDraws, betKeys) {
+  let changed = false;
+  const keep = (d) => d.source !== 'auto' || d.date >= autoCutDate(d.lotteryId) || (betKeys && betKeys.has(d.lotteryId + '|' + d.date));
+  const next = prev.filter(keep);
+  if (next.length !== prev.length) changed = true;
+  for (const a of autoDraws) {
+    const i = next.findIndex(d => d.lotteryId === a.lotteryId && d.date === a.date);
+    if (i < 0) { next.push(a); changed = true; continue; }
+    const cur = next[i];
+    if (cur.source === 'auto') {
+      if (!sameResults(cur.results, a.results) || JSON.stringify(cur.meta) !== JSON.stringify(a.meta)) { next[i] = a; changed = true; }
+    } else {
+      const want = sameResults(cur.results, a.results) ? undefined : a.results;
+      if (JSON.stringify(cur.autoResults) !== JSON.stringify(want)) { next[i] = { ...cur, autoResults: want, autoMeta: want ? a.meta : undefined }; changed = true; }
+    }
+  }
+  return changed ? next : prev;
+}
+
+// วันนี้เป็นวันออกผลของหวยนี้ไหม (ใช้แค่แสดงป้าย "วันนี้ HH:MM")
+function isDrawDay(lotteryId, iso) {
+  const d = new Date(iso + 'T00:00:00');
+  if (lotteryId === 'lao') return d.getDay() >= 1 && d.getDay() <= 5;          // จ.–ศ. (ข่าวสด 23 ก.ย. 69)
+  if (lotteryId === 'hanoi') return true;                                      // XSMB ออกทุกวัน
+  if (lotteryId === 'gov') {
+    const m = d.getMonth() + 1, day = d.getDate();
+    if ((m === 1 && (day === 1 || day === 16)) || (m === 5 && day === 1)) return false; // วันที่มักเลื่อน
+    if ((m === 1 && (day === 2 || day === 17)) || (m === 5 && day === 2)) return true; // ตามข้อมูลจริง 2568–2569
+    return day === 1 || day === 16;
+  }
+  return false;
+}
 
 // ==================== CAPS / HALF-PAY HELPER ====================
 // caps: [{ lotteryId, drawDate, number, type, halfPay: true }]
@@ -598,7 +707,8 @@ function formatBackupTime(timestamp) {
 // ==================== HELPERS ====================
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const fmt = (n) => new Intl.NumberFormat('th-TH').format(Math.round((n || 0) * 100) / 100);
-const todayISO = () => new Date().toISOString().slice(0, 10);
+// วันที่ตามเวลาเครื่อง (เดิมใช้ toISOString = UTC → 00:00–06:59 น. ในไทยได้วันที่ของเมื่อวาน)
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
 
 const formatDate = (iso) => {
   if (!iso) return '-';
@@ -639,6 +749,15 @@ const checkWin = (bet, results) => {
   }
 };
 
+// คิดเงินโพยถูก — แหล่งเดียว (หน้าสรุป · การ์ดผลออก · ใบได้/เสีย): อัตราปัจจุบัน · จ่ายครึ่งตามเลขอั้น
+function betPayout(b, results, caps, rates) {
+  const amt = parseFloat(b.amount) || 0;
+  const rate = (rates && rates[b.type]) || parseFloat(b.rate) || 0;
+  const half = isCombosHalfPay(caps || [], b.lotteryId, b.drawDate, b.number, b.type);
+  const hit = !!(results && checkWin(b, results));
+  return { amt, rate, half, hit, payout: hit ? amt * rate * (half ? 0.5 : 1) : 0 };
+}
+
 function genericToType(generic, len, lottery) {
   if (len === 3) {
     if (generic === 'โต๊ด') return 'โต๊ด';
@@ -646,6 +765,197 @@ function genericToType(generic, len, lottery) {
   }
   return generic === 'ล่าง' ? '2ล่าง' : '2บน';
 }
+
+// ==================== วางจาก LINE: parseBetText (ทดสอบแยก paste/t2.mjs + fuzz) ====================
+const parseBetText = (() => {
+const THAI_DIGITS = { '๐':'0','๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9' };
+const TYPE_WORDS = [ // ยาวก่อนสั้น
+  ['บนล่าง', ['บน', 'ล่าง']],
+  ['โต๊ด', ['โต๊ด']], ['โต้ด', ['โต๊ด']], ['โตด', ['โต๊ด']], ['โต๋ด', ['โต๊ด']],
+  ['ตรง', ['ตรง']], ['บน', ['บน']], ['ล่าง', ['ล่าง']], ['ลาง', ['ล่าง']],
+];
+
+function normalize(line) {
+  return line
+    .replace(/[๐-๙]/g, (c) => THAI_DIGITS[c])
+    .replace(/[×xX✕✖*]/g, '×')
+    .replace(/(\d),(?=\d{3}\b)/g, '$1')        // 1,000 → 1000
+    .replace(/[＝]/g, '=')
+    .trim();
+}
+
+// คำประเภทในบรรทัด (ตามลำดับที่เขียน)
+function typeWordsIn(s) {
+  const out = [];
+  let rest = s;
+  while (rest.length) {
+    let hit = null;
+    for (const [w, slots] of TYPE_WORDS) if (rest.startsWith(w)) { hit = [w, slots]; break; }
+    if (hit) { out.push(...hit[1]); rest = rest.slice(hit[0].length); }
+    else rest = rest.slice(1);
+  }
+  return out;
+}
+
+// บรรทัดหัวข้อ: ไม่มีตัวเลข และมีแต่คำประเภท + ตัวคั่น (- / , ช่องว่าง)
+function asHeader(s) {
+  if (/\d/.test(s)) return null;
+  const stripped = s.replace(/[\s\-\/,.:|+]+/g, '');
+  if (!stripped) return null;
+  let rest = stripped, slots = [];
+  while (rest.length) {
+    const hit = TYPE_WORDS.find(([w]) => rest.startsWith(w));
+    if (!hit) return null;              // มีคำอื่นปน → ไม่ใช่หัวข้อ
+    slots.push(...hit[1]); rest = rest.slice(hit[0].length);
+  }
+  return slots.length ? slots : null;
+}
+
+const perms = (n) => [...new Set(getToadVariations(n))].sort();
+
+return function parseBetText(text, lottery) {
+  const rawLines = String(text || '').split(/\r?\n/);
+  let slots2 = ['บน', 'ล่าง'];            // ค่าเริ่มต้น 2 ตัว: A×B = บน×ล่าง
+  let slots3 = ['ตรง', 'โต๊ด'];           // ค่าเริ่มต้น 3 ตัว: A×B = ตรง×โต๊ด
+  let customer = null, sawBet = false;
+  const lines = [];
+
+  for (let idx = 0; idx < rawLines.length; idx++) {
+    const raw = rawLines[idx].trim();
+    if (!raw) continue;
+    // เวลาหน้าข้อความที่ก๊อปจาก LINE เช่น "12:24 พี่แดง 28=100" → ตัด "12:24" ทิ้ง ไม่ให้กลายเป็นเลข 12, 24
+    const s = normalize(raw).replace(/^\[?\d{1,2}:\d{2}\]?\s*/, '');
+    const L = { idx, raw, status: 'skip', bets: [], note: '' };
+    lines.push(L);
+    if (!s) { L.note = 'เวลา · ข้าม'; continue; }
+
+    // 1) หัวข้อ
+    const hdr = asHeader(s);
+    if (hdr) {
+      const two = hdr.filter((t) => t === 'บน' || t === 'ล่าง');
+      const three = hdr.map((t) => (t === 'บน' ? 'ตรง' : t)).filter((t) => t === 'ตรง' || t === 'โต๊ด');
+      // หัวข้อที่ใช้กับกลุ่มไหนไม่ได้ → กลุ่มนั้นต้องระบุเองทุกบรรทัด (null = ห้ามเดา)
+      slots2 = two.length === hdr.length ? two : null;
+      slots3 = three.length === hdr.length ? three : null;
+      L.status = 'header'; L.note = 'หัวข้อ: ' + hdr.join('-');
+      continue;
+    }
+
+    // 2) ไม่มีตัวเลข → ชื่อลูกค้า (เฉพาะบรรทัดแรกก่อนมีโพย) หรือข้าม
+    if (!/\d/.test(s)) {
+      if (!customer && !sawBet) { customer = s; L.status = 'name'; L.note = 'ชื่อลูกค้า'; }
+      else { L.status = 'skip'; L.note = 'ไม่ใช่โพย · ข้าม'; }
+      continue;
+    }
+
+    // 3) บรรทัดโพย: "เลข(หลายตัวได้) [=] ราคา×ราคา [คำประเภท] [กลับ]"
+    const reverse = /กลับ/.test(s);
+    const words = typeWordsIn(s.replace(/กลับ/g, ''));
+    const eq = s.indexOf('=');
+    let left, right;
+    if (eq >= 0) { left = s.slice(0, eq); right = s.slice(eq + 1); }
+    else {
+      // ไม่มี "=" — รับเฉพาะรูปแบบที่ไม่กำกวม:
+      //  (ก) มี × : เลขก่อนกลุ่ม × คือเลขโพย            เช่น "28 100×100"
+      //  (ข) มีคำประเภทหลังเลข : เลขก่อนคำแรกคือเลขโพย   เช่น "123 บน100 โต๊ด50"
+      //  (ค) มีตัวเลขแค่ 2 ตัว : ตัวแรกเลขโพย ตัวหลังราคา   เช่น "ล่าง 45 100"
+      //  นอกนั้น (เช่น "12 34 56 20") → warn ไม่เดา
+      const body = s.replace(/กลับ/g, ' ');
+      const tIdx = body.search(/×/);
+      const firstWordAfterNum = (() => {
+        const m = body.match(/\d[^\dก-๙]*([ก-๙])/);
+        return m ? body.indexOf(m[1], body.search(/\d/)) : -1;
+      })();
+      if (tIdx >= 0) {
+        const before = body.slice(0, tIdx);
+        const lastNum = before.match(/(\d+(?:\.\d+)?)\s*$/);
+        const cut = lastNum ? tIdx - lastNum[0].length : tIdx;
+        left = body.slice(0, cut); right = body.slice(cut);
+      } else if (firstWordAfterNum > 0) {
+        left = body.slice(0, firstWordAfterNum); right = body.slice(firstWordAfterNum);
+      } else {
+        const all = body.match(/\d+(?:\.\d+)?/g) || [];
+        if (all.length !== 2) { L.status = 'warn'; L.note = 'ไม่มี "=" และแยกเลขกับราคาไม่ได้'; continue; }
+        left = all[0]; right = all[1];
+      }
+    }
+    const nums = left.match(/\d+/g) || [];
+    if (!nums.length || nums.some((n) => n.length < 2 || n.length > 3)) {
+      L.status = 'warn'; L.note = 'เลขโพยต้องเป็น 2 หรือ 3 หลัก'; continue;
+    }
+    const len = nums[0].length;
+    if (nums.some((n) => n.length !== len)) { L.status = 'warn'; L.note = 'เลข 2 หลักกับ 3 หลักปนกัน'; continue; }
+
+    const amtStr = right.replace(/[^\d.×]/g, ' ').trim();
+    const amts = (amtStr.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    const hasTimes = /×/.test(right);
+    if (!amts.length || amts.some((a) => !(a > 0))) { L.status = 'warn'; L.note = 'ไม่พบราคา'; continue; }
+    if (!hasTimes && amts.length > 1 && !words.length) {
+      L.status = 'warn'; L.note = 'มีหลายตัวเลขแต่ไม่มี × หรือคำประเภท'; continue;
+    }
+
+    const bets = [];
+    let problem = '';
+    for (const num of nums) {
+      if (len === 3) {
+        const P = perms(num);
+        if (reverse) {
+          // 234=100×6 กลับ  → ตรงทุก perm ละ 100 · ตัวหลังต้องเท่าจำนวน perm ถ้ามี
+          if (amts.length === 1 || (amts.length === 2 && amts[1] === P.length)) {
+            for (const p of P) bets.push({ number: p, generic: 'ตรง', amount: amts[0] });
+          } else problem = `กลับ ${num} ได้ ${P.length} แบบ แต่ราคาไม่ตรงรูปแบบ`;
+        } else if (words.length) {
+          // ระบุคำชัด เช่น "123 ตรง100 โต๊ด50" (จับคู่ตามลำดับ)
+          const ws = words.map((w) => (w === 'บน' ? 'ตรง' : w));
+          if (ws.some((w) => w === 'ล่าง')) problem = '3 ตัวล่าง ยังไม่รองรับ';
+          else if (ws.length !== amts.length) problem = 'จำนวนคำประเภทไม่เท่าจำนวนราคา';
+          else ws.forEach((w, i) => bets.push({ number: num, generic: w, amount: amts[i] }));
+        } else if (amts.length >= 3 && amts.length === P.length) {
+          // 232=100×100×100 → กลับทุกแบบ ราคาตามลำดับ
+          P.forEach((p, i) => bets.push({ number: p, generic: 'ตรง', amount: amts[i] }));
+        } else if (!slots3) {
+          problem = 'หัวข้อด้านบนใช้กับเลข 2 ตัว · ระบุ ตรง/โต๊ด';
+        } else if (amts.length <= slots3.length) {
+          amts.forEach((a, i) => bets.push({ number: num, generic: slots3[i], amount: a }));
+        } else problem = `ราคา ${amts.length} ตัว แต่ ${num} กลับได้ ${P.length} แบบ`;
+      } else {
+        let gens;
+        if (words.length) {
+          gens = words.filter((w) => w === 'บน' || w === 'ล่าง');
+          if (gens.length !== words.length) problem = 'คำประเภทไม่ใช่ของ 2 ตัว';
+          else if (gens.length === 1 && amts.length === 1) gens = gens;
+          else if (gens.length !== amts.length) problem = 'จำนวนคำประเภทไม่เท่าจำนวนราคา';
+        } else if (!slots2) {
+          problem = 'หัวข้อด้านบนใช้กับเลข 3 ตัว · ระบุ บน/ล่าง';
+        } else gens = slots2;
+        if (!problem) {
+          if (amts.length > gens.length) problem = `ราคา ${amts.length} ตัว แต่ประเภทมี ${gens.length}`;
+          else amts.forEach((a, i) => bets.push({ number: num, generic: gens[i], amount: a }));
+        }
+        if (!problem && reverse) {
+          const rev = num.split('').reverse().join('');
+          if (rev !== num) bets.push(...bets.filter((b) => b.number === num).map((b) => ({ ...b, number: rev })));
+        }
+      }
+      if (problem) break;
+    }
+
+    if (problem) { L.status = 'warn'; L.note = problem; continue; }
+    L.status = 'ok';
+    L.bets = bets.map((b) => ({ number: b.number, type: genericToType(b.generic, b.number.length, lottery), amount: b.amount }));
+    sawBet = true;
+  }
+
+  const bets = lines.flatMap((l) => l.bets);
+  return {
+    customer,
+    lines,
+    bets,
+    total: bets.reduce((s, b) => s + b.amount, 0),
+    warnCount: lines.filter((l) => l.status === 'warn').length,
+  };
+}
+})();
 
 function typeShort(type) {
   if (type === '3บน' || type === '3ตัว') return 'ตรง';
@@ -944,107 +1254,7 @@ function computeScenarios(bets) {
 }
 
 // ==================== LINE PARSERS ====================
-function parseLineText(text, lottery, defaultAmount, rates) {
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const out = [];
-  const typeMap = {
-    'ตรง':'ตรง','บน':'บน','ล่าง':'ล่าง','โต๊ด':'โต๊ด','โตด':'โต๊ด',
-    'ลาง':'ล่าง','tod':'โต๊ด','top':'ตรง','bot':'ล่าง',
-  };
-
-  for (const line of lines) {
-    if (/^[#\-=]/.test(line)) continue;
-    const numMatch = line.match(/\d{2,3}/);
-    if (!numMatch) continue;
-    const number = numMatch[0];
-    const after = line.slice(numMatch.index + numMatch[0].length);
-
-    const shortMatch = after.match(/^[\s=\-:]*(\d+(?:\.\d+)?(?:\s*[×x*\/]\s*\d+(?:\.\d+)?)+)\s*$/i);
-    if (shortMatch) {
-      const amts = shortMatch[1].split(/[×x*\/]/i).map(s => parseFloat(s.trim())).filter(n => !isNaN(n) && n > 0);
-      const lineBets = [];
-      if (number.length === 3) {
-        const perms = [...getToadVariations(number)].sort();
-        const N = amts.length;
-        const P = perms.length;
-        if (N === P && N >= 2) {
-          amts.forEach((amt, i) => lineBets.push({ number: perms[i], generic: 'ตรง', amount: amt }));
-        } else {
-          const slots = ['ตรง', 'โต๊ด', '2ล่าง', '2บน'];
-          amts.forEach((amt, i) => {
-            if (i >= slots.length) return;
-            const slot = slots[i];
-            if (slot === 'ตรง' || slot === 'โต๊ด') lineBets.push({ number, generic: slot, amount: amt });
-            else if (slot === '2ล่าง') lineBets.push({ number: number.slice(-2), generic: 'ล่าง', amount: amt });
-            else if (slot === '2บน') lineBets.push({ number: number.slice(-2), generic: 'บน', amount: amt });
-          });
-        }
-      } else {
-        const slots = ['บน', 'ล่าง'];
-        amts.forEach((amt, i) => { if (i < slots.length) lineBets.push({ number, generic: slots[i], amount: amt }); });
-      }
-      for (const b of lineBets) {
-        const type = genericToType(b.generic, b.number.length, lottery);
-        if (out.some(o => o.number === b.number && o.type === type)) continue;
-        out.push({ id: uid(), number: b.number, type, amount: b.amount, rate: rates[type] || 90 });
-      }
-      continue;
-    }
-
-    const tokens = after.match(/[ก-๙a-zA-Z]+|\d+(?:\.\d+)?/g) || [];
-    let pendingAmt = null, pendingType = null, reverse = false;
-    const lineBets = [];
-    for (const tok of tokens) {
-      if (/^\d/.test(tok)) {
-        const amt = parseFloat(tok);
-        if (pendingType) { lineBets.push({ number, generic: pendingType, amount: amt }); pendingType = null; }
-        else {
-          if (pendingAmt !== null) {
-            const dt = number.length === 3 ? 'ตรง' : 'บน';
-            lineBets.push({ number, generic: dt, amount: pendingAmt });
-          }
-          pendingAmt = amt;
-        }
-      } else if (tok === 'กลับ' || tok.toLowerCase() === 'reverse') { reverse = true; }
-      else if (typeMap[tok]) {
-        const t = typeMap[tok];
-        if (pendingAmt !== null) { lineBets.push({ number, generic: t, amount: pendingAmt }); pendingAmt = null; }
-        else { pendingType = t; }
-      }
-    }
-    if (pendingAmt !== null) {
-      const dt = number.length === 3 ? 'ตรง' : 'บน';
-      lineBets.push({ number, generic: dt, amount: pendingAmt });
-    }
-    if (lineBets.length === 0 && defaultAmount > 0) {
-      const dt = number.length === 3 ? 'ตรง' : 'บน';
-      lineBets.push({ number, generic: dt, amount: defaultAmount });
-    }
-    if (reverse) {
-      if (number.length === 3) {
-        // กลับ 3 ตัว = ทุก permutation (เช่น 223 → 223, 232, 322)
-        // ใช้กับ ตรง เท่านั้น — โต๊ด คุ้มทุก perm อยู่แล้ว
-        const allPerms = getToadVariations(number);
-        const extraPerms = allPerms.filter(p => p !== number);
-        const nonToadBets = lineBets.filter(b => b.generic !== 'โต๊ด');
-        for (const perm of extraPerms) {
-          for (const b of nonToadBets) {
-            lineBets.push({ ...b, number: perm });
-          }
-        }
-      } else {
-        const rev = reverseDigits(number);
-        if (rev !== number) lineBets.push(...lineBets.map(b => ({ ...b, number: rev })));
-      }
-    }
-    for (const b of lineBets) {
-      const type = genericToType(b.generic, b.number.length, lottery);
-      if (out.some(o => o.number === b.number && o.type === type)) continue;
-      out.push({ id: uid(), number: b.number, type, amount: b.amount, rate: rates[type] || 90 });
-    }
-  }
-  return out;
-}
+// (parseLineText เดิมถูกแทนด้วย parseBetText — ตัวเดิมตัดบรรทัดซ้ำทิ้งและอ่าน "234=100×6 กลับ" ผิด)
 
 function formatListForLine(bets, lottery, drawDate) {
   if (bets.length === 0) return '';
@@ -1299,7 +1509,7 @@ function ToastProvider({ children }) {
     <ToastContext.Provider value={{ show, askConfirm }}>
       {children}
       {confirmState && (
-        <div className="fixed inset-0 z-[9990] flex items-center justify-center p-5" onClick={() => confirmState.onResolve(false)}>
+        <div className="fixed inset-0 z-[10020] flex items-center justify-center p-5" onClick={() => confirmState.onResolve(false)}>
           <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-sm"/>
           <div onClick={e => e.stopPropagation()}
             className="relative max-w-sm w-full bg-white rounded-2xl shadow-2xl overflow-hidden toast-in"
@@ -1366,14 +1576,16 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
       const setter = step === 'setup' ? setPin : setConfirmPin;
       if (target.length < 6) setter(target + d);
     } else {
-      // login
+      // login — เดิมตรวจเฉพาะตอนครบ 6 หลัก → คนตั้ง PIN 4-5 หลักเข้าแอปไม่ได้เลย
+      // ตอนนี้: ครบ 4 หลักขึ้นไปและตรง → เข้าทันที · ผิด → แจ้งเมื่อครบความยาว PIN ที่ตั้งไว้ (อ่านจากท้าย hash)
       if (pin.length < 6) {
         const newPin = pin + d;
         setPin(newPin);
-        // Auto-submit at 6 digits
-        if (newPin.length === 6) {
-          checkLogin(newPin);
-        }
+        const m = String(auth?.pinHash || '').match(/-(\d+)$/);
+        const setLen = m ? parseInt(m[1], 10) - 'lotto888-salt-'.length : 0;
+        const expectLen = setLen >= 4 && setLen <= 6 ? setLen : 6;
+        if (newPin.length >= 4 && hashPin(newPin) === auth.pinHash) onSuccess();
+        else if (newPin.length === expectLen) checkLogin(newPin);
       }
     }
   };
@@ -1445,26 +1657,31 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
   const title = step === 'setup' ? 'ตั้ง PIN ป้องกัน'
               : step === 'setup-confirm' ? 'ยืนยัน PIN อีกครั้ง'
               : 'ใส่ PIN เข้าสู่แอป';
-  const subtitle = step === 'setup' ? 'ตั้ง PIN 4-6 หลัก ป้องกันคนอื่นเปิดดู'
+  const subtitle = step === 'setup' ? 'PIN 4-6 หลัก กันคนอื่นเปิดดู'
                  : step === 'setup-confirm' ? 'พิมพ์ PIN เดิมอีกครั้งเพื่อยืนยัน'
                  : 'พิมพ์ PIN 4-6 หลักของคุณ';
 
   return (
-    <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center px-6 safe-top safe-bottom"
+    <div className="fixed inset-0 z-[10000] overflow-y-auto safe-top safe-bottom" data-testid="login-screen"
       style={{ background: 'linear-gradient(180deg, #faf7f0 0%, #f5ead0 50%, #ebd9a8 100%)' }}>
+      {/* จอเตี้ย (มือถือจอเล็ก/แถบเบราว์เซอร์กินที่) → เลื่อนดูได้ ไม่ถูกตัดหัว/ปุ่มล่าง */}
+      <div className="login-wrap min-h-full flex flex-col items-center justify-center px-5 py-5">
       <div className="w-full max-w-sm">
-        {/* Header */}
-        <div className="text-center mb-6">
+        {/* Header — จอเตี้ยใช้หัวแบบย่อบรรทัดเดียว */}
+        <div className="login-head-compact text-center mb-3 font-cinzel text-2xl font-bold tracking-[0.15em]" style={{color:'#2a2a2a'}}>
+          <span style={{color:'#b8965a'}}>♛</span> ROYAL <span style={{color:'#b8965a'}}>888</span>
+        </div>
+        <div className="login-head text-center mb-4">
           <div className="text-3xl leading-none mb-1" style={{color:'#b8965a'}}>♛</div>
           <h1 className="font-cinzel text-3xl font-bold tracking-[0.18em] leading-none" style={{color:'#2a2a2a'}}>ROYAL</h1>
-          <div className="my-3 mx-auto" style={{ width: '80px', height: '1px', background: 'linear-gradient(90deg, transparent, #b8965a 30%, #d4b572 50%, #b8965a 70%, transparent)' }}/>
+          <div className="my-2 mx-auto" style={{ width: '80px', height: '1px', background: 'linear-gradient(90deg, transparent, #b8965a 30%, #d4b572 50%, #b8965a 70%, transparent)' }}/>
           <div className="font-bodoni text-2xl font-bold tracking-[0.3em]" style={{color:'#b8965a'}}>8 8 8</div>
-          <div className="my-3 mx-auto" style={{ width: '80px', height: '1px', background: 'linear-gradient(90deg, transparent, #b8965a 30%, #d4b572 50%, #b8965a 70%, transparent)' }}/>
-          <div className="font-cinzel text-xs font-semibold tracking-[0.4em] uppercase" style={{color:'#8a6d36'}}>Premium &middot; Est MMXXVI</div>
+          <div className="my-2 mx-auto" style={{ width: '80px', height: '1px', background: 'linear-gradient(90deg, transparent, #b8965a 30%, #d4b572 50%, #b8965a 70%, transparent)' }}/>
+          <div className="login-deco font-cinzel text-xs font-semibold tracking-[0.4em] uppercase" style={{color:'#8a6d36'}}>Premium &middot; Est MMXXVI</div>
         </div>
 
         {/* Title */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-4">
           <div className="font-display text-2xl font-bold text-stone-900">{title}</div>
           <div className="text-lg text-stone-600 font-display mt-1">{subtitle}</div>
         </div>
@@ -1484,7 +1701,7 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
         </div>
 
         {/* Error */}
-        <div className="text-center min-h-[24px] mb-3">
+        <div className="login-err text-center min-h-[24px] mb-3">
           {error && <div className="text-lg text-red-600 font-display font-semibold">{error}</div>}
           {(attempts >= 3 || (!error && step === 'login')) && step === 'login' && (
             <button onClick={() => setShowRecovery(true)} className="text-base text-stone-500 font-display underline mt-1">
@@ -1494,25 +1711,25 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
         </div>
 
         {/* Numpad */}
-        <div className="grid grid-cols-3 gap-3 mb-3">
+        <div className="login-keys grid grid-cols-3 gap-3 mb-3">
           {[1,2,3,4,5,6,7,8,9].map(d => (
             <button key={d} onClick={() => handleDigit(String(d))}
-              className="aspect-square rounded-2xl bg-white border border-stone-200 text-stone-900 font-numeric text-3xl font-bold active:scale-95 active:bg-red-50 transition-all"
+              className="h-16 rounded-2xl bg-white border border-stone-200 text-stone-900 font-numeric text-3xl font-bold active:scale-95 active:bg-red-50 transition-all"
               style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
               {d}
             </button>
           ))}
           <button onClick={handleClear}
-            className="aspect-square rounded-2xl bg-transparent text-stone-500 font-display text-lg font-semibold active:scale-95">
+            className="h-16 rounded-2xl bg-transparent text-stone-500 font-display text-lg font-semibold active:scale-95">
             ล้าง
           </button>
           <button onClick={() => handleDigit('0')}
-            className="aspect-square rounded-2xl bg-white border border-stone-200 text-stone-900 font-numeric text-3xl font-bold active:scale-95 active:bg-red-50 transition-all"
+            className="h-16 rounded-2xl bg-white border border-stone-200 text-stone-900 font-numeric text-3xl font-bold active:scale-95 active:bg-red-50 transition-all"
             style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             0
           </button>
           <button onClick={handleBack}
-            className="aspect-square rounded-2xl bg-transparent text-stone-500 font-display text-2xl active:scale-95">
+            className="h-16 rounded-2xl bg-transparent text-stone-500 font-display text-2xl active:scale-95">
             ⌫
           </button>
         </div>
@@ -1538,6 +1755,7 @@ function LoginScreen({ auth, onSuccess, onSetup, onReset, onExport, onResetPinOn
             )}
           </div>
         )}
+      </div>
       </div>
 
       {showRecovery && (
@@ -1793,6 +2011,37 @@ function App() {
   const [showDownloadReminder, setShowDownloadReminder] = useState(false);
   const lastActiveRef = React.useRef(Date.now());
 
+  // ===== ผลอัตโนมัติ: ดึงตอนเปิดแอป · ทุก 10 นาทีระหว่างเปิดอยู่ · ตอนกลับมาที่แอป =====
+  const [autoState, setAutoState] = useState({ at: 0, ok: null, error: '', busy: false });
+  const syncingRef = React.useRef(false);
+  const betsRef = React.useRef(bets);
+  betsRef.current = bets;
+  const syncAuto = async () => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    setAutoState(s => ({ ...s, busy: true }));
+    try {
+      const lists = await Promise.all(AUTO_IDS.map(id =>
+        supaGet(AUTO_LOTTERIES[id].table + '?select=' + AUTO_LOTTERIES[id].cols + '&draw_date=gte.' + autoCutDate(id) + '&order=draw_date.desc&limit=200')
+          .then(rows => rows.map(r => autoRowToDraw(id, r)).filter(Boolean))));
+      const all = lists.flat();
+      const betKeys = new Set((betsRef.current || []).map(b => b.lotteryId + '|' + b.drawDate));
+      setDraws(prev => mergeAutoDraws(prev, all, betKeys));
+      setAutoState({ at: Date.now(), ok: true, error: '', busy: false });
+    } catch (e) {
+      setAutoState(s => ({ ...s, ok: false, error: e.name === 'AbortError' ? 'หมดเวลา' : (e.message || 'เชื่อมต่อไม่ได้'), busy: false }));
+    } finally { syncingRef.current = false; }
+  };
+  const lastSyncRef = React.useRef(0);
+  useEffect(() => { lastSyncRef.current = autoState.at; }, [autoState.at]);
+  useEffect(() => {
+    syncAuto();
+    const iv = setInterval(() => { if (document.visibilityState === 'visible') syncAuto(); }, 10 * 60 * 1000);
+    const onVis = () => { if (document.visibilityState === 'visible' && Date.now() - lastSyncRef.current > 5 * 60 * 1000) syncAuto(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
+  }, []);
+
   // Auto-lock timer
   useEffect(() => {
     if (!auth?.pinHash || locked) return;
@@ -1993,7 +2242,7 @@ function App() {
       try { localStorage.removeItem(key); } catch (e) {}
     });
     // also clear extras
-    try { localStorage.removeItem('lotto888-tab'); } catch (e) {}
+    try { localStorage.removeItem('lotto888-tab'); localStorage.removeItem('lotto888-hist-v1'); } catch (e) {}
     // Pre-seed auth so we don't bounce to PIN setup screen after reload
     try {
       localStorage.setItem(STORAGE.auth, JSON.stringify({
@@ -2007,6 +2256,14 @@ function App() {
   const isSeller = config.mode !== 'buyer';
   const currentLottery = DEFAULT_LOTTERIES.find(l => l.id === config.lotteryId) || DEFAULT_LOTTERIES[0];
   const currentDraw = draws.find(d => d.lotteryId === config.lotteryId && d.date === config.drawDate);
+  const [jotPrefill, setJotPrefill] = useState(null);
+  const [shareText, setShareText] = useState(() => { try { return sessionStorage.getItem(SHARE_KEY) || ''; } catch (e) { return ''; } });
+  useEffect(() => { if (shareText) setTab('jot'); }, [shareText]);
+  const latestDraw = useMemo(() => {
+    const today = todayISO();
+    return draws.filter(d => d.lotteryId === config.lotteryId && d.date <= today && d.results && (d.results['3บน'] || d.results['3ตัว'] || d.results['2ล่าง']))
+      .sort((a, b) => b.date.localeCompare(a.date))[0] || null;
+  }, [draws, config.lotteryId]);
   const currentBets = bets.filter(b => b.lotteryId === config.lotteryId && b.drawDate === config.drawDate);
   const totalAmt = currentBets.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
 
@@ -2083,7 +2340,10 @@ function App() {
                 <h1 className="font-cinzel text-2xl font-bold tracking-[0.15em] leading-none" style={{color:'#2a2a2a'}}>ROYAL</h1>
                 <span className="text-2xl leading-none flex-shrink-0" style={{color:'#b8965a'}}>♛</span>
               </div>
-              <div className="font-bodoni text-lg font-bold tracking-[0.3em] mt-0.5" style={{color:'#b8965a'}}>8 8 8</div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="font-bodoni text-lg font-bold tracking-[0.3em]" style={{color:'#b8965a'}}>8 8 8</span>
+                <span className="font-display text-xs font-semibold rounded-full px-2 py-0.5 whitespace-nowrap" style={{ background: '#f3eee2', color: '#8a6d36' }} data-testid="app-version">{APP_VERSION}</span>
+              </div>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {auth?.pinHash && (
@@ -2120,7 +2380,7 @@ function App() {
               <span className="font-display text-sm tracking-wider uppercase flex-shrink-0" style={{color:'#8a6d36'}}>
                 {currentBets.length} โพย
               </span>
-              <span className="font-numeric font-bold truncate" style={{color:'#2a2a2a', fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2, minWidth: 0}}>฿{fmt(totalAmt)}</span>
+              <span className="font-numeric font-bold num-wrap" style={{color:'#2a2a2a', fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2, minWidth: 0}}>฿{fmt(totalAmt)}</span>
             </div>
           </div>
         </div>
@@ -2179,10 +2439,16 @@ function App() {
       </div>
 
       <div className="px-4 pb-24">
-        {tab === 'jot' && <JotTab lottery={currentLottery} drawDate={config.drawDate} purchaseDate={config.purchaseDate || todayISO()} bets={currentBets} allBets={bets} setBets={setBets} rates={rates} setRates={setRates} currentDraw={currentDraw} isSeller={isSeller} caps={caps}/>}
+        {tab === 'jot' && <JotTab lottery={currentLottery} drawDate={config.drawDate} purchaseDate={config.purchaseDate || todayISO()} bets={currentBets} allBets={bets} setBets={setBets} rates={rates} setRates={setRates} currentDraw={currentDraw} isSeller={isSeller} caps={caps}
+          latestDraw={latestDraw} onOpenResults={() => { setTab('result'); window.scrollTo({ top: 0 }); }} prefill={jotPrefill} onPrefillDone={() => setJotPrefill(null)}
+          forwards={forwards} forwardSettings={forwardSettings}
+          incomingShare={shareText} onShareTaken={() => { setShareText(''); try { sessionStorage.removeItem(SHARE_KEY); } catch (e) {} }}/>}
         {tab === 'risk' && <RiskTab lottery={currentLottery} drawDate={config.drawDate} bets={currentBets} allBets={bets} setBets={setBets} isSeller={isSeller} caps={caps} setCaps={setCaps} rates={rates} cuts={cuts} setCuts={setCuts} forwards={forwards} setForwards={setForwards} forwardSettings={forwardSettings} setForwardSettings={setForwardSettings}/>}
-        {tab === 'pick' && <PickTab lottery={currentLottery} draws={draws}/>}
-        {tab === 'result' && <ResultTab lottery={currentLottery} drawDate={config.drawDate} draws={draws} setDraws={setDraws} currentDraw={currentDraw}/>}
+        {tab === 'pick' && <PickTab lottery={currentLottery} draws={draws}
+          onSendToJot={(numbers, pos) => { setJotPrefill({ numbers, pos, at: Date.now() }); setTab('jot'); window.scrollTo({ top: 0 }); }}/>}
+        {tab === 'result' && <ResultTab lottery={currentLottery} drawDate={config.drawDate} draws={draws} setDraws={setDraws} currentDraw={currentDraw}
+          autoState={autoState} onSync={syncAuto}
+          onCheck={(lotteryId, date) => { setConfig({ ...config, lotteryId, drawDate: date }); setTab('jot'); window.scrollTo({ top: 0 }); }}/>}
         {tab === 'stats' && <StatsTab bets={bets} draws={draws} isSeller={isSeller} caps={caps} rates={rates} forwards={forwards} forwardSettings={forwardSettings}/>}
       </div>
 
@@ -2662,105 +2928,82 @@ function ShareAppSheet({ onClose }) {
 }
 
 // ==================== JOT TAB COMPONENTS ====================
-function BetTypeTile({ label, rate, active, dimmed, onClick, color = 'red', icon: Ic }) {
-  // Champagne & Charcoal palette
-  let bg, fg, bd, shadow;
-  if (dimmed && !active) {
-    bg = '#f5f1e8'; fg = '#c8bfa6'; bd = '#e8dfc8'; shadow = 'none';
-  } else if (active) {
-    if (color === 'red' || color === 'green') {
-      bg = '#2a2a2a'; fg = '#f5e8c8'; bd = '#1a1a1a';
-      shadow = '0 4px 10px rgba(42, 42, 42, 0.20)';
-    } else if (color === 'red-light' || color === 'green-light') {
-      bg = '#b8965a'; fg = '#ffffff'; bd = '#8a6d36';
-      shadow = '0 4px 10px rgba(184, 150, 90, 0.25)';
-    } else {
-      bg = '#fdf9ed'; fg = '#8a6d36'; bd = '#b8965a';
-      shadow = '0 2px 4px rgba(184, 150, 90, 0.12)';
-    }
-  } else {
-    bg = '#ffffff'; fg = '#2a2a2a'; bd = '#dccfa6';
-    shadow = '0 1px 2px rgba(184, 150, 90, 0.06)';
-  }
+// สีแยกกลุ่ม (ทั้งแอป): 3 ตัว = ทอง · 2 ตัว = ฟ้าเทอร์ควอยซ์
+const GRP = {
+  g3: { fg: '#8a6d36', bg: '#fbf6ea', bd: '#e3cf9e', solid: '#8a6d36' },
+  g2: { fg: '#0e7490', bg: '#eef8fa', bd: '#b9e0e8', solid: '#0e7490' },
+};
+const grpOfType = (t) => (t === '2บน' || t === '2ล่าง' ? 'g2' : 'g3');
 
+function BetTypeTile({ label, rate, sub, active, dimmed, onClick, group = 'g3' }) {
+  const G = GRP[group];
+  const off = dimmed && !active;
   return (
     <button onClick={onClick}
-      className="relative rounded-xl border-2 transition-all active:scale-95 px-3 py-3 overflow-hidden"
-      style={{ background: bg, color: fg, borderColor: bd, boxShadow: shadow }}>
-      {active && !dimmed && (
-        <div className="absolute top-1.5 left-2">
-          <Check size={13} strokeWidth={3} style={{color: fg}}/>
-        </div>
-      )}
-      <div className="flex flex-col items-center justify-center gap-1">
-        <div className="font-display text-lg font-bold leading-tight flex items-center gap-1.5 text-center">
-          {Ic && <Ic size={14} strokeWidth={2.5}/>}<span>{label}</span>
-        </div>
-        {rate !== undefined && rate !== null && (
-          <div className="font-numeric text-sm font-semibold opacity-75 leading-tight">
-            จ่าย ×{rate}
-          </div>
-        )}
-      </div>
+      className="relative rounded-2xl border-2 transition-all active:scale-95 px-2 py-2.5 overflow-hidden"
+      style={{ background: active ? G.solid : '#fff', color: active ? '#fff' : G.fg, borderColor: active ? G.solid : G.bd,
+               opacity: off ? 0.38 : 1, boxShadow: active ? '0 4px 10px rgba(42,42,42,.16)' : 'none' }}>
+      {active && <span className="absolute top-1.5 left-2.5 text-sm font-bold">✓</span>}
+      <div className="font-display text-lg font-bold leading-tight text-center">{label}</div>
+      {rate !== undefined && rate !== null
+        ? <div className="font-numeric text-sm font-semibold leading-tight" style={{ opacity: 0.8 }}>จ่าย ×{rate}</div>
+        : sub ? <div className="font-display text-sm font-semibold leading-tight" style={{ opacity: 0.8 }}>{sub}</div> : null}
     </button>
   );
 }
 
-function NumberBox({ digit, active }) {
+function NumberBox({ digit, active, group = 'g3' }) {
+  const G = GRP[group];
   return (
-    <div className={`relative w-14 h-16 rounded-xl border-2 transition-all flex items-center justify-center ${
-      active
-        ? 'border-red-400 bg-red-50 shadow-lg shadow-yellow-400/30'
-        : digit !== ''
-          ? 'border-red-400 bg-stone-950/50'
-          : 'border-gray-200 bg-gray-50'
-    }`}>
-      <span className={`font-numeric text-3xl font-bold ${digit !== '' ? 'gold-text' : 'text-gray-200'}`}>
-        {digit !== '' ? digit : '0'}
-      </span>
-      {active && (
-        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-1 bg-red-400 rounded-full"/>
-      )}
+    <div className="relative rounded-2xl border-2 transition-all flex items-center justify-center"
+      style={{ width: 62, height: 74, background: '#fffdf8', borderColor: active ? G.solid : '#e8dfc8',
+               boxShadow: active ? '0 0 0 4px ' + (group === 'g2' ? 'rgba(14,116,144,.15)' : 'rgba(184,150,90,.18)') : 'none' }}>
+      <span className="font-numeric font-bold" style={{ fontSize: 38, color: digit !== '' ? G.fg : '#e5dcc4' }}>{digit !== '' ? digit : '0'}</span>
     </div>
   );
 }
 
 function Numpad({ onDigit, onBackspace, onClear }) {
-  const Key = ({ children, onClick, kind }) => (
-    <button onClick={onClick}
-      className={`h-12 rounded-xl font-numeric text-2xl font-bold transition-all active:scale-90 ${
-        kind === 'danger' ? 'bg-red-100 text-red-600 border border-red-300'
-        : kind === 'special' ? 'bg-gray-100 text-gray-600 border border-gray-200'
-        : 'bg-white text-gray-900 border border-red-200'
-      }`}>{children}</button>
+  const key = (k, onClick, fn) => (
+    <button key={k} onClick={onClick}
+      className={'h-14 rounded-2xl border transition-all active:scale-90 ' + (fn ? 'font-display text-lg font-semibold' : 'font-numeric text-2xl font-bold')}
+      style={fn ? { background: '#fbf8f1', color: '#6b6357', borderColor: '#e8dfc8' } : { background: '#fff', color: '#2a2a2a', borderColor: '#e8dfc8' }}>{k}</button>
   );
   return (
     <div className="grid grid-cols-3 gap-2">
-      {['1','2','3','4','5','6','7','8','9'].map(k => (
-        <Key key={k} onClick={() => onDigit(k)}>{k}</Key>
-      ))}
-      <Key onClick={onClear} kind="special"><RotateCcw size={18} className="mx-auto"/></Key>
-      <Key onClick={() => onDigit('0')}>0</Key>
-      <Key onClick={onBackspace} kind="danger"><X size={22} className="mx-auto"/></Key>
+      {['1','2','3','4','5','6','7','8','9'].map(k => key(k, () => onDigit(k)))}
+      {key('ล้าง', onClear, true)}
+      {key('0', () => onDigit('0'))}
+      {key('⌫ ลบ', onBackspace, true)}
     </div>
   );
 }
 
 function PendingPill({ item, onRemove }) {
-  const typeColors = {
-    '3บน': 'border-red-300 text-red-600',
-    '3ตัว': 'border-red-300 text-red-600',
-    'โต๊ด': 'border-red-400 text-red-700',
-    '2บน': 'border-green-400 text-green-700',
-    '2ล่าง': 'border-green-400 text-green-700',
-  };
-  const cls = typeColors[item.type] || 'border-red-300 text-gray-800';
+  const G = GRP[grpOfType(item.type)];
   return (
-    <div className={`bg-white border rounded-lg px-2.5 py-1.5 flex items-center gap-1.5 ${cls}`}>
+    <div className="rounded-full border pl-3 pr-1 py-1 flex items-center gap-1.5" style={{ background: G.bg, borderColor: G.bd, color: G.fg }}>
       <span className="font-numeric text-xl font-bold leading-none">{item.number}</span>
-      <span className="text-base font-display opacity-70 uppercase tracking-wider">{typeShort(item.type)}</span>
-      <button onClick={onRemove} className="opacity-50 hover:opacity-100 ml-0.5"><X size={12}/></button>
+      <span className="text-base font-display font-semibold">{typeShort(item.type)}</span>
+      <button onClick={onRemove} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ opacity: 0.6 }} aria-label="ลบ"><X size={14} strokeWidth={2.5}/></button>
     </div>
+  );
+}
+
+// แถบผลล่าสุดบนหน้าจดโพย — แตะไปหน้าผลออก
+function LatestResultStrip({ draw, onOpen }) {
+  if (!draw) return null;
+  const r = draw.results || {}, r3 = r['3บน'] || r['3ตัว'];
+  return (
+    <button onClick={onOpen} data-testid="latest-strip"
+      className="w-full flex items-center justify-between gap-2 bg-white rounded-2xl px-3 py-2.5 border border-dashed text-base font-display"
+      style={{ borderColor: '#dccfa6', color: '#6b6357' }}>
+      <span className="flex-shrink-0">ผลล่าสุด {formatDrawDateShort(draw.date).replace(/ \d+$/, '')}</span>
+      <span className="min-w-0 text-right">
+        {r3 && <>{r['3บน'] ? '3บน' : '3ตัว'} <b className="font-numeric text-lg" style={{ color: GRP.g3.fg }}>{r3}</b></>}
+        {r['2ล่าง'] && <> · 2ล่าง <b className="font-numeric text-lg" style={{ color: GRP.g2.fg }}>{r['2ล่าง']}</b></>}
+      </span>
+    </button>
   );
 }
 
@@ -2778,7 +3021,7 @@ function PriceRow({ item, index, onUpdate, onRemove }) {
   return (
     <div className={`rounded-xl p-2.5 ${amount > 0 ? 'bg-white border border-red-200' : 'bg-gray-50 border border-gray-200'}`}>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-base text-gray-400 font-display w-5 text-right flex-shrink-0">{index + 1}.</span>
+        <span className="text-base text-gray-400 font-display text-right flex-shrink-0" style={{ minWidth: '1.25rem' }}>{index + 1}.</span>
         <span className="font-numeric text-2xl font-bold gold-text leading-none flex-shrink-0">{item.number}</span>
         <span className={`px-1.5 py-0.5 rounded text-base font-display border ${typeColors[item.type] || 'bg-stone-800 text-gray-600 border-gray-300'}`}>
           {typeShort(item.type)}
@@ -2798,7 +3041,7 @@ function PriceRow({ item, index, onUpdate, onRemove }) {
         </div>
         <div className="flex-1 min-w-0 bg-gray-50 rounded-lg px-2 py-1.5 border border-red-200 overflow-hidden">
           <div className="text-base uppercase tracking-wider text-red-600 font-display">เรทชนะ</div>
-          <div className="font-numeric font-bold text-red-600 truncate" style={{fontSize: 'clamp(0.9rem, 4vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(payout)}</div>
+          <div className="font-numeric font-bold text-red-600 num-wrap" style={{fontSize: 'clamp(0.9rem, 4vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(payout)}</div>
         </div>
       </div>
     </div>
@@ -2806,7 +3049,7 @@ function PriceRow({ item, index, onUpdate, onRemove }) {
 }
 
 // ==================== JOT TAB ====================
-function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates, setRates, currentDraw, isSeller, caps }) {
+function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates, setRates, currentDraw, isSeller, caps, forwards, forwardSettings, latestDraw, onOpenResults, prefill, onPrefillDone, incomingShare, onShareTaken }) {
   const toast = useToast();
   const [customer, setCustomer] = useState('');
   const [step, setStep] = useState('select');
@@ -2829,6 +3072,57 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
     setStep('select');
     setBulkPrice('');
   }, [lottery.id]);
+
+  // ผลงวดนี้ออกแล้ว + มีโพย → การ์ดสรุป (คิดเงินจาก betPayout แหล่งเดียวกับหน้าสรุป)
+  const settle = useMemo(() => {
+    const r = currentDraw && currentDraw.results;
+    if (!r || !(r['3บน'] || r['3ตัว'] || r['2ล่าง']) || bets.length === 0) return null;
+    return settleDraw(bets, r, caps, rates);
+  }, [currentDraw, bets, caps, rates]);
+
+  // วางจาก LINE: เตือนเลขจ่ายครึ่ง + ยอดรวมเกินเพดานรับ (ยอดเดิมที่บันทึก + ที่ค้างใส่ราคา + บรรทัดก่อนหน้า) · ผู้ขายเท่านั้น · เตือนเฉยๆ ไม่บล็อก
+  const capCheck = useMemo(() => {
+    if (!isSeller) return null;
+    const base = {};
+    [...bets, ...pending].forEach(b => { const k = b.number + '|' + b.type; base[k] = (base[k] || 0) + (parseFloat(b.amount) || 0); });
+    return (lines) => {
+      const run = { ...base }, perLine = {}, half = new Map(), over = new Map();
+      for (const L of lines) {
+        if (L.status !== 'ok') continue;
+        const flags = [];
+        for (const b of L.bets) {
+          const k = b.number + '|' + b.type;
+          run[k] = (run[k] || 0) + (parseFloat(b.amount) || 0);
+          if (isCombosHalfPay(caps || [], lottery.id, drawDate, b.number, b.type)) { flags.push({ kind: 'half', b }); half.set(k, b); }
+          const mk = getMaxKeep(lottery.id, drawDate, b.number, b.type, forwards || [], forwardSettings);
+          if (mk !== null && run[k] > mk) { const o = { kind: 'over', b, total: run[k], over: run[k] - mk, max: mk }; flags.push(o); over.set(k, o); }
+        }
+        if (flags.length) perLine[L.idx] = flags;
+      }
+      return { perLine, half: [...half.values()], over: [...over.values()] };
+    };
+  }, [isSeller, bets, pending, caps, forwards, forwardSettings, lottery.id, drawDate]);
+
+  // ข้อความที่แชร์มาจาก LINE → เปิดแผ่น "วางจาก LINE" พร้อมข้อความ (ล้างคิวเมื่อแผ่นเปิดแล้วเท่านั้น)
+  const [pasteInit, setPasteInit] = useState('');
+  useEffect(() => {
+    if (!incomingShare) return;
+    setStep('select'); setPasteInit(incomingShare); setSheet('paste');
+    onShareTaken && onShareTaken();
+  }, [incomingShare]);
+
+  // รับเลขจากหน้าคัดเลข (ประกาศหลัง effect ด้านบน → ทำงานต่อจากการรีเซ็ตตอนเปิดหน้า)
+  useEffect(() => {
+    if (!prefill || !prefill.numbers || prefill.numbers.length === 0) return;
+    const type = prefill.pos === '3' ? t3 : prefill.pos;
+    setStep('select'); setReverse2(false); setReverse3(false); setNumber(''); setError('');
+    setPickedTypes({ [type]: true });
+    setPending(prev => [...prev, ...prefill.numbers
+      .filter(n => !prev.some(p => p.number === n && p.type === type))
+      .map(n => ({ id: uid(), number: n, type, amount: '', rate: rates[type] || 90 }))]);
+    toast.show('เพิ่ม ' + prefill.numbers.length + ' เลข (' + typeFullName(type) + ') · ใส่ราคาต่อได้เลย', 'success', 3500);
+    onPrefillDone && onPrefillDone();
+  }, [prefill]);
 
   const has3Active = pickedTypes[t3] || pickedTypes['โต๊ด'];
   const has2Active = pickedTypes['2บน'] || pickedTypes['2ล่าง'];
@@ -2952,9 +3246,8 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
       createdAt: Date.now() + Math.random(),
     }));
     setBets(prev => {
-      const filtered = newBets.filter(nb =>
-        !prev.some(b => b.lotteryId === nb.lotteryId && b.drawDate === nb.drawDate && b.number === nb.number && b.type === nb.type && (b.customer || '') === (nb.customer || ''))
-      );
+      // กันกดซ้ำ (id เดิม) เท่านั้น — เลขเดียวกันซื้อ 2 ใบ ต้องเก็บครบ
+      const filtered = newBets.filter(nb => !prev.some(b => b.id === nb.id));
       return [...prev, ...filtered];
     });
     setPending([]); setBulkPrice(''); setNumber(''); setStep('select');
@@ -2969,16 +3262,15 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
     setBets(prev => prev.filter(b => !(b.lotteryId === lottery.id && b.drawDate === drawDate)));
   };
 
-  const handlePasted = (parsed) => {
-    if (parsed.length === 0) return;
-    const newPending = [];
-    for (const p of parsed) {
-      if (pending.some(x => x.number === p.number && x.type === p.type)) continue;
-      newPending.push({ id: uid(), number: p.number, type: p.type, amount: p.amount || '', rate: p.rate || rates[p.type] || 90 });
-    }
+  // วางจาก LINE: บรรทัดซ้ำ = โพยแยกใบ (ห้ามตัดทิ้ง) · ราคาตามที่อ่านได้
+  const handlePasted = ({ bets: parsed, customer: name }) => {
+    if (!parsed || parsed.length === 0) return;
+    const newPending = parsed.map(p => ({ id: uid(), number: p.number, type: p.type, amount: p.amount || '', rate: rates[p.type] || 90 }));
     setPending(prev => [...prev, ...newPending]);
+    if (name) setCustomer(name);
     setSheet(null);
-    if (newPending.length > 0) setStep('pricing');
+    setStep('pricing');
+    toast.show('ลง ' + newPending.length + ' รายการ · ตรวจแล้วกดบันทึก', 'success', 3500);
   };
 
   const savedTotalAmt = bets.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
@@ -2986,6 +3278,9 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
 
   return (
     <div className="space-y-3 slide-in">
+      {settle
+        ? <ResultSettleCard lottery={lottery} drawDate={drawDate} draw={currentDraw} settle={settle} isSeller={isSeller} onOpen={() => setSheet('settle')}/>
+        : <LatestResultStrip draw={latestDraw} onOpen={onOpenResults}/>}
       {/* Step indicator */}
       <div className="glass rounded-xl p-1.5 grid grid-cols-2 gap-1.5">
         <button onClick={() => setStep('select')}
@@ -3033,17 +3328,19 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
           <div className="flex items-center justify-between mb-2">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>ประเภท</div>
             <div className="flex gap-2">
-              <IconBtn onClick={() => setSheet('paste')} icon={Clipboard} title="วางจาก LINE"/>
+              <button onClick={() => setSheet('paste')} title="วางจาก LINE"
+                className="h-12 px-3 rounded-xl flex items-center gap-1.5 active:scale-95 border-2 font-display font-bold text-base"
+                style={{ background: '#effcf3', borderColor: '#a7e9be', color: '#047a37' }}>📋 วางจาก LINE</button>
               <IconBtn onClick={() => setSheet('settings')} icon={Settings} title="ตั้งค่าจ่าย"/>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <BetTypeTile label={t3Label} rate={rates[t3]} active={!!pickedTypes[t3]} dimmed={has2Active} onClick={() => togglePickType(t3)} color="red"/>
-            <BetTypeTile label="3 ตัวโต๊ด" rate={rates['โต๊ด']} active={!!pickedTypes['โต๊ด']} dimmed={has2Active} onClick={() => togglePickType('โต๊ด')} color="red-light"/>
-            <BetTypeTile label="2 ตัวบน" rate={rates['2บน']} active={!!pickedTypes['2บน']} dimmed={has3Active} onClick={() => togglePickType('2บน')} color="green"/>
-            <BetTypeTile label="2 ตัวล่าง" rate={rates['2ล่าง']} active={!!pickedTypes['2ล่าง']} dimmed={has3Active} onClick={() => togglePickType('2ล่าง')} color="green-light"/>
-            <BetTypeTile label="กลับ 3 ตัว" active={reverse3} dimmed={has2Active} onClick={onReverse3} color="red-outline" icon={Shuffle}/>
-            <BetTypeTile label="กลับ 2 ตัว" active={reverse2} dimmed={has3Active} onClick={onReverse2} color="green-outline" icon={Shuffle}/>
+            <BetTypeTile label={t3Label} rate={rates[t3]} active={!!pickedTypes[t3]} dimmed={has2Active} onClick={() => togglePickType(t3)} group="g3"/>
+            <BetTypeTile label="3 ตัวโต๊ด" rate={rates['โต๊ด']} active={!!pickedTypes['โต๊ด']} dimmed={has2Active} onClick={() => togglePickType('โต๊ด')} group="g3"/>
+            <BetTypeTile label="2 ตัวบน" rate={rates['2บน']} active={!!pickedTypes['2บน']} dimmed={has3Active} onClick={() => togglePickType('2บน')} group="g2"/>
+            <BetTypeTile label="2 ตัวล่าง" rate={rates['2ล่าง']} active={!!pickedTypes['2ล่าง']} dimmed={has3Active} onClick={() => togglePickType('2ล่าง')} group="g2"/>
+            <BetTypeTile label="⇄ กลับ 3 ตัว" sub="ทุกแบบ" active={reverse3} dimmed={has2Active} onClick={onReverse3} group="g3"/>
+            <BetTypeTile label="⇄ กลับ 2 ตัว" sub="สลับหลัก" active={reverse2} dimmed={has3Active} onClick={onReverse2} group="g2"/>
           </div>
         </div>
 
@@ -3053,7 +3350,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
           </div>
           <div className="flex gap-2 justify-center mb-3">
             {Array.from({ length: digits }).map((_, i) => (
-              <NumberBox key={i} digit={number[i] || ''} active={i === number.length}/>
+              <NumberBox key={i} digit={number[i] || ''} active={i === number.length} group={digits === 2 ? 'g2' : 'g3'}/>
             ))}
           </div>
           {error && (
@@ -3094,7 +3391,11 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
             </div>
             {bets.length > 0 && (
               <div className="flex gap-1">
-                <IconBtn onClick={() => setSheet('share')} icon={Share2} title="ส่ง LINE"/>
+                <button onClick={() => setSheet('share')} title="ส่งออกโพย" data-testid="open-export"
+                  className="h-12 px-3 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 border-2 font-display font-bold text-base"
+                  style={{ background: '#effcf3', borderColor: '#a7e9be', color: '#047a37' }}>
+                  <Share2 size={18} strokeWidth={2.5}/> ส่งออก
+                </button>
                 <IconBtn onClick={clearAllSaved} icon={Trash2} title="ลบทั้งหมด" danger/>
               </div>
             )}
@@ -3113,11 +3414,11 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
             <div className="border-t border-red-200 pt-3 flex items-center justify-between gap-2 mt-3">
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">{isSeller ? 'รับรวม' : 'รวมซื้อ'}</div>
-                <div className="font-numeric font-bold gold-text truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(savedTotalAmt)}</div>
+                <div className="font-numeric font-bold gold-text num-wrap" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(savedTotalAmt)}</div>
               </div>
               <div className="text-right min-w-0 flex-1 overflow-hidden">
                 <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">{isSeller ? 'จ่ายสูงสุด' : 'หากถูกหมด'}</div>
-                <div className={`font-numeric font-semibold truncate ${isSeller ? 'text-red-600' : 'text-green-600'}`} style={{fontSize: 'clamp(0.9rem, 4vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(savedTotalPayout)}</div>
+                <div className={`font-numeric font-semibold num-wrap ${isSeller ? 'text-red-600' : 'text-green-600'}`} style={{fontSize: 'clamp(0.9rem, 4vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(savedTotalPayout)}</div>
               </div>
             </div>
           </>)}
@@ -3133,6 +3434,12 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
             ใส่ราคา <span className="text-red-500">({pending.length})</span>
           </div>
           <div className="w-12"/>
+        </div>
+        <div className="bg-white rounded-xl px-4 py-2.5 flex items-center gap-3 border-2" style={{borderColor:'#e8dfc8'}}>
+          <UserCircle2 size={20} style={{color:'#b8965a'}} className="flex-shrink-0" strokeWidth={2.5}/>
+          <input type="text" value={customer} onChange={e => setCustomer(e.target.value)} data-testid="pricing-customer"
+            placeholder="ชื่อลูกค้า (ไม่ระบุก็ได้)"
+            className="flex-1 min-w-0 bg-transparent outline-none text-lg font-semibold font-display" style={{color:'#2a2a2a'}}/>
         </div>
 
         <div className="glass-strong rounded-2xl p-3">
@@ -3185,11 +3492,11 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
             <div className="glass-strong rounded-2xl p-3 grid grid-cols-2 gap-2">
               <div className="num-tile rounded-xl p-2.5 min-w-0 overflow-hidden">
                 <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>รับรวม</div>
-                <div className="font-numeric font-bold gold-text mt-0.5 truncate" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
+                <div className="font-numeric font-bold gold-text mt-0.5 num-wrap" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
               </div>
               <div className="risk-tile rounded-xl p-2.5 min-w-0 overflow-hidden">
                 <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>จ่ายเพดาน</div>
-                <div className="font-numeric font-bold mt-0.5 truncate" style={{color:'#8a6d36', fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(totalMaxPayout)}</div>
+                <div className="font-numeric font-bold mt-0.5 num-wrap" style={{color:'#8a6d36', fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(totalMaxPayout)}</div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -3213,13 +3520,19 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
         </BottomSheet>
       )}
       {sheet === 'paste' && (
-        <BottomSheet onClose={() => setSheet(null)} title="วางจาก LINE">
-          <PasteContent lottery={lottery} rates={rates} onAdd={handlePasted}/>
+        <BottomSheet onClose={() => { setSheet(null); setPasteInit(''); }} title="วางจาก LINE">
+          <PasteContent lottery={lottery} currentCustomer={customer} onAdd={(r) => { setPasteInit(''); handlePasted(r); }}
+            initialText={pasteInit} target={lottery.name + ' · งวด ' + formatDrawDateShort(drawDate)} capCheck={capCheck}/>
+        </BottomSheet>
+      )}
+      {sheet === 'settle' && settle && (
+        <BottomSheet onClose={() => setSheet(null)} title="ใบได้/เสีย">
+          <SettleContent lottery={lottery} drawDate={drawDate} draw={currentDraw} settle={settle} isSeller={isSeller}/>
         </BottomSheet>
       )}
       {sheet === 'share' && (
-        <BottomSheet onClose={() => setSheet(null)} title="ส่ง LINE">
-          <ShareContent bets={bets} lottery={lottery} drawDate={drawDate} caps={caps} rates={rates}/>
+        <BottomSheet onClose={() => setSheet(null)} title="ส่งออกโพย">
+          <ExportContent bets={bets} lottery={lottery} drawDate={drawDate} caps={caps} rates={rates}/>
         </BottomSheet>
       )}
     </div>
@@ -3281,8 +3594,8 @@ function BetGroupedList({ bets, caps, rates, currentDraw, isSeller, onUpdateBet,
                 <UserCircle2 size={16} className={noName ? 'text-gray-400' : 'text-red-600'}/>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className={'font-display text-lg font-semibold truncate ' + (noName ? 'text-gray-500' : 'text-gray-900')}>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={'font-display text-lg font-semibold min-w-0 break-words ' + (noName ? 'text-gray-500' : 'text-gray-900')} style={{ overflowWrap: 'anywhere' }}>
                     {g.name}
                   </span>
                   {anyHit && (
@@ -3293,7 +3606,7 @@ function BetGroupedList({ bets, caps, rates, currentDraw, isSeller, onUpdateBet,
                     </span>
                   )}
                 </div>
-                <div className="text-base text-gray-400 font-display flex items-center gap-2">
+                <div className="text-base text-gray-400 font-display flex items-center flex-wrap gap-x-2">
                   <span>{g.items.length} รายการ</span>
                   <span>·</span>
                   <span>รับ ฿{fmt(g.totalAmt)}</span>
@@ -3345,23 +3658,16 @@ function BetRow({ bet, draw, isSeller, onUpdate, onRemove }) {
         {bet.halfPay && (
           <div className="px-1.5 py-0.5 rounded text-base font-display bg-orange-100 text-orange-700 border border-orange-400 font-bold">½ อั้น</div>
         )}
-        {bet.customer && (
-          <div className="px-1.5 py-0.5 rounded text-base font-display bg-orange-100 text-orange-700 border border-orange-200 truncate max-w-[100px]">👤 {bet.customer}</div>
-        )}
+        <span className="text-base font-numeric text-gray-400">×{bet.rate}</span>
         {hit && <span className={`text-base font-display tracking-wider ${sellerLose ? 'text-red-600' : 'text-green-600'}`}>{sellerLose ? '✗ ต้องจ่าย' : '✓ ถูก'}</span>}
         <button onClick={onRemove} className="ml-auto text-gray-400 hover:text-red-500 p-1 flex-shrink-0"><Trash2 size={13}/></button>
       </div>
-      <div className="grid grid-cols-3 gap-1.5">
+      {/* อัตราจ่ายย้ายไปหัวแถว (×90) → เหลือ 2 ช่องกว้าง จอเล็ก 320px ตัวเลขไม่ถูกตัด */}
+      <div className="grid grid-cols-2 gap-1.5">
         <MiniField label={isSeller ? 'รับ' : 'ซื้อ'} value={bet.amount} onChange={v => onUpdate('amount', v)} prefix="฿"/>
-        <div className="bg-white rounded-lg px-2 py-1.5 border border-gray-200">
-          <div className="text-base uppercase tracking-wider text-red-500 font-display flex items-center justify-between">
-            <span>จ่าย/บ.</span><span className="text-red-300">×</span>
-          </div>
-          <div className="font-numeric text-lg font-semibold text-gray-900">{bet.rate}</div>
-        </div>
         <div className={`bg-white rounded-lg px-2 py-1.5 border ${isSeller ? 'border-red-200' : 'border-green-200'}`}>
-          <div className="text-base uppercase tracking-wider text-gray-400 font-display">{isSeller ? 'จ่ายถ้าออก' : 'ได้'}</div>
-          <div className={`font-numeric text-lg font-bold truncate ${isSeller ? 'text-red-600' : 'text-green-600'}`}>฿{fmt(payout)}</div>
+          <div className="text-base uppercase tracking-wider text-gray-400 font-display num-wrap">{isSeller ? 'จ่ายถ้าออก' : 'ได้'}</div>
+          <div className={`font-numeric text-lg font-bold num-wrap ${isSeller ? 'text-red-600' : 'text-green-600'}`}>฿{fmt(payout)}</div>
         </div>
       </div>
     </div>
@@ -3374,8 +3680,10 @@ function MiniField({ label, value, onChange, prefix }) {
       <div className="text-base uppercase tracking-wider text-gray-400 font-display flex items-center justify-between">
         <span>{label}</span><span className="text-red-300">{prefix}</span>
       </div>
+      {/* ตัวเลขยาว → ย่อฟอนต์ให้เห็นครบทุกหลัก (จอเล็ก 320px) */}
       <input type="number" inputMode="decimal" value={value} onChange={e => onChange(e.target.value)}
-        className="w-full bg-transparent outline-none font-numeric text-lg font-semibold text-gray-900"/>
+        className="w-full bg-transparent outline-none font-numeric font-semibold text-gray-900"
+        style={{ fontSize: String(value ?? '').length >= 11 ? '0.8rem' : String(value ?? '').length >= 9 ? '0.95rem' : '1.125rem' }}/>
     </div>
   );
 }
@@ -3411,8 +3719,9 @@ function BottomSheet({ title, children, onClose }) {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+  // แสดงผ่าน portal ที่ <body> — เดิมแผ่นนี้อยู่ใต้ชั้น z-index ของเนื้อหาแท็บ ทำให้แถบเมนู (จดโพย/เสี่ยง/…) ทับแผ่นเวลาเลื่อนหน้า
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 z-[10010] flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"/>
       <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-3xl glass-strong sheet-in safe-bottom"
         onClick={e => e.stopPropagation()}
@@ -3428,7 +3737,7 @@ function BottomSheet({ title, children, onClose }) {
         <div className="px-5 py-4">{children}</div>
       </div>
     </div>
-  );
+  , document.body);
 }
 
 function SettingsContent({ rates, setRates, onClose }) {
@@ -3472,50 +3781,182 @@ function SettingsContent({ rates, setRates, onClose }) {
   );
 }
 
-function PasteContent({ lottery, rates, onAdd }) {
-  const [text, setText] = useState('');
-  const [defaultAmt, setDefaultAmt] = useState('');
-  const parsed = useMemo(() => parseLineText(text, lottery, parseFloat(defaultAmt) || 0, rates), [text, lottery, defaultAmt, rates]);
+const PASTE_G3 = { color: '#8a6d36', background: '#fbf6ea', borderColor: '#e3cf9e' };
+const PASTE_G2 = { color: '#0e7490', background: '#eef8fa', borderColor: '#b9e0e8' };
+const PASTE_ICON = { ok: '✅', header: '📌', name: '👤', skip: '·', warn: '⚠️' };
+
+function PasteContent({ lottery, currentCustomer, onAdd, initialText = '', target = '', capCheck = null }) {
+  const toast = useToast();
+  const [text, setText] = useState(initialText || '');
+  const fromShare = !!initialText;
+  const [name, setName] = useState(null);          // null = ใช้ชื่อที่อ่านได้จากบรรทัดแรก
+  const [editIdx, setEditIdx] = useState(null);
+  const [editVal, setEditVal] = useState('');
+  const [showRaw, setShowRaw] = useState(false);
+  const taRef = useRef(null);
+  const result = useMemo(() => parseBetText(text, lottery), [text, lottery]);
+  const capInfo = useMemo(() => (capCheck ? capCheck(result.lines) : null), [capCheck, result]);
+  const capCount = capInfo ? capInfo.half.length + capInfo.over.length : 0;
+  const custName = name !== null ? name : (result.customer || currentCustomer || '');
+  const nameFromText = name === null && !!result.customer;
+  const hasText = text.trim().length > 0;
+
+  const loadText = (t) => { setText(t); setName(null); setEditIdx(null); };
+  const pasteFromClipboard = async () => {
+    try {
+      const t = navigator.clipboard && navigator.clipboard.readText ? await navigator.clipboard.readText() : '';
+      if (t && t.trim()) { loadText(t); return; }
+      toast.show('ไม่มีข้อความที่ก๊อปไว้ · ก๊อปจาก LINE ก่อน', 'info', 3500);
+    } catch (e) {
+      toast.show('กดค้างในช่องด้านล่าง แล้วเลือก "วาง"', 'info', 4000);
+    }
+    setShowRaw(true);
+    setTimeout(() => taRef.current && taRef.current.focus(), 50);
+  };
+  const replaceLine = (idx, val) => {
+    const arr = text.split(/\r?\n/);
+    if (val === null) arr.splice(idx, 1); else arr[idx] = val;
+    setText(arr.join('\n'));
+    setEditIdx(null);
+  };
+  const submit = async () => {
+    if (result.bets.length === 0) return;
+    if (result.warnCount > 0) {
+      const ok = await toast.askConfirm('มี ' + result.warnCount + ' บรรทัดที่อ่านไม่ได้\nจะลงเฉพาะ ' + result.bets.length + ' รายการที่อ่านได้', { confirmLabel: 'ลงเลย' });
+      if (!ok) return;
+    }
+    onAdd({ bets: result.bets, customer: custName.trim() });
+  };
+
   return (
     <div className="space-y-3">
-      <div className="text-base text-gray-500 font-display leading-relaxed">
-        วางข้อความจาก LINE ระบบแกะเลขให้อัตโนมัติ<br/>
-        <span className="text-gray-600">3 หลัก:</span><br/>
-        • <span className="text-gray-600">223=100×100×100</span> → ตรงทุก perm<br/>
-        • <span className="text-gray-600">123=100×100</span> → ตรง + โต๊ด<br/>
-        <span className="text-gray-600">2 หลัก:</span><br/>
-        • <span className="text-gray-600">23=100×100</span> → บน + ล่าง<br/>
-        <span className="text-gray-600">หรือระบุชัด:</span> 12 บน 30 ล่าง 20
-      </div>
-      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="วางข้อความที่นี่..." rows={6}
-        className="w-full bg-white rounded-xl p-3 border border-gray-200 focus:border-red-300 outline-none text-lg text-gray-900 font-numeric resize-none"/>
-      <div className="num-tile rounded-xl p-3 flex items-center gap-3">
-        <div className="text-base uppercase tracking-wider text-red-700 font-display font-semibold w-24">ยอดเริ่มต้น</div>
-        <input type="number" inputMode="decimal" value={defaultAmt}
-          onChange={e => setDefaultAmt(e.target.value)} placeholder="0"
-          className="flex-1 bg-transparent outline-none font-numeric text-xl font-bold text-gray-900 text-right placeholder-yellow-100/15"/>
-        <span className="text-base text-gray-400 font-display">ถ้าไม่ระบุยอด</span>
-      </div>
-      {parsed.length > 0 && (
-        <div className="glass rounded-xl p-3">
-          <div className="text-base uppercase tracking-[0.25em] text-red-500 mb-2 font-display">ตัวอย่าง {parsed.length} รายการ</div>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
-            {parsed.map(p => (
-              <div key={p.id} className="flex items-center justify-between text-base py-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-numeric text-xl font-bold gold-text">{p.number}</span>
-                  <span className="text-gray-600 font-display">{typeShort(p.type)}</span>
-                </div>
-                <span className="font-numeric text-gray-800">฿{fmt(p.amount)} × {p.rate}</span>
-              </div>
-            ))}
-          </div>
+      {(target || fromShare) && (
+        <div className="flex items-center justify-between gap-2 text-base font-display" data-testid="paste-target">
+          <span style={{ color: '#6b6357' }}>ลงที่ <b style={{ color: '#2a2a2a' }}>{target}</b></span>
+          {fromShare && <span className="text-sm font-bold rounded-full px-2 py-0.5 flex-shrink-0" style={{ color: '#047a37', background: '#effcf3' }}>📥 รับจาก LINE</span>}
         </div>
       )}
-      <button onClick={() => onAdd(parsed)} disabled={parsed.length === 0}
-        className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 via-red-500 to-red-600 text-white font-semibold tracking-wider font-display text-lg flex items-center justify-center gap-2 shadow-lg shadow-red-200 disabled:opacity-40">
-        <Plus size={16} strokeWidth={3}/> เพิ่ม {parsed.length} รายการ
+      <button onClick={pasteFromClipboard} data-testid="paste-btn"
+        className="w-full flex items-center justify-center gap-2 rounded-2xl font-display font-bold active:scale-[0.98]"
+        style={{ padding: hasText ? '10px' : '16px', fontSize: hasText ? 17 : 19, border: '2px dashed #06c755', background: '#effcf3', color: '#047a37' }}>
+        📋 {hasText ? 'วางข้อความใหม่' : 'แตะเพื่อวางข้อความ'}
       </button>
+
+      {(!hasText || showRaw) && (
+        <textarea ref={taRef} value={text} data-testid="paste-text"
+          onChange={e => { setText(e.target.value); setEditIdx(null); }}
+          placeholder={'หรือพิมพ์/วางที่นี่ เช่น\nบน-ล่าง\n28=100×100\nตรง-โต้ด\n345=100×100'} rows={hasText ? 7 : 5}
+          className="w-full bg-white rounded-xl p-3 border-2 outline-none text-lg font-numeric resize-y"
+          style={{ borderColor: '#e8dfc8', color: '#2a2a2a' }}/>
+      )}
+
+      {!hasText && (
+        <div className="rounded-xl p-3 text-base font-display leading-relaxed" style={{ background: '#fcfaf4', border: '1px solid #e8dfc8', color: '#6b6357' }}>
+          <div className="font-semibold mb-1" style={{ color: '#2a2a2a' }}>รูปแบบที่อ่านได้</div>
+          <div><b className="font-numeric">28=100×100</b> → บน 100 · ล่าง 100</div>
+          <div><b className="font-numeric">345=100×100</b> → ตรง 100 · โต๊ด 100</div>
+          <div><b className="font-numeric">232=100×100×100</b> → กลับทุกแบบ</div>
+          <div><b className="font-numeric">234=100×6 กลับ</b> → 6 กลับ ตรงละ 100</div>
+          <div className="mt-1">หัวข้อ <b>บน-ล่าง</b> / <b>ตรง-โต้ด</b> ใช้กับบรรทัดถัดไป · บรรทัดแรกที่ไม่มีเลข = ชื่อลูกค้า</div>
+        </div>
+      )}
+
+      {hasText && (<>
+        <div className="rounded-2xl bg-white px-3 py-2.5 flex items-center gap-2 border" style={{ borderColor: '#e8dfc8' }}>
+          <span className="text-base font-display flex-shrink-0" style={{ color: '#6b6357' }}>ลูกค้า</span>
+          <input value={custName} onChange={e => setName(e.target.value)} placeholder="ไม่ระบุ" data-testid="paste-customer"
+            className="flex-1 min-w-0 bg-transparent outline-none text-lg font-display font-bold" style={{ color: '#2a2a2a' }}/>
+          {nameFromText && <span className="text-sm font-bold rounded-full px-2 py-0.5 flex-shrink-0" style={{ color: '#15803d', background: '#eaf7ef' }}>จากบรรทัดแรก</span>}
+        </div>
+
+        <div className="rounded-2xl bg-white px-3 py-1 border" style={{ borderColor: '#e8dfc8' }} data-testid="paste-lines">
+          {result.lines.map((L, i) => (
+            <div key={L.idx + ':' + i} data-status={L.status}
+              className="grid gap-2 items-start py-2" style={{ gridTemplateColumns: '1fr auto', borderBottom: i < result.lines.length - 1 ? '1px dashed #eee4cc' : 0 }}>
+              <div className="min-w-0">
+                <span className="inline-block font-numeric text-base rounded-lg px-2 mb-1 max-w-full break-all"
+                  style={L.status === 'warn' ? { background: '#fff6e5', color: '#b45309' } : { background: '#f7f3ea', color: '#8b8170' }}>{L.raw}</span>
+                {L.status === 'ok' && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {L.bets.map((b, j) => {
+                      const flagged = capInfo && capInfo.perLine[L.idx] && capInfo.perLine[L.idx].some(f => f.b === b);
+                      return (
+                        <span key={j} className="inline-flex items-baseline gap-1 rounded-lg px-2 py-0.5 border text-base font-semibold font-display"
+                          style={{ ...(b.number.length === 3 ? PASTE_G3 : PASTE_G2), boxShadow: flagged ? '0 0 0 2px #fdd2b6' : 'none' }}>
+                          <span className="font-numeric text-lg font-bold">{b.number}</span>{typeShort(b.type)} ฿{fmt(b.amount)}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+                {L.status === 'ok' && capInfo && capInfo.perLine[L.idx] && (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {capInfo.perLine[L.idx].map((f, j) => (
+                      <span key={j} data-testid={'cap-' + f.kind} className="text-sm font-bold font-display rounded-lg px-2 py-0.5 border"
+                        style={{ background: '#fff4ec', color: '#c2410c', borderColor: '#fdd2b6' }}>
+                        {f.kind === 'half' ? `½ ${f.b.number} ${typeShort(f.b.type)} จ่ายครึ่ง` : `${f.b.number} ${typeShort(f.b.type)} รวม ฿${fmt(f.total)} · เกินเพดานรับ ฿${fmt(f.over)}`}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {(L.status === 'header' || L.status === 'name' || L.status === 'skip') && L.note && (
+                  <div className="text-base font-display" style={{ color: '#6b6357' }}>↳ {L.note}</div>
+                )}
+                {L.status === 'warn' && editIdx !== L.idx && (
+                  <button onClick={() => { setEditIdx(L.idx); setEditVal(L.raw); }}
+                    className="text-base font-bold font-display rounded-lg px-2.5 py-1 border text-left"
+                    style={{ color: '#b45309', background: '#fff6e5', borderColor: '#f3cf8e' }}>
+                    ⚠ {L.note} · แตะแก้
+                  </button>
+                )}
+                {L.status === 'warn' && editIdx === L.idx && (
+                  <div className="space-y-1.5 mt-1">
+                    <input value={editVal} onChange={e => setEditVal(e.target.value)} autoFocus data-testid="paste-edit"
+                      className="w-full rounded-lg px-2 py-1.5 border-2 outline-none font-numeric text-lg" style={{ borderColor: '#f3cf8e' }}/>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => replaceLine(L.idx, editVal)} className="flex-1 py-1.5 rounded-lg font-display font-bold text-base" style={{ background: '#2a2a2a', color: '#f5e8c8' }}>ใช้</button>
+                      <button onClick={() => replaceLine(L.idx, null)} className="flex-1 py-1.5 rounded-lg font-display font-bold text-base border" style={{ borderColor: '#e8dfc8', color: '#6b6357', background: '#fff' }}>ลบบรรทัดนี้</button>
+                      <button onClick={() => setEditIdx(null)} className="px-3 py-1.5 rounded-lg font-display text-base" style={{ color: '#6b6357' }}>ยกเลิก</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <span className="text-xl leading-tight pt-0.5" style={L.status === 'skip' ? { color: '#c9bfa8' } : null}>{PASTE_ICON[L.status]}</span>
+            </div>
+          ))}
+        </div>
+
+        {!showRaw && (
+          <button onClick={() => setShowRaw(true)} className="w-full text-base font-display underline" style={{ color: '#8a6d36' }}>แก้ข้อความต้นฉบับ</button>
+        )}
+
+        {capCount > 0 && (
+          <div className="rounded-xl px-3 py-2 text-base font-semibold font-display border leading-relaxed" data-testid="paste-capbar"
+            style={{ background: '#fff4ec', borderColor: '#fdd2b6', color: '#c2410c' }}>
+            🟠 เลขอั้น {capCount} รายการ
+            {capInfo.half.map((b, i) => <div key={'h' + i}>· {b.number} {typeShort(b.type)} จ่ายครึ่ง</div>)}
+            {capInfo.over.map((o, i) => <div key={'o' + i}>· {o.b.number} {typeShort(o.b.type)} เกินเพดานรับ ฿{fmt(o.over)} (ส่งต่อตามที่ตั้งไว้)</div>)}
+          </div>
+        )}
+        {result.warnCount > 0 && (
+          <div className="flex items-center gap-2 rounded-xl px-3 py-2 text-base font-semibold font-display border" data-testid="paste-warnbar"
+            style={{ background: '#fff6e5', borderColor: '#f3cf8e', color: '#b45309' }}>
+            ⚠ {result.warnCount} บรรทัดยังไม่ได้ลง — แก้ก่อน หรือข้ามได้
+          </div>
+        )}
+
+        <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ background: '#2a2a2a', color: '#f5e8c8' }}>
+          <div className="min-w-0">
+            <div className="text-sm opacity-75 font-display">อ่านได้ {result.bets.length} รายการ</div>
+            <div className="font-numeric text-2xl font-bold" data-testid="paste-total">฿{fmt(result.total)}</div>
+          </div>
+          <div className="text-right text-sm opacity-75 font-display">ตรวจแล้ว<br/>กดลงโพย</div>
+        </div>
+        <button onClick={submit} disabled={result.bets.length === 0} data-testid="paste-submit"
+          className="w-full py-3.5 rounded-2xl btn-premium font-bold font-display text-lg flex items-center justify-center gap-2 disabled:opacity-40">
+          <Check size={18} strokeWidth={3}/> ลงโพย {result.bets.length} รายการ
+        </button>
+      </>)}
     </div>
   );
 }
@@ -3555,103 +3996,540 @@ function getUniqueCustomers(bets) {
   return list;
 }
 
-function ShareContent({ bets, lottery, drawDate, caps = [], rates = {} }) {
+// ==================== ส่งออกโพย (รูป · ข้อความ · Excel · PDF) ====================
+const EXPORT_LIBS = {
+  xlsx: { src: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', global: 'XLSX' },
+  pdf:  { src: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', global: 'jspdf' },
+};
+const _libLoads = {};
+function loadLib(key) {
+  const { src, global } = EXPORT_LIBS[key];
+  if (window[global]) return Promise.resolve(window[global]);
+  if (!_libLoads[key]) _libLoads[key] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true; s.crossOrigin = 'anonymous';   // cors → service worker เก็บไว้ใช้ออฟไลน์ได้
+    s.onload = () => (window[global] ? resolve(window[global]) : reject(new Error('lib')));
+    s.onerror = () => { delete _libLoads[key]; s.remove(); reject(new Error('load')); };
+    document.head.appendChild(s);
+  });
+  return _libLoads[key];
+}
+
+const NO_NAME = '— ไม่ระบุ —';
+const custOf = (b) => b.customer || NO_NAME;
+const sumAmt = (arr) => arr.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+const TYPE_ORDER = ['ตรง', 'โต๊ด', 'บน', 'ล่าง'];
+
+// แถวใบโพย: รวมตามเลข · ยอดรวมต่อประเภท (ซื้อซ้ำ 2 ใบ = ยอดรวม 2 ใบ)
+function slipRows(bets) {
+  const byNum = new Map();
+  for (const b of bets) {
+    if (!byNum.has(b.number)) byNum.set(b.number, new Map());
+    const m = byNum.get(b.number), t = typeShort(b.type);
+    const cur = m.get(t) || { amt: 0, half: false };
+    cur.amt += parseFloat(b.amount) || 0; cur.half = cur.half || !!b.halfPay;
+    m.set(t, cur);
+  }
+  return [...byNum.entries()]
+    .sort((a, b) => b[0].length - a[0].length || a[0].localeCompare(b[0]))
+    .map(([num, m]) => {
+      const ts = [...m.keys()].sort((a, b) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b));
+      return { num, types: ts.join(' · '), amts: ts.map((t) => '฿' + fmt(m.get(t).amt)).join(' · '), half: ts.some((t) => m.get(t).half) };
+    });
+}
+
+function buildSlip(mode, bets, lottery, drawDate, customer) {
+  const now = new Date();
+  const head = { lottery: lottery.name, draw: 'งวด ' + formatDrawDateShort(drawDate),
+                 time: String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') };
+  if (mode === 'customer') {
+    const items = bets.filter((b) => custOf(b) === customer);
+    return { ...head, kind: 'ใบโพย', whoLabel: 'ลูกค้า', who: customer, count: items.length, total: sumAmt(items), sections: [{ rows: slipRows(items) }], extra: [] };
+  }
+  const custs = getUniqueCustomers(bets);
+  if (mode === 'list') {
+    return { ...head, kind: 'โพยทุกคน', whoLabel: 'ลูกค้า', who: custs.length + ' คน', count: bets.length, total: sumAmt(bets), extra: [],
+      sections: custs.map((c) => { const it = bets.filter((b) => custOf(b) === c); return { title: c, sub: '฿' + fmt(sumAmt(it)) + ' · ' + it.length + ' รายการ', rows: slipRows(it) }; }) };
+  }
+  const rows = custs.map((c) => { const it = bets.filter((b) => custOf(b) === c); return { name: c, types: it.length + ' รายการ', amts: '฿' + fmt(sumAmt(it)), v: sumAmt(it) }; })
+    .sort((a, b) => b.v - a.v);
+  const maxPay = bets.reduce((s, b) => s + (parseFloat(b.amount) || 0) * (parseFloat(b.rate) || 0), 0);
+  const sc = computeScenarios(bets);
+  const extra = [['จ่ายเพดาน (ถ้าถูกทุกใบ)', '฿' + fmt(maxPay)]];
+  if (sc && sc.worst) extra.push(['เสียมากสุด (ถ้าออก ' + sc.worst.num3 + (sc.worst.num2low ? ' / ' + sc.worst.num2low : '') + ')',
+    (sc.worst.net >= 0 ? '+' : '-') + '฿' + fmt(Math.abs(sc.worst.net))]);
+  return { ...head, kind: 'สรุปยอด', whoLabel: 'ลูกค้า', who: custs.length + ' คน', count: bets.length, total: sumAmt(bets), sections: [{ rows, nameRows: true }], extra };
+}
+
+const SLIP_C = { ink: '#2a2a2a', sub: '#6b6357', line: '#e8dfc8', g3: '#8a6d36', g2: '#0e7490', gold: '#d4b572', cream: '#f5e8c8', half: '#c2410c' };
+
+function SlipView({ slip }) {
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden border" style={{ borderColor: SLIP_C.line, boxShadow: '0 6px 18px rgba(184,150,90,.14)' }} data-testid="slip">
+      <div className="flex justify-between items-center px-3.5 py-3" style={{ background: 'linear-gradient(180deg,#2f2f2f,#1f1f1f)', color: SLIP_C.cream }}>
+        <div className="min-w-0">
+          <div className="font-cinzel font-bold" style={{ fontSize: 17, letterSpacing: '.14em', color: SLIP_C.gold }}>♛ ROYAL 888</div>
+          <div className="text-sm opacity-75">{slip.kind}</div>
+        </div>
+        <div className="text-right min-w-0">
+          <div className="text-sm opacity-75">{slip.lottery}</div>
+          <div className="font-bold font-display">{slip.draw}</div>
+        </div>
+      </div>
+      <div className="flex justify-between gap-2 px-3.5 py-2.5 text-base border-b" style={{ color: SLIP_C.sub, borderColor: SLIP_C.line, background: '#fcfaf4' }}>
+        <span className="min-w-0" style={{ overflowWrap: 'anywhere' }}>{slip.whoLabel} <b style={{ color: SLIP_C.ink, fontSize: 17 }}>{slip.who}</b></span>
+        <span className="flex-shrink-0">{slip.time} · {slip.count} รายการ</span>
+      </div>
+      {slip.sections.map((sec, si) => (
+        <div key={si}>
+          {sec.title && (
+            <div className="flex justify-between gap-2 px-3.5 py-2 font-display font-bold" style={{ background: '#f3eee2', color: SLIP_C.ink }}>
+              <span className="min-w-0" style={{ overflowWrap: 'anywhere' }}>👤 {sec.title}</span><span className="flex-shrink-0 font-numeric" style={{ color: SLIP_C.g3 }}>{sec.sub}</span>
+            </div>
+          )}
+          {sec.rows.map((r, i) => (
+            <div key={i} className="grid gap-2 items-center px-3.5 py-1.5" style={{ gridTemplateColumns: sec.nameRows ? '1fr auto auto' : '62px 1fr auto', borderBottom: '1px dotted #eee4cc', background: r.win ? '#f2fbf5' : undefined, opacity: r.dim ? 0.55 : 1 }}>
+              {sec.nameRows
+                ? <span className="font-display font-bold min-w-0" style={{ color: SLIP_C.ink, overflowWrap: 'anywhere' }}>{r.name}</span>
+                : <span className="font-numeric font-bold" style={{ fontSize: 22, color: r.num.length === 3 ? SLIP_C.g3 : SLIP_C.g2 }}>{r.num}</span>}
+              <span className="text-base min-w-0" style={{ color: SLIP_C.sub, overflowWrap: 'anywhere' }}>{r.types}{r.half && <span className="font-bold" style={{ color: SLIP_C.half }}> · จ่ายครึ่ง</span>}</span>
+              <span className="font-numeric font-semibold text-right" style={r.win ? { color: '#15803d' } : undefined}>{r.amts}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="flex justify-between items-center px-3.5 py-2.5 font-bold" style={{ background: '#fbf6ea' }}>
+        <span>{slip.totalLabel || 'รวม'}</span><span className="font-numeric" style={{ fontSize: 22, color: slip.totalColor || SLIP_C.g3 }} data-testid="slip-total">฿{fmt(slip.total)}</span>
+      </div>
+      {slip.extra.map(([k, v], i) => (
+        <div key={i} className="flex justify-between gap-2 px-3.5 py-2 text-base border-t" style={{ borderColor: SLIP_C.line, color: SLIP_C.sub }}>
+          <span className="min-w-0">{k}</span><span className="font-numeric font-bold flex-shrink-0" style={{ color: SLIP_C.ink }}>{v}</span>
+        </div>
+      ))}
+      <div className="text-center text-sm py-2" style={{ color: '#a99c7d' }}>{slip.footer || 'ตรวจรายการก่อนออกผล · Royal 888'}</div>
+    </div>
+  );
+}
+
+// วาดใบโพยลง canvas (รูป PNG / หน้า PDF) · คืน { canvas, breaks } — breaks = จุดตัดหน้าที่ไม่ผ่ากลางแถว
+async function drawSlipCanvas(slip) {
+  try {
+    await Promise.all(['700 30px Cinzel', '700 30px Mitr', '600 26px Mitr', '400 24px "Bai Jamjuree"', '700 24px "Bai Jamjuree"']
+      .map((f) => document.fonts.load(f, 'ROYAL ๘๘๘ ฿0')));
+  } catch (e) {}
+  const W = 720, PAD = 28;
+  const H_HEAD = 96, H_META = 62, H_SEC = 56, H_ROW = 60, H_TOT = 72, H_EXTRA = 54, H_FOOT = 56;
+  let H = H_HEAD + H_META + H_TOT + H_FOOT + slip.extra.length * H_EXTRA;
+  slip.sections.forEach((s) => { H += (s.title ? H_SEC : 0) + s.rows.length * H_ROW; });
+  // จำกัดขนาด canvas (iOS ~16 ล้านพิกเซล · Chrome สูงไม่เกิน 32767)
+  const scale = Math.max(0.5, Math.min(2, Math.sqrt(15e6 / (W * H)), 32000 / H));
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(W * scale); cv.height = Math.round(H * scale);
+  const g = cv.getContext('2d');
+  g.scale(scale, scale);
+  const TH = '"Bai Jamjuree", "Noto Sans Thai", sans-serif', NUM = 'Mitr, "Bai Jamjuree", sans-serif';
+  const fit = (t, maxW) => { t = String(t); if (g.measureText(t).width <= maxW) return t; while (t.length > 1 && g.measureText(t + '…').width > maxW) t = t.slice(0, -1); return t + '…'; };
+  // ยาวเกินช่อง → ย่อขนาดตัวอักษรลงก่อน (ไม่ต่ำกว่า 60%) ค่อยตัด … เป็นทางสุดท้าย
+  const text = (t, x, y, font, color, align = 'left', maxW = W) => {
+    g.font = font; g.fillStyle = color; g.textAlign = align; g.textBaseline = 'middle';
+    const m = font.match(/(\d+)px/), base = m ? +m[1] : 24;
+    for (let px = base; px >= Math.round(base * 0.6) && g.measureText(String(t)).width > maxW; px--) g.font = font.replace(/\d+px/, px + 'px');
+    g.fillText(fit(t, maxW), x, y);
+  };
+  const breaks = [];
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  // หัว
+  const hg = g.createLinearGradient(0, 0, 0, H_HEAD); hg.addColorStop(0, '#2f2f2f'); hg.addColorStop(1, '#1f1f1f');
+  g.fillStyle = hg; g.fillRect(0, 0, W, H_HEAD);
+  text('♛ ROYAL 888', PAD, 36, '700 30px Cinzel, serif', SLIP_C.gold);
+  text(slip.kind, PAD, 70, '400 22px ' + TH, 'rgba(245,232,200,.8)');
+  text(slip.lottery, W - PAD, 34, '400 22px ' + TH, 'rgba(245,232,200,.8)', 'right', 300);
+  text(slip.draw, W - PAD, 66, '700 28px ' + NUM, SLIP_C.cream, 'right', 300);
+  let y = H_HEAD;
+  g.fillStyle = '#fcfaf4'; g.fillRect(0, y, W, H_META);
+  g.font = '400 22px ' + TH; const lw = g.measureText(slip.whoLabel + ' ').width;
+  text(slip.whoLabel, PAD, y + H_META / 2, '400 22px ' + TH, SLIP_C.sub);
+  text(slip.who, PAD + lw, y + H_META / 2, '700 26px ' + TH, SLIP_C.ink, 'left', W - PAD * 2 - lw - 220);
+  text(slip.time + ' · ' + slip.count + ' รายการ', W - PAD, y + H_META / 2, '400 22px ' + TH, SLIP_C.sub, 'right');
+  g.fillStyle = SLIP_C.line; g.fillRect(0, y + H_META - 1, W, 1);
+  y += H_META; breaks.push(y);
+  for (const sec of slip.sections) {
+    if (sec.title) {
+      g.fillStyle = '#f3eee2'; g.fillRect(0, y, W, H_SEC);
+      text('👤 ' + sec.title, PAD, y + H_SEC / 2, '700 26px ' + TH, SLIP_C.ink, 'left', W - PAD * 2 - 260);
+      text(sec.sub, W - PAD, y + H_SEC / 2, '600 24px ' + NUM, SLIP_C.g3, 'right');
+      y += H_SEC;
+    }
+    for (const r of sec.rows) {
+      const cy = y + H_ROW / 2;
+      if (r.win) { g.fillStyle = '#f2fbf5'; g.fillRect(0, y, W, H_ROW); }
+      g.globalAlpha = r.dim ? 0.55 : 1;
+      if (sec.nameRows) {
+        text(r.name, PAD, cy, '700 26px ' + TH, SLIP_C.ink, 'left', 330);
+        text(r.types, 400, cy, '400 22px ' + TH, SLIP_C.sub);
+      } else {
+        text(r.num, PAD, cy, '700 38px ' + NUM, r.num.length === 3 ? SLIP_C.g3 : SLIP_C.g2);
+        text(r.types + (r.half ? '  · จ่ายครึ่ง' : ''), 150, cy, '400 24px ' + TH, r.half ? SLIP_C.half : SLIP_C.sub, 'left', 300);
+      }
+      text(r.amts, W - PAD, cy, '600 26px ' + NUM, r.win ? '#15803d' : SLIP_C.ink, 'right', 260);
+      g.globalAlpha = 1;
+      g.strokeStyle = '#eee4cc'; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(PAD, y + H_ROW - 0.5); g.lineTo(W - PAD, y + H_ROW - 0.5); g.stroke(); g.setLineDash([]);
+      y += H_ROW; breaks.push(y);
+    }
+  }
+  g.fillStyle = '#fbf6ea'; g.fillRect(0, y, W, H_TOT);
+  text(slip.totalLabel || 'รวม', PAD, y + H_TOT / 2, '700 26px ' + TH, SLIP_C.ink, 'left', 360);
+  text('฿' + fmt(slip.total), W - PAD, y + H_TOT / 2, '700 36px ' + NUM, slip.totalColor || SLIP_C.g3, 'right');
+  y += H_TOT; breaks.push(y);
+  for (const [k, v] of slip.extra) {
+    g.fillStyle = SLIP_C.line; g.fillRect(0, y, W, 1);
+    text(k, PAD, y + H_EXTRA / 2, '400 22px ' + TH, SLIP_C.sub, 'left', 470);
+    text(v, W - PAD, y + H_EXTRA / 2, '700 24px ' + NUM, SLIP_C.ink, 'right');
+    y += H_EXTRA; breaks.push(y);
+  }
+  text(slip.footer || 'ตรวจรายการก่อนออกผล · Royal 888', W / 2, y + H_FOOT / 2, '400 20px ' + TH, '#a99c7d', 'center');
+  breaks.push(H);
+  return { canvas: cv, breaks, scale, W, H };
+}
+
+const canvasBlob = (cv, type = 'image/png', q) => new Promise((res, rej) => cv.toBlob((b) => (b ? res(b) : rej(new Error('blob'))), type, q));
+const safeName = (s) => String(s).replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'โพย';
+
+async function deliverFile(blob, filename, preferShare) {
+  const file = new File([blob], filename, { type: blob.type });
+  if (preferShare && navigator.canShare && navigator.share) {
+    try {
+      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return 'shared'; }
+    } catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return 'downloaded';
+}
+
+async function slipToPdfBlob(slip) {
+  const lib = await loadLib('pdf');
+  const { canvas, breaks, scale, W, H } = await drawSlipCanvas(slip);
+  const doc = new lib.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const M = 10, PW = 210 - M * 2, PH = 297 - M * 2;
+  const pageCss = W * (PH / PW);                 // ความสูง (px ใบโพย) ที่ใส่ได้ 1 หน้า
+  let top = 0, first = true;
+  while (top < H - 1) {
+    let bottom = Math.min(H, top + pageCss);
+    if (bottom < H) { const ok = breaks.filter((b) => b > top && b <= bottom); if (ok.length) bottom = ok[ok.length - 1]; }
+    const part = document.createElement('canvas');
+    part.width = canvas.width; part.height = Math.max(1, Math.round((bottom - top) * scale));
+    const pg = part.getContext('2d'); pg.fillStyle = '#fff'; pg.fillRect(0, 0, part.width, part.height);
+    pg.drawImage(canvas, 0, Math.round(top * scale), canvas.width, part.height, 0, 0, part.width, part.height);
+    if (!first) doc.addPage();
+    doc.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', M, M, PW, (bottom - top) * (PW / W));
+    first = false; top = bottom;
+  }
+  return doc.output('blob');
+}
+
+async function betsToXlsxBlob(bets, lottery, drawDate) {
+  const XLSX = await loadLib('xlsx');
+  const sorted = [...bets].sort((a, b) => custOf(a).localeCompare(custOf(b), 'th') || (a.createdAt || 0) - (b.createdAt || 0));
+  const rows = [['ลูกค้า', 'เลข', 'ประเภท', 'ราคา (บาท)', 'อัตราจ่าย', 'จ่ายครึ่ง', 'งวด', 'หวย']];
+  for (const b of sorted) rows.push([custOf(b), String(b.number), typeFullName(b.type), parseFloat(b.amount) || 0, parseFloat(b.rate) || 0, b.halfPay ? 'ใช่' : '', formatDrawDateShort(drawDate), lottery.name]);
+  rows.push(['รวม', '', sorted.length + ' รายการ', sumAmt(sorted), '', '', '', '']);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{ wch: 18 }, { wch: 7 }, { wch: 11 }, { wch: 11 }, { wch: 9 }, { wch: 8 }, { wch: 11 }, { wch: 12 }];
+  for (let r = 1; r < rows.length - 1; r++) { const c = ws[XLSX.utils.encode_cell({ r, c: 1 })]; if (c) { c.t = 's'; c.z = '@'; } }
+  const custs = getUniqueCustomers(sorted);
+  const srows = [['ลูกค้า', 'รายการ', 'ยอด (บาท)']];
+  for (const c of custs) { const it = sorted.filter((b) => custOf(b) === c); srows.push([c, it.length, sumAmt(it)]); }
+  srows.push(['รวม', sorted.length, sumAmt(sorted)]);
+  const ws2 = XLSX.utils.aoa_to_sheet(srows);
+  ws2['!cols'] = [{ wch: 20 }, { wch: 8 }, { wch: 12 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'โพย');
+  XLSX.utils.book_append_sheet(wb, ws2, 'สรุป');
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function ExportContent({ bets, lottery, drawDate, caps = [], rates = {} }) {
   const toast = useToast();
-  const [mode, setMode] = useState('summary');
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const enrichedBets = useMemo(() => enrichBetsWithCaps(bets, caps, rates), [bets, caps, rates]);
-  const customers = useMemo(() => getUniqueCustomers(enrichedBets), [enrichedBets]);
+  const enriched = useMemo(() => enrichBetsWithCaps(bets, caps, rates), [bets, caps, rates]);
+  const customers = useMemo(() => getUniqueCustomers(enriched), [enriched]);
+  const [mode, setMode] = useState('customer');
+  const [cust, setCust] = useState(customers[0] || null);
+  const [busy, setBusy] = useState('');
+  const custSel = customers.includes(cust) ? cust : customers[0];
+  const slip = useMemo(() => buildSlip(mode, enriched, lottery, drawDate, custSel), [mode, enriched, lottery, drawDate, custSel]);
+  const scopeBets = useMemo(() => (mode === 'customer' ? enriched.filter((b) => custOf(b) === custSel) : enriched), [mode, enriched, custSel]);
+  const baseName = safeName('โพย_' + lottery.name + '_' + drawDate + (mode === 'customer' ? '_' + custSel : mode === 'list' ? '_ทุกคน' : '_สรุป'));
+
+  // เตรียมรูปไว้ก่อน → กดแล้วแชร์ได้ทันที (iOS ต้องแชร์ภายในจังหวะที่นิ้วแตะ)
+  const pngRef = useRef(null);
+  useEffect(() => {
+    let alive = true; pngRef.current = null;
+    const t = setTimeout(async () => {
+      try { const { canvas } = await drawSlipCanvas(slip); const b = await canvasBlob(canvas); if (alive) pngRef.current = b; } catch (e) {}
+    }, 150);
+    return () => { alive = false; clearTimeout(t); };
+  }, [slip]);
 
   const text = useMemo(() => {
-    if (mode === 'summary') return formatSummaryForLine(enrichedBets, lottery, drawDate);
-    if (mode === 'list') return formatListForLine(enrichedBets, lottery, drawDate);
-    if (mode === 'customer' && selectedCustomer) return formatPerCustomerForLine(enrichedBets, lottery, drawDate, selectedCustomer);
-    return '';
-  }, [enrichedBets, lottery, drawDate, mode, selectedCustomer]);
+    if (mode === 'customer') return formatPerCustomerForLine(enriched, lottery, drawDate, custSel);
+    if (mode === 'list') return formatListForLine(enriched, lottery, drawDate);
+    return formatSummaryForLine(enriched, lottery, drawDate);
+  }, [mode, enriched, lottery, drawDate, custSel]);
 
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
+  const run = async (key, fn) => {
+    if (busy) return;
+    setBusy(key);
+    try { await fn(); }
+    catch (e) { toast.show(e && e.message === 'load' ? 'ต้องต่อเน็ตครั้งแรกเพื่อโหลดตัวสร้างไฟล์' : 'สร้างไฟล์ไม่สำเร็จ ลองใหม่', 'error', 4000); }
+    finally { setBusy(''); }
+  };
+  const doImage = () => run('img', async () => {
+    let blob = pngRef.current;
+    if (!blob) { const { canvas } = await drawSlipCanvas(slip); blob = await canvasBlob(canvas); }
+    const r = await deliverFile(blob, baseName + '.png', true);
+    if (r === 'downloaded') toast.show('บันทึกรูปแล้ว · ส่งใน LINE ได้เลย', 'success');
+  });
+  const copyText = async () => {
     try { await navigator.clipboard.writeText(text); }
-    catch (e) {
-      const ta = document.createElement('textarea');
-      ta.value = text; document.body.appendChild(ta);
-      ta.select(); document.execCommand('copy');
-      document.body.removeChild(ta);
-    }
-    setCopied(true);
-    toast.show('คัดลอกแล้ว', 'success');
-    setTimeout(() => setCopied(false), 2000);
+    catch (e) { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    toast.show('คัดลอกแล้ว · ไปวางใน LINE ได้เลย', 'success');
   };
-
-  const shareApi = async () => {
-    if (navigator.share) {
-      try { await navigator.share({ text }); } catch (e) {}
-    } else { copy(); }
+  const doText = async () => {
+    if (navigator.share) { try { await navigator.share({ text }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+    copyText();
   };
+  const doXlsx = () => run('xlsx', async () => {
+    const blob = await betsToXlsxBlob(scopeBets, lottery, drawDate);
+    await deliverFile(blob, baseName + '.xlsx', false);
+    toast.show('ดาวน์โหลด Excel แล้ว', 'success');
+  });
+  const doPdf = () => run('pdf', async () => {
+    const blob = await slipToPdfBlob(slip);
+    await deliverFile(blob, baseName + '.pdf', false);
+    toast.show('ดาวน์โหลด PDF แล้ว', 'success');
+  });
 
+  const segBtn = (key, label) => (
+    <button key={key} onClick={() => setMode(key)} data-testid={'exp-' + key}
+      className="py-2.5 rounded-lg text-base font-display font-bold"
+      style={mode === key ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' }}>{label}</button>
+  );
+  const opt = (key, icon, label, small, onClick, line) => (
+    <button key={key} onClick={onClick} disabled={!!busy} data-testid={'exp-' + key}
+      className="rounded-2xl border px-2 py-3 text-center font-display font-bold text-base active:scale-95 disabled:opacity-60"
+      style={line ? { background: '#effcf3', borderColor: '#a7e9be', color: '#047a37' } : { background: '#fff', borderColor: '#e8dfc8', color: '#2a2a2a' }}>
+      <span className="block text-2xl leading-tight">{busy === key ? '⏳' : icon}</span>{label}
+      <span className="block text-sm font-medium" style={{ color: line ? '#047a37' : '#6b6357' }}>{small}</span>
+    </button>
+  );
+
+  if (enriched.length === 0) return <div className="text-center py-8 font-display text-lg" style={{ color: '#6b6357' }}>ยังไม่มีโพยในงวดนี้</div>;
   return (
     <div className="space-y-3">
-      <div className="bg-gray-50 rounded-xl p-1 grid grid-cols-3 gap-1">
-        <button onClick={() => { setMode('summary'); setSelectedCustomer(null); }}
-          className={'py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1 ' + (
-            mode === 'summary' ? 'bg-red-100 text-stone-800 border border-red-300' : 'text-stone-400'
-          )}>
-          <BarChart3 size={12}/> สรุปยอด
-        </button>
-        <button onClick={() => { setMode('list'); setSelectedCustomer(null); }}
-          className={'py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1 ' + (
-            mode === 'list' ? 'bg-red-100 text-stone-800 border border-red-300' : 'text-stone-400'
-          )}>
-          <List size={12}/> ทุกคน
-        </button>
-        <button onClick={() => { setMode('customer'); if (customers.length > 0 && !selectedCustomer) setSelectedCustomer(customers[0]); }}
-          className={'py-2 rounded-lg text-base font-display tracking-wide flex items-center justify-center gap-1 ' + (
-            mode === 'customer' ? 'bg-red-100 text-stone-800 border border-red-300' : 'text-stone-400'
-          )}>
-          <UserCircle2 size={12}/> รายคน
-        </button>
+      <div className="grid grid-cols-3 gap-1 rounded-xl p-1" style={{ background: '#efe8d6' }}>
+        {segBtn('customer', 'รายคน')}{segBtn('list', 'ทุกคน')}{segBtn('summary', 'สรุปยอด')}
       </div>
-
-      <div className="text-base text-stone-400 font-display leading-relaxed">
-        {mode === 'summary' && 'รวมรับ/จ่าย กำไรขาดทุน + ความเสี่ยง'}
-        {mode === 'list' && 'รายการเลขทุกตัว · แยกตามลูกค้า'}
-        {mode === 'customer' && 'แชร์ให้ลูกค้าแต่ละคนแยกใบ'}
-      </div>
-
-      {mode === 'customer' && customers.length > 0 && (
-        <div className="space-y-1">
-          <div className="text-base uppercase tracking-widest text-stone-400 font-display">เลือกลูกค้า</div>
-          <div className="grid grid-cols-2 gap-1.5 max-h-32 overflow-y-auto">
-            {customers.map(c => {
-              const count = enrichedBets.filter(b => (b.customer || '— ไม่ระบุ —') === c).length;
-              const isSel = c === selectedCustomer;
-              return (
-                <button key={c} onClick={() => setSelectedCustomer(c)}
-                  className={'rounded-lg px-2 py-1.5 text-left text-base font-display flex items-center justify-between gap-1 border transition-all active:scale-95 ' + (
-                    isSel ? 'btn-premium border-red-900' : 'bg-white border-stone-200 text-stone-700'
-                  )}>
-                  <span className="truncate flex-1 min-w-0">{c}</span>
-                  <span className={'text-base font-numeric flex-shrink-0 ' + (isSel ? 'opacity-80' : 'text-stone-400')}>×{count}</span>
-                </button>
-              );
-            })}
-          </div>
+      {mode === 'customer' && (
+        <div className="flex flex-wrap gap-1.5" data-testid="exp-customers">
+          {customers.map((c) => {
+            const n = enriched.filter((b) => custOf(b) === c).length, on = c === custSel;
+            return (
+              <button key={c} onClick={() => setCust(c)}
+                className="rounded-2xl px-3 py-1.5 text-base font-display font-semibold border max-w-full text-left"
+                style={on ? { background: '#2a2a2a', color: '#f5e8c8', borderColor: '#2a2a2a' } : { background: '#fff', color: '#2a2a2a', borderColor: '#e8dfc8' }}>
+                {c} <span className="font-numeric opacity-70">({n})</span>
+              </button>
+            );
+          })}
         </div>
       )}
-
-      <div className="bg-white rounded-xl p-3 border border-stone-200 font-numeric text-base text-stone-900 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">{text || 'เลือกลูกค้าก่อน'}</div>
-
+      {/* ปุ่มส่งออกอยู่ก่อนตัวอย่าง — ใบยาวแค่ไหนก็กดได้โดยไม่ต้องเลื่อน */}
       <div className="grid grid-cols-2 gap-2">
-        <button onClick={copy} disabled={!text}
-          className="py-3 rounded-xl bg-red-50 border border-red-300 text-stone-800 font-display text-lg tracking-wider flex items-center justify-center gap-2 disabled:opacity-40">
-          {copied ? (<><Check size={14} strokeWidth={3}/>คัดลอกแล้ว</>) : (<><Copy size={14} strokeWidth={3}/>คัดลอก</>)}
-        </button>
-        <button onClick={shareApi} disabled={!text}
-          className="py-3 rounded-xl btn-premium font-display text-lg tracking-wider flex items-center justify-center gap-2 disabled:opacity-40">
-          <Share2 size={14} strokeWidth={3}/>ส่ง
-        </button>
+        {opt('img', '🖼', 'รูปภาพ', 'ส่ง LINE ได้เลย', doImage, true)}
+        {opt('text', '💬', 'ข้อความ', 'คัดลอก/แชร์', doText)}
+        {opt('xlsx', '📊', 'Excel', mode === 'customer' ? '.xlsx · คนนี้' : '.xlsx · ทุกคน', doXlsx)}
+        {opt('pdf', '🖨', 'PDF', 'พิมพ์/เก็บ', doPdf)}
       </div>
+      <button onClick={copyText} className="w-full text-base font-display underline" style={{ color: '#8a6d36' }} data-testid="exp-copy">คัดลอกเป็นข้อความ</button>
+      <div className="text-base font-display font-semibold pt-1" style={{ color: '#8a6d36' }}>ตัวอย่าง</div>
+      <SlipView slip={slip}/>
+    </div>
+  );
+}
+
+// ==================== ผลออกแล้ว · ใบได้/เสีย ====================
+function settleDraw(bets, results, caps, rates) {
+  const rows = bets.map((b) => ({ b, ...betPayout(b, results, caps, rates) }));
+  const byCust = new Map();
+  for (const r of rows) {
+    const c = custOf(r.b);
+    if (!byCust.has(c)) byCust.set(c, { name: c, buy: 0, won: 0, wins: 0, rows: [] });
+    const g = byCust.get(c);
+    g.buy += r.amt; g.won += r.payout; g.wins += r.hit ? 1 : 0; g.rows.push(r);
+  }
+  const customers = [...byCust.values()].map((g) => ({ ...g, net: g.won - g.buy }))
+    .sort((a, b) => (a.name === NO_NAME) - (b.name === NO_NAME) || b.won - a.won || a.name.localeCompare(b.name, 'th'));
+  const intake = rows.reduce((s, r) => s + r.amt, 0), payout = rows.reduce((s, r) => s + r.payout, 0);
+  return { rows, wins: rows.filter((r) => r.hit), customers, intake, payout };
+}
+
+const resultLine = (lottery, results) => {
+  const r3 = results['3บน'] || results['3ตัว'];
+  return [r3, results['2ล่าง']].filter(Boolean).join(' · ');
+};
+const signMoney = (n) => (n >= 0 ? '+' : '-') + '฿' + fmt(Math.abs(n));
+
+function ResultSettleCard({ lottery, drawDate, draw, settle, isSeller, onOpen }) {
+  const r = draw.results || {}, r3 = r['3บน'] || r['3ตัว'];
+  const net = isSeller ? settle.intake - settle.payout : settle.payout - settle.intake;
+  const shown = settle.wins.slice(0, 5);
+  const tile = (bg, bd, fg, label, val) => (
+    <div className="text-center rounded-xl border py-1.5 px-0.5" style={{ background: bg, borderColor: bd, color: fg }}>
+      <span className="block text-sm font-semibold font-display">{label}</span>
+      <span className="block font-numeric font-bold leading-tight" style={{ fontSize: 26 }}>{val}</span>
+    </div>
+  );
+  return (
+    <div className="space-y-2" data-testid="settle-card">
+      <div className="rounded-2xl overflow-hidden border bg-white" style={{ borderColor: '#e3cf9e', boxShadow: '0 6px 18px rgba(184,150,90,.14)' }}>
+        <div className="flex items-center justify-between gap-2 px-3.5 py-2.5" style={{ background: 'linear-gradient(180deg,#2f2f2f,#1f1f1f)', color: '#f5e8c8' }}>
+          <b className="font-display min-w-0">🏆 ผลงวด {formatDrawDateShort(drawDate)}</b>
+          <span className="text-sm font-bold rounded-full px-2 py-0.5 flex-shrink-0" style={{ background: '#15803d', color: '#fff' }}>
+            ออกแล้ว · {draw.source === 'auto' ? 'อัตโนมัติ' : 'กรอกเอง'}
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 px-3 pt-2.5">
+          {tile(GRP.g3.bg, GRP.g3.bd, GRP.g3.fg, r['3บน'] ? '3 ตัวบน' : '3 ตัว', r3 || '–')}
+          {tile(GRP.g2.bg, GRP.g2.bd, GRP.g2.fg, '2 ตัวบน', r['2บน'] || (r3 ? r3.slice(-2) : '–'))}
+          {tile(GRP.g2.bg, GRP.g2.bd, GRP.g2.fg, '2 ตัวล่าง', r['2ล่าง'] || '–')}
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 p-3">
+          {[[isSeller ? 'รับรวม' : 'ซื้อรวม', '฿' + fmt(settle.intake), '#2a2a2a'],
+            [(isSeller ? 'ต้องจ่าย' : 'ได้รับ') + ' · ' + settle.wins.length + ' ใบ', '฿' + fmt(settle.payout), isSeller ? '#b91c1c' : '#15803d'],
+            [isSeller ? 'กำไร' : 'สุทธิ', signMoney(net), net >= 0 ? '#15803d' : '#b91c1c']].map(([k, v, c]) => (
+            <div key={k} className="rounded-xl border px-2 py-1.5 min-w-0" style={{ background: '#fcfaf4', borderColor: '#e8dfc8' }}>
+              <span className="block text-sm font-semibold font-display num-wrap" style={{ color: '#6b6357' }}>{k}</span>
+              <span className="block font-numeric font-bold num-wrap" style={{ fontSize: 19, color: c }} data-testid={'settle-' + k.split(' ')[0]}>{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {settle.wins.length > 0 && (
+        <div className="bg-white rounded-2xl border px-3.5 py-2" style={{ borderColor: '#e8dfc8' }} data-testid="settle-wins">
+          <div className="flex justify-between items-center font-display mb-0.5">
+            <b>โพยที่ถูก ({settle.wins.length})</b><span className="text-sm" style={{ color: '#6b6357' }}>{isSeller ? 'ต้องจ่าย' : 'ได้รับ'}</span>
+          </div>
+          {shown.map((w, i) => (
+            <div key={i} className="grid gap-2 items-center py-1.5 text-base font-display" style={{ gridTemplateColumns: '56px 1fr auto', borderBottom: i < shown.length - 1 ? '1px dashed #eee4cc' : 0 }}>
+              <span className="font-numeric font-bold" style={{ fontSize: 22, color: w.b.number.length === 3 ? GRP.g3.fg : GRP.g2.fg }}>{w.b.number}</span>
+              <span className="min-w-0" style={{ overflowWrap: 'anywhere' }}>{typeShort(w.b.type)} · {custOf(w.b)} ฿{fmt(w.amt)}{w.half ? ' · ½' : ''}</span>
+              <span className="font-numeric font-bold num-wrap" style={{ color: isSeller ? '#b91c1c' : '#15803d' }}>฿{fmt(w.payout)}</span>
+            </div>
+          ))}
+          {settle.wins.length > shown.length && <div className="text-sm font-display pt-1" style={{ color: '#6b6357' }}>และอีก {settle.wins.length - shown.length} ใบ · ดูทั้งหมดในใบได้/เสีย</div>}
+        </div>
+      )}
+      <button onClick={onOpen} data-testid="open-settle"
+        className="w-full py-3.5 rounded-2xl btn-premium font-bold font-display text-lg flex items-center justify-center gap-2">📋 ใบได้/เสียรายคน</button>
+    </div>
+  );
+}
+
+function buildSettleSlip(mode, settle, lottery, drawDate, draw, custName, isSeller) {
+  const res = resultLine(lottery, draw.results || {});
+  const head = { lottery: lottery.name, draw: 'งวด ' + formatDrawDateShort(drawDate), kind: 'ใบได้/เสีย', time: 'ผล ' + res, footer: 'คิดตามผลออก ' + res + ' · Royal 888' };
+  if (mode === 'customer') {
+    const g = settle.customers.find((c) => c.name === custName) || settle.customers[0];
+    const rows = [...g.rows].sort((a, b) => b.hit - a.hit || b.b.number.length - a.b.number.length || a.b.number.localeCompare(b.b.number))
+      .map((r) => ({ num: r.b.number, types: typeShort(r.b.type) + ' ฿' + fmt(r.amt) + (r.hit ? ' ✓' : ''), amts: r.hit ? '฿' + fmt(r.payout) : '–', half: r.half && r.hit, win: r.hit, dim: !r.hit }));
+    return { ...head, whoLabel: 'ลูกค้า', who: g.name, count: g.rows.length, sections: [{ rows }],
+      total: Math.abs(g.net), totalLabel: g.net >= 0 ? 'ลูกค้าได้สุทธิ' : 'ลูกค้าเสียสุทธิ', totalColor: g.net >= 0 ? '#15803d' : '#b91c1c',
+      extra: [['ซื้อรวม', '฿' + fmt(g.buy)], ['ถูกรวม · ' + g.wins + ' ใบ', '฿' + fmt(g.won)]] };
+  }
+  const net = settle.intake - settle.payout;
+  const rows = settle.customers.map((g) => ({ name: g.name, types: g.wins ? 'ถูก ' + g.wins + ' ใบ' : 'ไม่ถูก', amts: (g.net >= 0 ? 'ได้ ' : 'เสีย ') + '฿' + fmt(Math.abs(g.net)), win: g.net > 0 }));
+  return { ...head, whoLabel: 'ลูกค้า', who: settle.customers.length + ' คน', count: settle.rows.length, sections: [{ rows, nameRows: true }],
+    total: Math.abs(isSeller ? net : -net), totalLabel: isSeller ? (net >= 0 ? 'เจ้ามือกำไร' : 'เจ้ามือขาดทุน') : (net <= 0 ? 'ได้สุทธิ' : 'เสียสุทธิ'),
+    totalColor: (isSeller ? net >= 0 : net <= 0) ? '#15803d' : '#b91c1c',
+    extra: [[isSeller ? 'รับรวม' : 'ซื้อรวม', '฿' + fmt(settle.intake)], [(isSeller ? 'จ่ายรวม' : 'ถูกรวม') + ' · ' + settle.wins.length + ' ใบ', '฿' + fmt(settle.payout)]] };
+}
+
+function settleText(mode, settle, lottery, drawDate, draw, custName, isSeller) {
+  const L = ['🎰 Royal 888 · ใบได้/เสีย', `📋 ${lottery.name}`, `🗓 งวด ${formatDrawDateLong(drawDate)}`, `🏆 ผล ${resultLine(lottery, draw.results || {})}`, '─────────────'];
+  if (mode === 'customer') {
+    const g = settle.customers.find((c) => c.name === custName) || settle.customers[0];
+    L.splice(4, 0, `👤 ${g.name}`);
+    for (const r of g.rows) L.push(`${r.b.number}  ${typeShort(r.b.type)} ${fmt(r.amt)}${r.hit ? '  ✓ ถูก ฿' + fmt(r.payout) : ''}`);
+    L.push('─────────────', `ซื้อรวม ฿${fmt(g.buy)} · ถูก ฿${fmt(g.won)}`, g.net >= 0 ? `💰 ได้สุทธิ ฿${fmt(g.net)}` : `💸 เสียสุทธิ ฿${fmt(-g.net)}`);
+  } else {
+    for (const g of settle.customers) L.push(`${g.name}: ${g.net >= 0 ? 'ได้' : 'เสีย'} ฿${fmt(Math.abs(g.net))} (ซื้อ ${fmt(g.buy)} · ถูก ${fmt(g.won)})`);
+    const net = settle.intake - settle.payout;
+    L.push('─────────────', `${isSeller ? 'รับรวม' : 'ซื้อรวม'} ฿${fmt(settle.intake)} · ${isSeller ? 'จ่าย' : 'ได้'} ฿${fmt(settle.payout)}`,
+      isSeller ? `💰 ${net >= 0 ? 'กำไร' : 'ขาดทุน'} ฿${fmt(Math.abs(net))}` : `💰 สุทธิ ${signMoney(-net)}`);
+  }
+  return L.join('\n');
+}
+
+function SettleContent({ lottery, drawDate, draw, settle, isSeller }) {
+  const toast = useToast();
+  const [mode, setMode] = useState(settle.customers.length > 1 ? 'customer' : 'customer');
+  const [cust, setCust] = useState(settle.customers[0] ? settle.customers[0].name : '');
+  const [busy, setBusy] = useState(false);
+  const slip = useMemo(() => buildSettleSlip(mode, settle, lottery, drawDate, draw, cust, isSeller), [mode, settle, lottery, drawDate, draw, cust, isSeller]);
+  const text = useMemo(() => settleText(mode, settle, lottery, drawDate, draw, cust, isSeller), [mode, settle, lottery, drawDate, draw, cust, isSeller]);
+  const pngRef = useRef(null);
+  useEffect(() => {
+    let alive = true; pngRef.current = null;
+    const t = setTimeout(async () => { try { const { canvas } = await drawSlipCanvas(slip); const b = await canvasBlob(canvas); if (alive) pngRef.current = b; } catch (e) {} }, 150);
+    return () => { alive = false; clearTimeout(t); };
+  }, [slip]);
+  const fname = safeName('ได้เสีย_' + lottery.name + '_' + drawDate + (mode === 'customer' ? '_' + cust : '_ทุกคน'));
+  const sendImage = async () => {
+    if (busy) return; setBusy(true);
+    try {
+      let blob = pngRef.current; if (!blob) { const { canvas } = await drawSlipCanvas(slip); blob = await canvasBlob(canvas); }
+      const r = await deliverFile(blob, fname + '.png', true);
+      if (r === 'downloaded') toast.show('บันทึกรูปแล้ว · ส่งใน LINE ได้เลย', 'success');
+    } catch (e) { toast.show('สร้างรูปไม่สำเร็จ ลองใหม่', 'error'); } finally { setBusy(false); }
+  };
+  const copyText = async () => {
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+    toast.show('คัดลอกแล้ว · ไปวางใน LINE ได้เลย', 'success');
+  };
+  const seg = (k, l) => (
+    <button key={k} onClick={() => setMode(k)} data-testid={'settle-mode-' + k} className="py-2.5 rounded-lg text-base font-display font-bold"
+      style={mode === k ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' }}>{l}</button>
+  );
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-1 rounded-xl p-1" style={{ background: '#efe8d6' }}>{seg('all', 'ทุกคน')}{seg('customer', 'รายคน')}</div>
+      <div className="bg-white rounded-2xl border px-3.5 py-1" style={{ borderColor: '#e8dfc8' }} data-testid="settle-customers">
+        {settle.customers.map((g, i) => {
+          const on = mode === 'customer' && g.name === cust;
+          return (
+            <button key={g.name} onClick={() => { setMode('customer'); setCust(g.name); }}
+              className="w-full grid gap-x-2 items-center py-2 text-left" style={{ gridTemplateColumns: '1fr auto', borderBottom: i < settle.customers.length - 1 ? '1px dashed #eee4cc' : 0 }}>
+              <b className="font-display text-lg min-w-0" style={{ overflowWrap: 'anywhere', color: on ? '#8a6d36' : '#2a2a2a' }}>{on ? '▸ ' : ''}{g.name}</b>
+              <span className="font-numeric font-bold text-lg text-right num-wrap" style={{ color: g.net >= 0 ? '#15803d' : '#b91c1c' }}>{g.net >= 0 ? 'ได้' : 'เสีย'} ฿{fmt(Math.abs(g.net))}</span>
+              <span className="text-sm font-display" style={{ color: '#6b6357' }}>ซื้อ ฿{fmt(g.buy)} · {g.wins ? 'ถูก ' + g.wins + ' ใบ ฿' + fmt(g.won) : 'ไม่ถูก'}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={sendImage} disabled={busy} data-testid="settle-img" className="rounded-2xl border-2 py-3 font-display font-bold text-base active:scale-95"
+          style={{ background: '#effcf3', borderColor: '#a7e9be', color: '#047a37' }}>{busy ? '⏳' : '🖼'} {mode === 'customer' ? 'ส่งรูปให้ ' + cust : 'ส่งรูปสรุป'}</button>
+        <button onClick={copyText} data-testid="settle-text" className="rounded-2xl border py-3 font-display font-bold text-base active:scale-95"
+          style={{ background: '#fff', borderColor: '#e8dfc8', color: '#2a2a2a' }}>💬 คัดลอกข้อความ</button>
+      </div>
+      <div className="text-base font-display font-semibold pt-1" style={{ color: '#8a6d36' }}>ตัวอย่าง</div>
+      <SlipView slip={slip}/>
     </div>
   );
 }
@@ -3852,11 +4730,11 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="num-tile rounded-xl p-3 min-w-0 overflow-hidden">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>รับเข้ารวม</div>
-            <div className="font-numeric font-bold gold-text mt-1 truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
+            <div className="font-numeric font-bold gold-text mt-1 num-wrap" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
           </div>
           <div className="risk-tile rounded-xl p-3 min-w-0 overflow-hidden">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>จ่ายเพดาน</div>
-            <div className="font-numeric font-bold text-red-600 mt-1 truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(totalMaxPayout)}</div>
+            <div className="font-numeric font-bold text-red-600 mt-1 num-wrap" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(totalMaxPayout)}</div>
           </div>
         </div>
 
@@ -3870,7 +4748,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
               <span className="text-base">🟢</span>
               <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#15803d'}}>ไม่มีใครถูกเลย</div>
             </div>
-            <div className="font-numeric font-bold truncate" style={{color:'#15803d', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>+฿{fmt(scenarios.scenarios.noWin.net)}</div>
+            <div className="font-numeric font-bold num-wrap" style={{color:'#15803d', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>+฿{fmt(scenarios.scenarios.noWin.net)}</div>
             <div className="text-base mt-1 font-display" style={{color:'#16a34a'}}>
               จ่าย ฿0 · เก็บเต็มที่รับมา
             </div>
@@ -3890,7 +4768,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                   {scenarios.hasLower ? 'ถูกแค่ข้างบน' : (scenarios.hasUpper3 ? 'ถูก 3 ตัวบน/โต๊ด' : 'ถูก 2 ตัวบน')}
                 </div>
               </div>
-              <div className="font-numeric font-bold truncate" style={{color: scenarios.scenarios.onlyUpper.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.onlyUpper.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.onlyUpper.net))}</div>
+              <div className="font-numeric font-bold num-wrap" style={{color: scenarios.scenarios.onlyUpper.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.onlyUpper.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.onlyUpper.net))}</div>
               <div className="text-base mt-1 font-display break-words" style={{color: scenarios.scenarios.onlyUpper.net >= 0 ? '#a16207' : '#b91c1c'}}>
                 ถ้าออก <span className="font-numeric font-bold">{scenarios.scenarios.onlyUpper.num3 || '—'}</span>
                 {' '}· จ่าย ฿{fmt(scenarios.scenarios.onlyUpper.payout)}
@@ -3912,7 +4790,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                   {scenarios.hasUpper ? 'ถูกแค่ข้างล่าง' : 'ถูก 2 ตัวล่าง'}
                 </div>
               </div>
-              <div className="font-numeric font-bold truncate" style={{color: scenarios.scenarios.onlyLower.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.onlyLower.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.onlyLower.net))}</div>
+              <div className="font-numeric font-bold num-wrap" style={{color: scenarios.scenarios.onlyLower.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.onlyLower.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.onlyLower.net))}</div>
               <div className="text-base mt-1 font-display break-words" style={{color: scenarios.scenarios.onlyLower.net >= 0 ? '#a16207' : '#b91c1c'}}>
                 ถ้าออก 2 ล่าง <span className="font-numeric font-bold">{scenarios.scenarios.onlyLower.num2low || '—'}</span>
                 {' '}· จ่าย ฿{fmt(scenarios.scenarios.onlyLower.payout)}
@@ -3932,7 +4810,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                 <span className="text-base">🔴</span>
                 <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c'}}>ถูกทั้งบนและล่าง</div>
               </div>
-              <div className="font-numeric font-bold truncate" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.bothWin.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.bothWin.net))}</div>
+              <div className="font-numeric font-bold num-wrap" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c', fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{scenarios.scenarios.bothWin.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(scenarios.scenarios.bothWin.net))}</div>
               <div className="text-base mt-1 font-display break-words" style={{color: scenarios.scenarios.bothWin.net >= 0 ? '#a16207' : '#b91c1c'}}>
                 ถ้าออก <span className="font-numeric font-bold">{scenarios.scenarios.bothWin.num3 || '—'}</span>
                 {scenarios.scenarios.bothWin.num2low && <> / <span className="font-numeric font-bold">{scenarios.scenarios.bothWin.num2low}</span></>}
@@ -4100,11 +4978,11 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
             <div className="border-t border-stone-200 pt-2 grid grid-cols-2 gap-2">
               <div className="bg-red-50 rounded-lg p-2.5 border border-red-200 min-w-0 overflow-hidden">
                 <div className="text-base uppercase text-red-700 font-display font-semibold tracking-wider">จ่ายรวม</div>
-                <div className="font-numeric font-bold text-red-700 mt-0.5 truncate" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(simResult.payout)}</div>
+                <div className="font-numeric font-bold text-red-700 mt-0.5 num-wrap" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(simResult.payout)}</div>
               </div>
               <div className={`rounded-lg p-2.5 border min-w-0 overflow-hidden ${simResult.net >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
                 <div className={`text-base uppercase font-display font-semibold tracking-wider ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`}>กำไร/ขาดทุน</div>
-                <div className={`font-numeric font-bold mt-0.5 truncate ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`} style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>{simResult.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(simResult.net))}</div>
+                <div className={`font-numeric font-bold mt-0.5 num-wrap ${simResult.net >= 0 ? 'text-green-700' : 'text-red-700'}`} style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>{simResult.net >= 0 ? '+' : '-'}฿{fmt(Math.abs(simResult.net))}</div>
               </div>
             </div>
           </div>
@@ -4159,11 +5037,11 @@ function ReduceSheet({ combo, onReduce, onClose }) {
         <div className="grid grid-cols-2 gap-2 text-right">
           <div className="min-w-0 overflow-hidden">
             <div className="text-base uppercase font-display" style={{color:'#8a6d36'}}>รับ</div>
-            <div className="font-numeric font-bold text-gray-900 truncate" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(currentIntake)}</div>
+            <div className="font-numeric font-bold text-gray-900 num-wrap" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(currentIntake)}</div>
           </div>
           <div className="min-w-0 overflow-hidden">
             <div className="text-base uppercase text-red-500 font-display">จ่ายเพดาน</div>
-            <div className="font-numeric font-bold text-red-600 truncate" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(currentPayout)}</div>
+            <div className="font-numeric font-bold text-red-600 num-wrap" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(currentPayout)}</div>
           </div>
         </div>
       </div>
@@ -4175,7 +5053,7 @@ function ReduceSheet({ combo, onReduce, onClose }) {
             <button key={p} onClick={() => applyPreset(p)}
               className="num-tile rounded-xl p-3 active:scale-95 min-w-0 overflow-hidden">
               <div className="font-numeric text-2xl font-bold gold-text">{p}%</div>
-              <div className="text-base text-gray-500 font-display mt-1 truncate">
+              <div className="text-base text-gray-500 font-display mt-1 num-wrap">
                 ฿{fmt(currentIntake * p / 100)}
               </div>
             </button>
@@ -4684,15 +5562,15 @@ function ForwardingSection({ lottery, drawDate, forwards, setForwards, forwardSe
                   <div className="grid grid-cols-3 gap-2">
                     <div className="rounded-xl p-2.5 bg-stone-50 border border-stone-200 min-w-0 overflow-hidden">
                       <div className="text-base uppercase tracking-wider text-stone-600 font-display font-semibold">รับเข้า</div>
-                      <div className="font-numeric font-bold text-stone-700 mt-0.5 truncate" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
+                      <div className="font-numeric font-bold text-stone-700 mt-0.5 num-wrap" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalIntake)}</div>
                     </div>
                     <div className="rounded-xl p-2.5 bg-green-50 border border-green-200 min-w-0 overflow-hidden">
                       <div className="text-base uppercase tracking-wider text-green-700 font-display font-semibold">พี่เก็บ</div>
-                      <div className="font-numeric font-bold text-green-700 mt-0.5 truncate" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalKept)}</div>
+                      <div className="font-numeric font-bold text-green-700 mt-0.5 num-wrap" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalKept)}</div>
                     </div>
                     <div className="rounded-xl p-2.5 bg-cyan-50 border border-cyan-300 min-w-0 overflow-hidden">
                       <div className="text-base uppercase tracking-wider text-cyan-700 font-display font-semibold">ส่งต่อ</div>
-                      <div className="font-numeric font-bold text-cyan-700 mt-0.5 truncate" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalForwarded)}</div>
+                      <div className="font-numeric font-bold text-cyan-700 mt-0.5 num-wrap" style={{fontSize: 'clamp(0.8rem, 3.5vw, 1.125rem)', lineHeight: 1.2}}>฿{fmt(totalForwarded)}</div>
                     </div>
                   </div>
 
@@ -5058,85 +5936,201 @@ function SimRow({ label, value }) {
 }
 
 // ==================== PICK TAB ====================
-function PickTab({ lottery, draws }) {
+// ==================== คัดเลข: สถิติจากผลจริง ====================
+// หวยที่มีผลอัตโนมัติ (ไทย/ลาว/ฮานอยปกติ) → ดึงประวัติทั้งหมดจากฐานข้อมูล (หน้าละ 1,000 แถว) + เก็บสำรองในเครื่อง
+// หวยอื่น → ใช้ผลที่กรอกเองในเครื่อง
+const HIST_KEY = 'lotto888-hist-v1';
+const HIST_TTL = 6 * 3600e3;
+const HIST_COLS = { gov: 'draw_date,first_prize,last2', lao: 'draw_date,top3,top2,bottom2', hanoi: 'draw_date,top3,top2,bottom2' };
+const _histMem = {};
+function readHistCache(lid) {
+  if (_histMem[lid]) return _histMem[lid];
+  try { const all = JSON.parse(localStorage.getItem(HIST_KEY) || '{}'); return all[lid] || null; } catch (e) { return null; }
+}
+function writeHistCache(lid, entry) {
+  _histMem[lid] = entry;
+  try { const all = JSON.parse(localStorage.getItem(HIST_KEY) || '{}'); all[lid] = entry; localStorage.setItem(HIST_KEY, JSON.stringify(all)); } catch (e) {}
+}
+async function fetchHistory(lid) {
+  const A = AUTO_LOTTERIES[lid], rows = [];
+  for (let off = 0; off < 50000; off += 1000) {
+    const page = await supaGet(A.table + '?select=' + HIST_COLS[lid] + '&order=draw_date.desc&limit=1000&offset=' + off, 20000);
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  // [วันที่, 3ตัวบน, 2ตัวบน, 2ตัวล่าง] ใหม่ → เก่า
+  return rows.map(r => autoRowToDraw(lid, r)).filter(Boolean)
+    .map(d => [d.date, d.results['3บน'] || d.results['3ตัว'], d.results['2บน'], d.results['2ล่าง']]);
+}
+
+function useResultHistory(lottery, draws) {
+  const lid = lottery.id, isAuto = AUTO_IDS.includes(lid);
+  const [st, setSt] = useState({ lid, rows: null, at: 0, loading: false, error: false });
+  useEffect(() => {
+    if (!isAuto) { setSt({ lid, rows: null, at: 0, loading: false, error: false }); return; }
+    let alive = true;
+    const c = readHistCache(lid);
+    const fresh = c && Date.now() - c.at < HIST_TTL;
+    setSt({ lid, rows: c ? c.rows : null, at: c ? c.at : 0, loading: !fresh, error: false });
+    if (fresh) return;
+    fetchHistory(lid)
+      .then(rows => { const e = { rows, at: Date.now() }; writeHistCache(lid, e); if (alive) setSt({ lid, ...e, loading: false, error: false }); })
+      .catch(() => { if (alive) setSt(s => ({ ...s, loading: false, error: true })); });
+    return () => { alive = false; };
+  }, [lid]);
+  const rows = useMemo(() => {
+    const map = new Map();
+    if (st.lid === lid) (st.rows || []).forEach(r => map.set(r[0], r));
+    const today = todayISO();
+    draws.forEach(d => {
+      if (d.lotteryId !== lid || !d.results || d.date > today) return;
+      const r3 = d.results['3บน'] || d.results['3ตัว'] || '', r2d = d.results['2ล่าง'] || '';
+      const r2u = d.results['2บน'] || (r3 ? r3.slice(-2) : '');
+      if (!r3 && !r2d) return;
+      if (d.source === 'manual' || !map.has(d.date)) map.set(d.date, [d.date, r3, r2u, r2d]);
+    });
+    return [...map.values()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [st, draws, lid]);
+  return { rows, isAuto, loading: st.loading && st.lid === lid, error: st.error && st.lid === lid };
+}
+
+const PICK_POS = [
+  { id: '2ล่าง', label: '2 ตัวล่าง', col: 3, len: 2 },
+  { id: '2บน',  label: '2 ตัวบน',  col: 2, len: 2 },
+  { id: '3',    label: '3 ตัวบน',  col: 1, len: 3 },
+];
+const HOT_WINDOW = 30;
+
+// สถิติ: hot = นับใน 30 งวดล่าสุด (เสมอกัน → ออกล่าสุดก่อน) · cold = ไม่ออกนานสุด นับจากประวัติทั้งหมด
+function computePickStats(rows, pos) {
+  const P = PICK_POS.find(p => p.id === pos), vals = rows.map(r => r[P.col]).filter(v => v && v.length === P.len);
+  const recent = vals.slice(0, HOT_WINDOW), cnt = {}, lastIdx = {};
+  recent.forEach((v, i) => { cnt[v] = (cnt[v] || 0) + 1; if (lastIdx[v] === undefined) lastIdx[v] = i; });
+  const hot = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || lastIdx[a] - lastIdx[b] || a.localeCompare(b))
+    .slice(0, 8).map(n => ({ n, c: cnt[n] }));
+  let cold = [], neverCount = 0;
+  if (P.len === 2) {
+    const seen = {};
+    vals.forEach((v, i) => { if (seen[v] === undefined) seen[v] = i; });
+    const all = [];
+    for (let i = 0; i < 100; i++) { const k = String(i).padStart(2, '0'); all.push({ n: k, gap: seen[k] === undefined ? vals.length : seen[k], never: seen[k] === undefined }); }
+    neverCount = all.filter(x => x.never).length;
+    cold = all.sort((a, b) => b.gap - a.gap || a.n.localeCompare(b.n)).slice(0, 8);
+  }
+  return { hot, cold, total: vals.length, recentN: recent.length, neverCount, len: P.len };
+}
+
+function PickTab({ lottery, draws, onSendToJot }) {
   const [subTab, setSubTab] = useState('freq');
+  const seg = [{ id: 'freq', label: '📊 สถิติ' }, { id: 'random', label: '🎲 สุ่ม' }, { id: 'tools', label: '🧰 เครื่องมือ' }];
   return (
     <div className="space-y-3 slide-in">
-      <div className="glass rounded-2xl p-1 grid grid-cols-3 gap-1">
-        {[
-          { id: 'freq', label: 'สถิติ', icon: Flame },
-          { id: 'random', label: 'สุ่ม', icon: Shuffle },
-          { id: 'tools', label: 'เครื่องมือ', icon: Zap },
-        ].map(t => {
-          const Ic = t.icon;
-          return (
-            <button key={t.id} onClick={() => setSubTab(t.id)}
-              className={`py-2 rounded-xl text-base font-display tracking-wide flex items-center justify-center gap-1.5 ${
-                subTab === t.id ? 'bg-red-100 text-gray-800' : 'text-gray-400'
-              }`}><Ic size={13}/> {t.label}</button>
-          );
-        })}
+      <div className="grid grid-cols-3 gap-1 rounded-xl p-1" style={{ background: '#efe8d6' }}>
+        {seg.map(t => (
+          <button key={t.id} onClick={() => setSubTab(t.id)} data-testid={'pick-' + t.id}
+            className="py-2.5 rounded-lg text-base font-display font-bold"
+            style={subTab === t.id ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' }}>{t.label}</button>
+        ))}
       </div>
-      {subTab === 'freq' && <FrequencyView draws={draws} lottery={lottery}/>}
+      {subTab === 'freq' && <FrequencyView draws={draws} lottery={lottery} onSendToJot={onSendToJot} onTool={setSubTab}/>}
       {subTab === 'random' && <RandomGen/>}
       {subTab === 'tools' && <ToolsView/>}
     </div>
   );
 }
 
-function FrequencyView({ draws, lottery }) {
-  const data = useMemo(() => {
-    const lotteryDraws = draws.filter(d => d.lotteryId === lottery.id).slice(-30);
-    const counts2 = {}; const counts3 = {};
-    lotteryDraws.forEach(d => {
-      const r3 = d.results?.['3บน'] || d.results?.['3ตัว'];
-      const r2 = d.results?.['2ล่าง'];
-      if (r3) {
-        counts3[r3] = (counts3[r3] || 0) + 1;
-        const last2 = r3.slice(-2);
-        counts2[last2] = (counts2[last2] || 0) + 1;
-      }
-      if (r2 && r2 !== (r3 || '').slice(-2)) counts2[r2] = (counts2[r2] || 0) + 1;
-    });
-    const hot2 = Object.entries(counts2).sort((a,b)=>b[1]-a[1]).slice(0,12);
-    const cold2 = []; for (let i = 0; i < 100; i++) { const k = i.toString().padStart(2,'0'); if (!counts2[k]) cold2.push(k); }
-    return { hot2, cold2: cold2.slice(0, 12), totalDraws: lotteryDraws.length };
-  }, [draws, lottery]);
-
+function FrequencyView({ draws, lottery, onSendToJot, onTool }) {
+  const [pos, setPos] = useState('2ล่าง');
+  const [sel, setSel] = useState([]);
+  const H = useResultHistory(lottery, draws);
+  const S = useMemo(() => computePickStats(H.rows, pos), [H.rows, pos]);
+  useEffect(() => { setSel([]); }, [pos, lottery.id]);
+  const toggle = (n) => setSel(s => (s.includes(n) ? s.filter(x => x !== n) : [...s, n]));
+  const P = PICK_POS.find(p => p.id === pos);
+  const card = 'bg-white rounded-2xl border p-3.5';
+  const Tile = ({ n, small, kind, max }) => {
+    const on = sel.includes(n);
+    const c = kind === 'hot' ? { fg: '#c2410c', bg: '#fff4ec', bd: '#fdd2b6' } : { fg: '#1d4ed8', bg: '#eff4ff', bd: '#c7d7fe' };
+    return (
+      <button onClick={() => toggle(n)} data-testid={'pick-num-' + kind}
+        className="relative rounded-2xl border-2 py-2 px-0.5 text-center active:scale-95"
+        style={on ? { background: c.fg, borderColor: c.fg, color: '#fff' } : { background: c.bg, borderColor: c.bd, color: c.fg }}>
+        {on && <span className="absolute top-0.5 left-1.5 text-sm font-bold">✓</span>}
+        <span className="block font-numeric font-bold leading-tight" style={{ fontSize: P.len === 3 ? 24 : 28 }}>{n}</span>
+        <span className="block text-sm font-semibold font-display">{small}</span>
+        {kind === 'hot' && max > 0 && !on && <span className="block mx-2.5 mt-1 h-1.5 rounded overflow-hidden" style={{ background: '#fdd2b6' }}>
+          <i className="block h-full" style={{ width: Math.round((parseInt(small) / max) * 100) + '%', background: '#c2410c' }}/></span>}
+      </button>
+    );
+  };
+  const maxHot = S.hot.length ? S.hot[0].c : 0;
   return (
     <div className="space-y-3">
-      <div className="glass rounded-2xl p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Flame size={14} className="text-red-500"/>
-          <h3 className="font-display text-xl font-bold tracking-wide text-stone-900">เลขเด่นบ่อย</h3>
-          <span className="text-base text-gray-400 font-display ml-auto">{data.totalDraws} งวด</span>
+      <div className="flex gap-1.5">
+        {PICK_POS.map(p => (
+          <button key={p.id} onClick={() => setPos(p.id)} data-testid={'pos-' + p.id}
+            className="flex-1 py-2 rounded-full border-2 font-display font-bold text-base"
+            style={pos === p.id
+              ? { background: p.len === 3 ? GRP.g3.solid : GRP.g2.solid, borderColor: 'transparent', color: '#fff' }
+              : { background: '#fff', borderColor: p.len === 3 ? GRP.g3.bd : GRP.g2.bd, color: p.len === 3 ? GRP.g3.fg : GRP.g2.fg }}>{p.label}</button>
+        ))}
+      </div>
+
+      {H.loading && H.rows.length === 0 && <div className={card + ' text-center font-display text-lg'} style={{ borderColor: '#e8dfc8', color: '#6b6357' }}>⏳ กำลังโหลดผลย้อนหลัง…</div>}
+      {!H.loading && S.total === 0 && (
+        <div className={card + ' text-center font-display'} style={{ borderColor: '#e8dfc8', color: '#6b6357' }}>
+          <div className="text-lg font-bold" style={{ color: '#2a2a2a' }}>ยังไม่มีผลย้อนหลัง</div>
+          <div className="text-base mt-1">{H.isAuto ? 'ต่อเน็ตแล้วเปิดหน้านี้ใหม่' : 'หวยนี้ไม่มีผลอัตโนมัติ · กรอกผลที่หน้า "ผลออก" แล้วสถิติจะขึ้นเอง'}</div>
         </div>
-        {data.hot2.length === 0 ? (
-          <div className="text-center py-4 text-gray-300 text-base">ยังไม่มีข้อมูล</div>
-        ) : (
+      )}
+
+      {S.total > 0 && (<>
+        <div className={card} style={{ borderColor: '#e8dfc8' }} data-testid="hot-card">
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <b className="font-display text-lg">🔥 {P.label} ออกบ่อย</b>
+            <span className="text-sm font-display" style={{ color: '#6b6357' }}>{S.recentN} งวดล่าสุด</span>
+          </div>
           <div className="grid grid-cols-4 gap-2">
-            {data.hot2.map(([n, c]) => (
-              <div key={n} className="num-tile rounded-lg p-2 text-center">
-                <div className="font-numeric text-xl font-bold gold-text">{n}</div>
-                <div className="text-base text-gray-500 font-display">{c}×</div>
-              </div>
-            ))}
+            {S.hot.map(h => <Tile key={h.n} n={h.n} small={h.c + ' ครั้ง'} kind="hot" max={maxHot}/>)}
+          </div>
+        </div>
+        {S.len === 2 && (
+          <div className={card} style={{ borderColor: '#e8dfc8' }} data-testid="cold-card">
+            <div className="flex items-center justify-between gap-2 mb-2.5">
+              <b className="font-display text-lg">❄️ ไม่ออกนานสุด</b>
+              <span className="text-sm font-display" style={{ color: '#6b6357' }}>จาก {fmt(S.total)} งวด</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {S.cold.map(c => <Tile key={c.n} n={c.n} small={(c.never ? '>' : '') + fmt(c.gap) + ' งวด'} kind="cold"/>)}
+            </div>
+            {S.neverCount > 0 && <div className="text-sm font-display mt-2" style={{ color: '#6b6357' }}>มี {S.neverCount} เลขที่ยังไม่เคยออกในช่วงนี้</div>}
           </div>
         )}
-      </div>
-      <div className="glass rounded-2xl p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Snowflake size={14} className="text-green-500"/>
-          <h3 className="font-display text-xl font-bold tracking-wide text-stone-900">เลขเย็น</h3>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {data.cold2.map(n => (
-            <div key={n} className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
-              <div className="font-numeric text-xl font-bold text-green-600">{n}</div>
-              <div className="text-base text-green-400 font-display">0×</div>
-            </div>
+        {S.len === 3 && (
+          <div className="text-sm font-display px-1" style={{ color: '#6b6357' }}>3 ตัวมี 1,000 เลข · ประวัติ {fmt(S.total)} งวดน้อยเกินจะบอก "ไม่ออกนาน" ได้ จึงแสดงเฉพาะออกบ่อย</div>
+        )}
+        <div className="text-sm font-display px-1" style={{ color: '#6b6357' }}>👆 แตะเลือกเลข แล้วกดส่งไปจดโพย</div>
+      </>)}
+
+      {sel.length > 0 && (
+        <button onClick={() => onSendToJot && onSendToJot(sel, pos)} data-testid="send-to-jot"
+          className="w-full py-3.5 rounded-2xl btn-premium font-bold font-display text-lg flex items-center justify-center gap-2">
+          จด {sel.length} เลข ({P.label}) →
+        </button>
+      )}
+
+      <div className={card} style={{ borderColor: '#e8dfc8' }}>
+        <b className="font-display text-lg block mb-2.5">เครื่องมือ</b>
+        <div className="grid grid-cols-3 gap-2">
+          {[['random', '🎲', 'สุ่มเลข'], ['tools', '⇄', 'กลับเลข'], ['tools', '➕', 'บวกเลข']].map(([t, ic, l]) => (
+            <button key={l} onClick={() => onTool(t)} className="rounded-2xl border py-3 px-1 text-center font-display font-bold text-base active:scale-95" style={{ borderColor: '#e8dfc8', background: '#fff' }}>
+              <span className="block text-2xl leading-tight">{ic}</span>{l}
+            </button>
           ))}
         </div>
+      </div>
+      <div className="text-center text-sm font-display" style={{ color: '#9a8f78' }} data-testid="pick-src">
+        {H.isAuto ? 'สถิติจากผลจริง ' + AUTO_LOTTERIES[lottery.id].src : 'สถิติจากผลที่กรอกในเครื่อง'}{H.error ? ' · ออฟไลน์ ใช้ข้อมูลที่เก็บไว้' : ''} · ไม่ใช่การทำนาย
       </div>
     </div>
   );
@@ -5334,168 +6328,268 @@ function parseThaiDate(thaiStr) {
   return yearCE + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
 }
 
-function ResultTab({ lottery, drawDate, draws, setDraws, currentDraw }) {
+// ==================== RESULT TAB (v2 · ผลอัตโนมัติ + กรอกเอง) ====================
+const RESULT_THEME = {
+  gov:   { flag: '🇹🇭', fg: '#7a5a24', bg: '#fbf6ea', bd: '#e3cf9e' },
+  lao:   { flag: '🇱🇦', fg: '#b4233a', bg: '#fdf1f3', bd: '#f2c1ca' },
+  hanoi: { flag: '🇻🇳', fg: '#0e7490', bg: '#eef8fa', bd: '#b9e0e8' },
+  manual:{ flag: '✍️', fg: '#6d28d9', bg: '#f5f1ff', bd: '#ddd2fb' },
+};
+const r3Of = (res) => (res && (res['3บน'] || res['3ตัว'])) || '';
+const hhmm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+
+function ResultChip({ kind, children }) {
+  const st = kind === 'ok' ? { color: '#15803d', background: '#eaf7ef', borderColor: '#bfe5cc' }
+    : kind === 'wait' ? { color: '#b45309', background: '#fff6e5', borderColor: '#f3cf8e' }
+    : kind === 'man' ? { color: '#6d28d9', background: '#f5f1ff', borderColor: '#ddd2fb' }
+    : { color: '#6b6357', background: '#f5f1e8', borderColor: '#e8dfc8' };
+  return <span className="text-sm font-display font-bold rounded-full px-2.5 py-1 border whitespace-nowrap flex-shrink-0" style={st}>{children}</span>;
+}
+
+function ResultTrio({ res, color, bd }) {
+  const r3 = r3Of(res);
+  const cells = [['3 ตัวบน', r3], ['2 ตัวบน', res?.['2บน'] || (r3 ? r3.slice(-2) : '')], ['2 ตัวล่าง', res?.['2ล่าง'] || '']];
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {cells.map(([label, v]) => (
+        <div key={label} className="rounded-xl py-2 text-center bg-white border-2 min-w-0" style={{ borderColor: bd }}>
+          <div className="text-sm font-display font-semibold text-stone-500">{label}</div>
+          <div className="font-numeric font-bold leading-tight" style={{ color, fontSize: 'clamp(1.4rem, 7vw, 1.85rem)' }}>{v || '–'}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AutoResultCard({ lotteryId, draws, onCheck, onUseAuto }) {
+  const lot = DEFAULT_LOTTERIES.find(l => l.id === lotteryId);
+  const cfg = AUTO_LOTTERIES[lotteryId];
+  const th = RESULT_THEME[lotteryId];
+  const list = useMemo(() => draws.filter(d => d.lotteryId === lotteryId && d.results && r3Of(d.results))
+    .sort((a, b) => b.date.localeCompare(a.date)), [draws, lotteryId]);
+  const latest = list[0];
+  const today = todayISO();
+  const doneToday = latest && latest.date === today;
+  const waitToday = !doneToday && isDrawDay(lotteryId, today);
+  const big = latest?.meta?.first || latest?.meta?.six || '';
+  return (
+    <div className="glass-strong rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2.5 px-3.5 py-3 border-b" style={{ borderColor: '#e8dfc8', background: `linear-gradient(90deg, ${th.bg}, #fff)` }}>
+        <div className="w-10 h-10 rounded-xl grid place-items-center text-2xl flex-shrink-0" style={{ background: th.bg }}>{th.flag}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-display text-lg font-bold leading-tight text-stone-900">{lot.name}</div>
+          <div className="text-sm text-stone-500 font-display">{cfg.days}</div>
+        </div>
+        {doneToday ? <ResultChip kind="ok">ออกแล้ว</ResultChip>
+          : waitToday ? <ResultChip kind="wait">วันนี้ {cfg.time}</ResultChip>
+          : <ResultChip>ล่าสุด {latest ? formatDrawDateShort(latest.date) : '–'}</ResultChip>}
+      </div>
+      <div className="p-3.5 space-y-3">
+        {waitToday && (
+          <div className="flex items-center gap-2 rounded-xl px-3 py-2 border border-dashed font-display font-semibold text-base"
+            style={{ background: '#fff6e5', borderColor: '#f0c27a', color: '#b45309' }}>
+            ⏳ งวด <span className="font-numeric">{formatDrawDateShort(today)}</span> · รอผล
+          </div>
+        )}
+        {!latest ? (
+          <div className="text-center py-4 text-stone-400 font-display">ยังไม่มีผล · กด 🔄 เพื่อดึงใหม่</div>
+        ) : (<>
+          <div className="text-center text-sm text-stone-500 font-display">
+            งวด {formatDrawDateShort(latest.date)}{big ? (lotteryId === 'gov' ? ' · รางวัลที่ 1' : ' · เลข 6 ตัว') : ''}
+            {latest.source !== 'auto' && <span className="ml-1 font-semibold" style={{ color: '#6d28d9' }}>· กรอกเอง</span>}
+          </div>
+          {big && <div className="text-center font-numeric font-bold leading-none" style={{ color: th.fg, fontSize: 'clamp(2rem, 10vw, 2.6rem)', letterSpacing: '0.06em' }}>{big}</div>}
+          <ResultTrio res={latest.results} color={th.fg} bd={th.bd}/>
+          {lotteryId === 'gov' && latest.meta?.front3?.length > 0 && (
+            <div className="flex justify-between gap-2 text-sm text-stone-500 font-display flex-wrap">
+              <span>3 ตัวหน้า <span className="font-numeric font-semibold text-stone-800">{latest.meta.front3.join(' · ')}</span></span>
+              <span>3 ตัวท้าย <span className="font-numeric font-semibold text-stone-800">{latest.meta.back3.join(' · ')}</span></span>
+            </div>
+          )}
+          {lotteryId === 'hanoi' && latest.meta?.special && (
+            <div className="flex justify-between gap-2 text-sm text-stone-500 font-display flex-wrap">
+              <span>รางวัลพิเศษ <span className="font-numeric font-semibold text-stone-800">{latest.meta.special}</span></span>
+              <span>รางวัลที่ 1 <span className="font-numeric font-semibold text-stone-800">{latest.meta.prize1}</span></span>
+            </div>
+          )}
+          {latest.autoResults && (
+            <div className="rounded-xl p-2.5 border text-base font-display" style={{ background: '#fff6e5', borderColor: '#f3cf8e', color: '#92400e' }}>
+              ⚠ ผลที่กรอกเองไม่ตรงกับผลอัตโนมัติ (3บน <span className="font-numeric font-bold">{r3Of(latest.autoResults)}</span> · 2ล่าง <span className="font-numeric font-bold">{latest.autoResults['2ล่าง']}</span>)
+              <button onClick={() => onUseAuto(latest)} className="block mt-2 w-full py-2 rounded-lg bg-white border font-semibold active:scale-95" style={{ borderColor: '#f3cf8e' }}>ใช้ผลอัตโนมัติ</button>
+            </div>
+          )}
+          {list.length > 1 && lotteryId !== 'gov' && (
+            <div className="border-t pt-2" style={{ borderColor: '#e8dfc8' }}>
+              <div className="grid grid-cols-4 text-sm font-display font-semibold text-stone-500 pb-1">
+                <span>ย้อนหลัง</span><span className="text-center">3บน</span><span className="text-center">2บน</span><span className="text-center">2ล่าง</span>
+              </div>
+              {list.slice(1, 4).map(d => (
+                <div key={d.id} className="grid grid-cols-4 items-center py-1 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }}>
+                  <span className="text-sm text-stone-500 font-display">{formatDrawDateShort(d.date)}</span>
+                  <span className="text-center font-numeric font-semibold">{r3Of(d.results)}</span>
+                  <span className="text-center font-numeric font-semibold">{d.results['2บน'] || r3Of(d.results).slice(-2)}</span>
+                  <span className="text-center font-numeric font-semibold">{d.results['2ล่าง']}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => onCheck(lotteryId, latest.date)}
+            className="w-full py-3 rounded-xl btn-premium font-display text-lg font-bold active:scale-95">
+            ตรวจโพยงวด {formatDrawDateShort(latest.date)}
+          </button>
+        </>)}
+      </div>
+      <div className="flex justify-between px-3.5 py-2 text-sm font-display border-t" style={{ color: '#9a8f78', background: '#fcfaf4', borderColor: '#e8dfc8' }}>
+        <span className="min-w-0">ที่มา: {cfg.src}</span><span className="flex-shrink-0 ml-2">{cfg.tag} ✓</span>
+      </div>
+    </div>
+  );
+}
+
+function ManualResultCard({ lottery, drawDate, currentDraw, setDraws, isAuto }) {
   const toast = useToast();
-  const [results, setResults] = useState(currentDraw?.results || {});
-  const [fetching, setFetching] = useState(false);
-  const [fetchError, setFetchError] = useState('');
-  const [fetchedInfo, setFetchedInfo] = useState(null);
+  const t3 = lottery.types.includes('3ตัว') ? '3ตัว' : '3บน';
+  const [open, setOpen] = useState(!isAuto);
+  const [v3, setV3] = useState(r3Of(currentDraw?.results));
+  const [v2, setV2] = useState(currentDraw?.results?.['2ล่าง'] || '');
   useEffect(() => {
-    setResults(currentDraw?.results || {});
-    setFetchedInfo(null);
-    setFetchError('');
-  }, [currentDraw?.id, drawDate, lottery.id]);
-
-  const isGov = lottery.id === 'gov';
-
-  const fetchLatest = async () => {
-    setFetching(true); setFetchError(''); setFetchedInfo(null);
-    try {
-      const resp = await fetchGovLatest();
-      const parsed = parseGovResult(resp);
-      const ceDate = parseThaiDate(parsed.date);
-      setResults({
-        '3บน': parsed['3บน'],
-        '2บน': parsed['2บน'],
-        '2ล่าง': parsed['2ล่าง'],
-      });
-      setFetchedInfo({
-        thaiDate: parsed.date,
-        ceDate: ceDate,
-        fullPrize: parsed.fullPrizeFirst,
-        matchesDraw: ceDate === drawDate,
-      });
-    } catch (e) {
-      setFetchError('ดึงข้อมูลไม่สำเร็จ: ' + e.message);
-    } finally {
-      setFetching(false);
-    }
-  };
-
-  const fetchSpecificDate = async () => {
-    setFetching(true); setFetchError(''); setFetchedInfo(null);
-    try {
-      // drawDate is "YYYY-MM-DD" — convert to Thai format ID "DDMMYYYY+543"
-      const [y, m, d] = drawDate.split('-').map(Number);
-      const idBE = String(d).padStart(2, '0') + String(m).padStart(2, '0') + String(y + 543);
-      const resp = await fetchGovById(idBE);
-      const parsed = parseGovResult(resp);
-      setResults({
-        '3บน': parsed['3บน'],
-        '2บน': parsed['2บน'],
-        '2ล่าง': parsed['2ล่าง'],
-      });
-      setFetchedInfo({
-        thaiDate: parsed.date,
-        ceDate: parseThaiDate(parsed.date),
-        fullPrize: parsed.fullPrizeFirst,
-        matchesDraw: true,
-      });
-    } catch (e) {
-      setFetchError('ไม่พบผลรางวัลของวันที่ ' + formatDate(drawDate) + ' (หวยรัฐบาลออกวันที่ 1 และ 16 เท่านั้น)');
-    } finally {
-      setFetching(false);
-    }
-  };
-
+    setV3(r3Of(currentDraw?.results)); setV2(currentDraw?.results?.['2ล่าง'] || ''); setOpen(!isAuto);
+  }, [currentDraw?.id, currentDraw?.source, drawDate, lottery.id]);
+  const th = RESULT_THEME.manual;
   const save = () => {
-    const cleaned = {};
-    Object.entries(results).forEach(([k, v]) => { if (v && v.toString().trim()) cleaned[k] = v.toString().trim(); });
-    if (Object.keys(cleaned).length === 0) { toast.show('ใส่ผลรางวัลก่อน', 'info'); return; }
-    if (currentDraw) {
-      setDraws(prev => prev.map(d => d.id === currentDraw.id ? { ...d, results: cleaned } : d));
-    } else {
-      setDraws(prev => [...prev, { id: uid(), lotteryId: lottery.id, date: drawDate, results: cleaned, createdAt: Date.now() }]);
-    }
-    toast.show('บันทึกผลรางวัลแล้ว', 'success');
+    if (v3 && v3.length !== 3) { toast.show('3 ตัวบน ต้องมี 3 หลัก', 'info'); return; }
+    if (v2 && v2.length !== 2) { toast.show('2 ตัวล่าง ต้องมี 2 หลัก', 'info'); return; }
+    if (!v3 && !v2) { toast.show('ใส่ผลรางวัลก่อน', 'info'); return; }
+    const results = {};
+    if (v3) { results[t3] = v3; results['2บน'] = v3.slice(-2); }
+    if (v2) results['2ล่าง'] = v2;
+    setDraws(prev => {
+      const i = prev.findIndex(d => d.lotteryId === lottery.id && d.date === drawDate);
+      const rec = { id: i >= 0 && prev[i].source !== 'auto' ? prev[i].id : uid(), lotteryId: lottery.id, date: drawDate, results, source: 'manual', createdAt: Date.now() };
+      if (i < 0) return [...prev, rec];
+      const next = prev.slice(); next[i] = rec; return next;
+    });
+    toast.show('บันทึกผล ' + formatDrawDateShort(drawDate) + ' แล้ว', 'success');
   };
-
   const clear = async () => {
     if (!currentDraw) return;
-    const ok = await toast.askConfirm('ลบผลรางวัลของงวดนี้ ?', { danger: true, confirmLabel: 'ลบ' });
-    if (ok) {
-      setDraws(prev => prev.filter(d => d.id !== currentDraw.id));
-      setResults({});
-      setFetchedInfo(null);
-      toast.show('ลบผลรางวัลแล้ว', 'success');
-    }
+    const ok = await toast.askConfirm('ลบผลรางวัลงวด ' + formatDrawDateShort(drawDate) + ' ?', { danger: true, confirmLabel: 'ลบ' });
+    if (!ok) return;
+    setDraws(prev => prev.filter(d => d.id !== currentDraw.id));
+    toast.show('ลบผลแล้ว', 'success');
   };
-
+  if (isAuto && !open) {
+    return (
+      <button onClick={() => setOpen(true)} className="w-full glass rounded-2xl px-4 py-3 text-base font-display font-semibold text-stone-600 flex items-center justify-between active:scale-95">
+        <span>✍️ กรอกผล {lottery.name} เอง</span><span className="text-sm text-stone-400">ถ้ายังดึงไม่ได้</span>
+      </button>
+    );
+  }
   return (
-    <div className="space-y-3 slide-in">
-      {isGov && (
-        <div className="glass-strong rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-1 h-4 rounded-full" style={{background:'linear-gradient(180deg, #d4b572, #b8965a)'}}/>
-            <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">ดึงผลจากกองสลาก</h2>
-          </div>
-          <div className="text-base text-gray-500 font-display mb-3 leading-relaxed">
-            ดึงผลรางวัลที่ 1 + เลขท้าย 2 ตัวอัตโนมัติ (รัฐบาลเท่านั้น · ออกทุก 1 และ 16)
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={fetchLatest} disabled={fetching}
-              className="py-2.5 rounded-xl bg-white border border-red-200 text-red-700 font-display text-lg tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-40">
-              {fetching ? <RefreshCw size={13} className="shimmer"/> : <Download size={13}/>}
-              งวดล่าสุด
-            </button>
-            <button onClick={fetchSpecificDate} disabled={fetching}
-              className="py-2.5 rounded-xl bg-white border border-red-200 text-red-700 font-display text-lg tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-40">
-              {fetching ? <RefreshCw size={13} className="shimmer"/> : <Calendar size={13}/>}
-              ตามวันที่
-            </button>
-          </div>
-          {fetchError && (
-            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-2.5 text-base text-red-700 font-display flex items-start gap-2">
-              <AlertCircle size={13} className="flex-shrink-0 mt-0.5"/>
-              <div>{fetchError}</div>
-            </div>
-          )}
-          {fetchedInfo && (
-            <div className={'mt-3 rounded-lg p-2.5 text-base font-display border ' + (fetchedInfo.matchesDraw ? 'bg-green-50 border-green-200 text-green-700' : 'bg-orange-50 border-orange-300 text-orange-700')}>
-              <div className="flex items-start gap-2">
-                {fetchedInfo.matchesDraw
-                  ? <Check size={13} className="flex-shrink-0 mt-0.5" strokeWidth={3}/>
-                  : <AlertTriangle size={13} className="flex-shrink-0 mt-0.5"/>}
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold">ดึงสำเร็จ · งวด {fetchedInfo.thaiDate}</div>
-                  <div className="opacity-75">รางวัลที่ 1: <span className="font-numeric font-bold">{fetchedInfo.fullPrize}</span></div>
-                  {!fetchedInfo.matchesDraw && (
-                    <div className="mt-1 text-orange-800">⚠️ ไม่ตรงกับงวด {formatDate(drawDate)} ที่เลือก — กดบันทึกถ้าต้องการใช้ผลนี้</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+    <div className="glass-strong rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2.5 px-3.5 py-3 border-b" style={{ borderColor: '#e8dfc8', background: `linear-gradient(90deg, ${th.bg}, #fff)` }}>
+        <div className="w-10 h-10 rounded-xl grid place-items-center text-2xl flex-shrink-0" style={{ background: th.bg }}>{lottery.id.startsWith('hanoi') ? '🇻🇳' : th.flag}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-display text-lg font-bold leading-tight text-stone-900">{lottery.name}</div>
+          <div className="text-sm text-stone-500 font-display">{lottery.id === 'hanoi_sp' ? 'ทุกวัน 17:00 · ไม่มีแหล่งทางการ' : 'งวด ' + formatDrawDateShort(drawDate)}</div>
         </div>
-      )}
+        <ResultChip kind="man">กรอกเอง</ResultChip>
+      </div>
+      <div className="p-3.5 space-y-3">
+        <div className="grid grid-cols-2 gap-2.5">
+          {[['3 ตัวบน', v3, setV3, 3], ['2 ตัวล่าง', v2, setV2, 2]].map(([label, val, set, n]) => (
+            <label key={label} className="block min-w-0">
+              <span className="text-sm font-display font-semibold text-stone-500">{label}</span>
+              <input type="tel" inputMode="numeric" value={val} maxLength={n}
+                onChange={e => set(e.target.value.replace(/\D/g, '').slice(0, n))}
+                placeholder={'_'.repeat(n)}
+                className="mt-1 w-full rounded-xl border-2 bg-white text-center font-numeric font-bold outline-none py-2"
+                style={{ borderColor: th.bd, fontSize: '1.75rem', letterSpacing: '0.2em', color: '#2a2a2a' }}/>
+            </label>
+          ))}
+        </div>
+        <div className="text-sm text-stone-500 font-display">2 ตัวบน = 2 หลักท้ายของ 3 ตัวบน {v3.length === 3 && <b className="font-numeric text-stone-800">({v3.slice(-2)})</b>}</div>
+        <div className="grid grid-cols-3 gap-2">
+          <button onClick={clear} disabled={!currentDraw || currentDraw.source === 'auto'}
+            className="py-3 rounded-xl border-2 font-display text-base font-semibold disabled:opacity-30 active:scale-95"
+            style={{ background: '#fdfbf6', color: '#8a6d36', borderColor: '#dccfa6' }}>ลบผล</button>
+          <button onClick={save} className="col-span-2 py-3 rounded-xl btn-premium font-display text-lg font-bold active:scale-95">
+            บันทึกผล {formatDrawDateShort(drawDate)}
+          </button>
+        </div>
+      </div>
+      <div className="flex justify-between px-3.5 py-2 text-sm font-display border-t" style={{ color: '#9a8f78', background: '#fcfaf4', borderColor: '#e8dfc8' }}>
+        <span>เก็บในเครื่องนี้</span><span>กรอกมือ</span>
+      </div>
+    </div>
+  );
+}
 
-      <div className="glass-strong rounded-2xl p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Trophy size={14} className="text-red-500"/>
-          <h2 className="font-display text-xl font-bold tracking-wide text-stone-900">ใส่ผลรางวัล</h2>
-          <span className="text-base text-gray-400 font-display">{formatDate(drawDate)}</span>
-        </div>
-        <div className="space-y-2">
-          {lottery.types.map(t => (
-            <div key={t} className="num-tile rounded-xl p-3 flex items-center gap-3">
-              <div className="text-base text-gray-600 font-display tracking-wider w-16">{t}</div>
-              <input type="tel" inputMode="numeric"
-                value={results[t] || ''}
-                onChange={e => setResults({ ...results, [t]: e.target.value.replace(/\D/g, '').slice(0, t.startsWith('3') ? 3 : 2) })}
-                placeholder={t.startsWith('3') ? '000' : '00'}
-                className="flex-1 bg-transparent outline-none font-numeric text-2xl font-bold gold-text text-center placeholder-yellow-100/15 tracking-widest"/>
+function ResultHistory({ draws }) {
+  const [lid, setLid] = useState('gov');
+  const list = useMemo(() => draws.filter(d => d.lotteryId === lid && d.results && r3Of(d.results))
+    .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30), [draws, lid]);
+  const ids = ['gov', 'lao', 'hanoi', 'hanoi_sp', 'stock', 'malay', 'yeekee'].filter(id => id === lid || draws.some(d => d.lotteryId === id));
+  return (
+    <div className="glass-strong rounded-2xl p-3.5 space-y-3">
+      <div className="flex flex-wrap gap-1.5">
+        {ids.map(id => (
+          <button key={id} onClick={() => setLid(id)}
+            className="px-3 py-1.5 rounded-full text-base font-display font-semibold border-2 active:scale-95"
+            style={lid === id ? { background: '#2a2a2a', color: '#f5e8c8', borderColor: '#2a2a2a' } : { background: '#fff', color: '#2a2a2a', borderColor: '#dccfa6' }}>
+            {DEFAULT_LOTTERIES.find(l => l.id === id)?.name || id}
+          </button>
+        ))}
+      </div>
+      {list.length === 0 ? <div className="text-center py-6 text-stone-400 font-display">ยังไม่มีผล</div> : (
+        <div>
+          <div className="grid grid-cols-4 text-sm font-display font-semibold text-stone-500 pb-1 border-b" style={{ borderColor: '#e8dfc8' }}>
+            <span>งวด</span><span className="text-center">3บน</span><span className="text-center">2บน</span><span className="text-center">2ล่าง</span>
+          </div>
+          {list.map(d => (
+            <div key={d.id} className="grid grid-cols-4 items-center py-1.5 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }}>
+              <span className="text-sm text-stone-500 font-display">{formatDrawDateShort(d.date)}{d.source !== 'auto' && <span style={{ color: '#6d28d9' }}> ✍️</span>}</span>
+              <span className="text-center font-numeric font-bold text-lg">{r3Of(d.results)}</span>
+              <span className="text-center font-numeric font-bold text-lg">{d.results['2บน'] || r3Of(d.results).slice(-2)}</span>
+              <span className="text-center font-numeric font-bold text-lg">{d.results['2ล่าง']}</span>
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <button onClick={clear} disabled={!currentDraw}
-            className="py-2.5 rounded-xl bg-gray-100 text-red-700 font-display text-lg tracking-wider border border-red-200 disabled:opacity-30">
-            ลบผล
+      )}
+    </div>
+  );
+}
+
+function ResultTab({ lottery, drawDate, draws, setDraws, currentDraw, autoState, onSync, onCheck }) {
+  const [view, setView] = useState('latest');
+  const isAuto = !!AUTO_LOTTERIES[lottery.id];
+  const useAuto = (d) => setDraws(prev => prev.map(x => x.id === d.id
+    ? { id: 'auto:' + d.lotteryId + ':' + d.date, lotteryId: d.lotteryId, date: d.date, results: d.autoResults, meta: d.autoMeta, source: 'auto', createdAt: Date.now() } : x));
+  const st = autoState || {};
+  return (
+    <div className="space-y-3 slide-in">
+      <div className="glass-strong rounded-2xl p-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-display text-2xl font-bold text-stone-900">ผลออก</h2>
+          <button onClick={onSync} disabled={st.busy}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 border font-display font-semibold text-base active:scale-95 disabled:opacity-60"
+            style={st.ok === false ? { color: '#b45309', background: '#fff6e5', borderColor: '#f3cf8e' } : { color: '#15803d', background: '#eaf7ef', borderColor: '#bfe5cc' }}>
+            <span className={st.busy ? 'shimmer' : ''}>{st.busy ? '🔄' : st.ok === false ? '⚠' : '●'}</span>
+            {st.busy ? 'กำลังดึง…' : st.ok === false ? 'ดึงไม่ได้ · ลองใหม่' : st.at ? 'อัตโนมัติ · ' + hhmm(st.at) : 'อัตโนมัติ'}
           </button>
-          <button onClick={save}
-            className="py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold font-display text-lg tracking-wider">บันทึก</button>
+        </div>
+        <div className="mt-3 grid grid-cols-2 rounded-xl p-1" style={{ background: '#efe8d6' }}>
+          {[['latest', 'ล่าสุด'], ['history', 'ย้อนหลัง']].map(([k, label]) => (
+            <button key={k} onClick={() => setView(k)} className="py-2 rounded-lg font-display text-base font-bold"
+              style={view === k ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' }}>{label}</button>
+          ))}
         </div>
       </div>
+
+      {view === 'history' ? <ResultHistory draws={draws}/> : (<>
+        {AUTO_IDS.map(id => <AutoResultCard key={id} lotteryId={id} draws={draws} onCheck={onCheck} onUseAuto={useAuto}/>)}
+        <ManualResultCard lottery={lottery} drawDate={drawDate} currentDraw={currentDraw} setDraws={setDraws} isAuto={isAuto}/>
+      </>)}
     </div>
   );
 }
@@ -5507,17 +6601,16 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
     const byLottery = {};
     bets.forEach(b => {
       const draw = draws.find(d => d.lotteryId === b.lotteryId && d.date === b.drawDate);
-      const amt = parseFloat(b.amount) || 0;
-      const rate = (rates && rates[b.type]) || parseFloat(b.rate) || 0;
-      const halfMult = isCombosHalfPay(caps, b.lotteryId, b.drawDate, b.number, b.type) ? 0.5 : 1;
+      const P = betPayout(b, draw && draw.results, caps, rates);
+      const amt = P.amt;
       totalIntake += amt;
       totalCount++;
-      const hit = draw && checkWin(b, draw.results);
-      if (hit) { totalPayout += amt * rate * halfMult; wonCount++; }
+      const hit = P.hit;
+      if (hit) { totalPayout += P.payout; wonCount++; }
       if (!byLottery[b.lotteryId]) byLottery[b.lotteryId] = { intake: 0, payout: 0, won: 0, total: 0, name: DEFAULT_LOTTERIES.find(l=>l.id===b.lotteryId)?.name || b.lotteryId };
       byLottery[b.lotteryId].intake += amt;
       byLottery[b.lotteryId].total++;
-      if (hit) { byLottery[b.lotteryId].payout += amt * rate * halfMult; byLottery[b.lotteryId].won++; }
+      if (hit) { byLottery[b.lotteryId].payout += P.payout; byLottery[b.lotteryId].won++; }
     });
     // Sign flipped based on mode: seller profit = intake - payout; buyer profit = payout - intake
     return {
@@ -5538,16 +6631,16 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="num-tile rounded-xl p-3 min-w-0 overflow-hidden">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>{isSeller ? 'รับเข้า' : 'เงินซื้อ'}</div>
-            <div className="font-numeric font-bold gold-text mt-1 truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(stats.totalIntake)}</div>
+            <div className="font-numeric font-bold gold-text mt-1 num-wrap" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(stats.totalIntake)}</div>
           </div>
           <div className="num-tile rounded-xl p-3 min-w-0 overflow-hidden">
             <div className="text-base uppercase tracking-wider font-display font-semibold" style={{color:'#8a6d36'}}>{isSeller ? 'จ่ายออก' : 'เงินที่ได้'}</div>
-            <div className="font-numeric font-bold text-red-600 mt-1 truncate" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(stats.totalPayout)}</div>
+            <div className="font-numeric font-bold text-red-600 mt-1 num-wrap" style={{fontSize: 'clamp(1rem, 5vw, 1.5rem)', lineHeight: 1.2}}>฿{fmt(stats.totalPayout)}</div>
           </div>
         </div>
         <div className={`rounded-xl p-3 border overflow-hidden ${stats.profit >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-400'}`}>
           <div className={`text-base uppercase tracking-widest font-display ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>กำไร/ขาดทุน</div>
-          <div className={`font-numeric font-bold mt-1 truncate ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{stats.profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(stats.profit))}</div>
+          <div className={`font-numeric font-bold mt-1 num-wrap ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{stats.profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(stats.profit))}</div>
           <div className="text-base text-gray-500 mt-1 font-display">{stats.wonCount} / {stats.totalCount} โพยถูก</div>
         </div>
       </div>
@@ -5563,11 +6656,11 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
               return (
                 <div key={i} className="bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-base text-gray-900 font-display truncate">{l.name}</span>
-                    <span className={`font-numeric font-bold truncate ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{fontSize: 'clamp(0.9rem, 4vw, 1.125rem)', lineHeight: 1.2}}>{profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(profit))}</span>
+                    <span className="text-base text-gray-900 font-display num-wrap">{l.name}</span>
+                    <span className={`font-numeric font-bold num-wrap ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{fontSize: 'clamp(0.9rem, 4vw, 1.125rem)', lineHeight: 1.2}}>{profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(profit))}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 text-base text-gray-400 font-display flex-wrap">
-                    <span className="truncate">รับ ฿{fmt(l.intake)} · จ่าย ฿{fmt(l.payout)}</span>
+                    <span className="num-wrap">รับ ฿{fmt(l.intake)} · จ่าย ฿{fmt(l.payout)}</span>
                     <span className="flex-shrink-0">{l.won}/{l.total}</span>
                   </div>
                 </div>
@@ -5582,6 +6675,28 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
 
 // ==================== MOUNT ====================
 ReactDOM.createRoot(document.getElementById('root')).render(<ToastProvider><App/></ToastProvider>);
+
+// ตัวเลขเงิน/ป้าย .num-wrap: ยาวเกินกล่อง → ย่อลงทั้งก้อน (ต่ำสุด 60%) ห้ามตัด … ห้ามขึ้นบรรทัดกลางตัวเลข
+// ถ้าย่อสุดแล้วยังไม่พอ ค่อยยอมขึ้นบรรทัด · ใช้ zoom (React ไม่ยุ่งกับค่านี้ → ไม่ชนกับ fontSize ที่ตั้งไว้)
+(function installNumFit() {
+  let raf = 0;
+  const fitAll = () => {
+    raf = 0;
+    document.querySelectorAll('.num-wrap').forEach(el => {
+      el.style.zoom = ''; el.classList.remove('num-wrap-multi');
+      const w = el.clientWidth;
+      if (!w || el.scrollWidth <= w) return;
+      const z = Math.max(0.6, Math.floor((w / el.scrollWidth) * 100) / 100);
+      el.style.zoom = String(z);
+      if (el.scrollWidth * z > w + 1) el.classList.add('num-wrap-multi');
+    });
+  };
+  const schedule = () => { if (!raf) raf = requestAnimationFrame(fitAll); };
+  new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, characterData: true });
+  window.addEventListener('resize', schedule);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+  schedule();
+})();
 </script>
 
 <script>

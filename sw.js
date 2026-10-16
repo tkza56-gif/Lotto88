@@ -1,5 +1,5 @@
-// Royal 888 Service Worker v3 — Champagne edition
-const CACHE = 'royal888-v3';
+// Royal 888 Service Worker v4 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
+const CACHE = 'royal888-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const CDN_PATTERNS = [
   /^https:\/\/unpkg\.com\//,
   /^https:\/\/fonts\.googleapis\.com\//,
   /^https:\/\/fonts\.gstatic\.com\//,
+  /^https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/(xlsx|jspdf)\//,   // ตัวสร้าง Excel/PDF (โหลดครั้งแรกแล้วใช้ออฟไลน์ได้)
 ];
 
 self.addEventListener('install', e => {
@@ -47,6 +48,12 @@ self.addEventListener('fetch', e => {
   const isCDN = CDN_PATTERNS.some(p => p.test(req.url));
   const isApp = url.origin === self.location.origin;
   const isIcon = /icon.*\.png$/i.test(url.pathname) || url.pathname.endsWith('manifest.json');
+
+  // เปิดจากการแชร์ (./index.html?text=…) — ไม่แคชตาม query (กันแคชบวม) · ออฟไลน์ใช้หน้าแอปที่แคชไว้
+  if (isApp && req.mode === 'navigate' && url.search) {
+    e.respondWith(fetch(req).catch(() => caches.match('./index.html')));
+    return;
+  }
 
   if (isApp || isCDN) {
     // Network-first for icons + manifest — always grab latest
