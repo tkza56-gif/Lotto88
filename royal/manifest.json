@@ -1,0 +1,52 @@
+{
+  "id": "./",
+  "name": "Royal 888",
+  "short_name": "Royal 888",
+  "description": "ระบบจัดการโพยหวยพรีเมียม คำนวณความเสี่ยง สำหรับผู้ขายและผู้ซื้อ",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#faf7f0",
+  "theme_color": "#2a2a2a",
+  "orientation": "portrait-primary",
+  "lang": "th",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "utilities"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
