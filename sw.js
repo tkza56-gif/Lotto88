@@ -1,5 +1,5 @@
-// Royal 888 Service Worker v4.1 — PIN ไม่ต้องใส่ทุกครั้ง · ล็อกเมื่อไม่ใช้งานตามเวลาที่ตั้ง
-const CACHE = 'royal888-v4.1';
+// Royal 888 Service Worker v4.2 — แท็บสถิติหวย · PIN ล็อกเมื่อไม่ใช้งาน
+const CACHE = 'royal888-v4.2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const APP_SHELL = [
   './icon-192.png',
   './icon-512.png',
   './icon-maskable-512.png',
+  './stats/',
 ];
 
 const CDN_PATTERNS = [

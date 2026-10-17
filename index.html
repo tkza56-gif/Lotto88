@@ -479,7 +479,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron 16:15–21:45 ทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.1 · 16 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4.1
+const APP_VERSION = 'v4.2 · 17 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4.2
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -2430,13 +2430,14 @@ function App() {
 
       {/* Tabs */}
       <div className="px-4 mb-4 sticky top-0 z-30 pt-1 pb-2 backdrop-blur-lg" style={{ background: 'linear-gradient(180deg, rgba(250, 247, 240, 0.95) 0%, rgba(250, 247, 240, 0.70) 100%)' }}>
-        <div className="glass rounded-2xl p-1 grid grid-cols-5 gap-0.5">
+        <div className="glass rounded-2xl p-1 grid grid-cols-6 gap-0.5">
           {[
             { id: 'jot', label: 'จดโพย', icon: BookOpen },
             { id: 'risk', label: 'เสี่ยง', icon: AlertTriangle },
             { id: 'pick', label: 'คัดเลข', icon: Sparkles },
             { id: 'result', label: 'ผลออก', icon: Trophy },
             { id: 'stats', label: 'สรุป', icon: BarChart3 },
+            { id: 'lotstats', label: 'สถิติ', icon: TrendingUp },
           ].map(t => {
             const Ic = t.icon;
             const active = tab === t.id;
@@ -2445,7 +2446,7 @@ function App() {
             const inactiveColor = isRisk ? '#dc8c8c' : '#8a7e5e';
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className="py-3 px-1 rounded-xl text-sm font-display font-semibold transition-all flex flex-col items-center gap-1 min-w-0"
+                className="py-3 px-0.5 rounded-xl text-[13px] font-display font-semibold transition-all flex flex-col items-center gap-1 min-w-0"
                 style={active ? {
                   background: 'linear-gradient(180deg, rgba(184, 150, 90, 0.16) 0%, rgba(184, 150, 90, 0.06) 100%)',
                   color: activeColor,
@@ -2472,6 +2473,7 @@ function App() {
         {tab === 'result' && <ResultTab lottery={currentLottery} drawDate={config.drawDate} draws={draws} setDraws={setDraws} currentDraw={currentDraw}
           autoState={autoState} onSync={syncAuto}
           onCheck={(lotteryId, date) => { setConfig({ ...config, lotteryId, drawDate: date }); setTab('jot'); window.scrollTo({ top: 0 }); }}/>}
+        {tab === 'lotstats' && <LotteryStatsTab/>}
         {tab === 'stats' && <StatsTab bets={bets} draws={draws} isSeller={isSeller} caps={caps} rates={rates} forwards={forwards} forwardSettings={forwardSettings}/>}
       </div>
 
@@ -6618,6 +6620,24 @@ function ResultTab({ lottery, drawDate, draws, setDraws, currentDraw, autoState,
 }
 
 // ==================== STATS TAB ====================
+// ===== สถิติหวย (แอปสถิติใน ./stats/ ฝังในแท็บ) =====
+// กด/เลื่อนในหน้าสถิติ นับเป็นการใช้งาน → ไม่ล็อก PIN ระหว่างดูสถิติ
+function LotteryStatsTab() {
+  const onLoad = (e) => {
+    try {
+      const w = e.target.contentWindow;
+      const ping = () => window.dispatchEvent(new Event('keydown'));
+      ['touchstart', 'mousedown', 'keydown', 'scroll'].forEach(t => w.addEventListener(t, ping, { passive: true }));
+    } catch {}
+  };
+  return (
+    <div className="-mx-4 -mb-24">
+      <iframe src="./stats/" title="สถิติหวย" onLoad={onLoad}
+        style={{ width: '100%', height: 'calc(100dvh - 72px)', border: 0, display: 'block', background: '#f4f5f8' }}/>
+    </div>
+  );
+}
+
 function StatsTab({ bets, draws, isSeller, caps, rates }) {
   const stats = useMemo(() => {
     let totalIntake = 0, totalPayout = 0, wonCount = 0, totalCount = 0;
