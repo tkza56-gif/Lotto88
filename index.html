@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.3 · 17 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-3
+const APP_VERSION = 'v4.4 · 17 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-4
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -2051,7 +2051,7 @@ function App() {
   const [cuts, setCuts] = useStorage(STORAGE.cuts, []);
   const [forwards, setForwards] = useStorage(STORAGE.forwards, []);
   const [forwardSettings, setForwardSettings] = useStorage(STORAGE.forwardSettings, { defaultMaxKeep3D: null, defaultMaxKeep2D: null });
-  const [auth, setAuth] = useStorage(STORAGE.auth, { pinHash: null, autoLockMinutes: 15, autoBackup: 'daily', lastBackupAt: 0, downloadReminderAt: 0 });
+  const [auth, setAuth] = useStorage(STORAGE.auth, { pinHash: null, autoLockMinutes: 30, autoBackup: 'daily', lastBackupAt: 0, downloadReminderAt: 0 });
   const [backups, setBackups] = useStorage(STORAGE.backups, []);
   // ล็อกตอนเปิดแอป/รีเฟรช: เฉพาะเมื่อไม่ได้ใช้งานนานเกินเวลาที่ตั้ง "ล็อกอัตโนมัติ" หรือกดล็อกเอง
   // (เดิมล็อกทุกครั้งที่รีเฟรช แม้เพิ่งใส่ PIN ไปไม่กี่วินาที)
@@ -2059,7 +2059,7 @@ function App() {
     if (!auth?.pinHash) return false;
     const last = readActiveAt();
     if (!last) return true;                       // ไม่เคยปลดล็อก / กดล็อกเอง
-    const mins = auth.autoLockMinutes ?? 15;
+    const mins = auth.autoLockMinutes ?? 30;
     if (mins === 0) return false;                 // ปิดล็อกอัตโนมัติ
     return Date.now() - last >= mins * 60 * 1000;
   });
@@ -2110,7 +2110,7 @@ function App() {
   useEffect(() => {
     if (!auth?.pinHash || locked) return;
     // เดิม `|| 15` ทำให้ตัวเลือก "ปิดล็อกอัตโนมัติ" (0) กลายเป็น 15 นาที → ใช้ ?? แทน
-    const minutes = auth.autoLockMinutes ?? 15;
+    const minutes = auth.autoLockMinutes ?? 30;
     if (minutes === 0) return; // never
     const check = () => {
       const idle = Date.now() - lastActiveRef.current;
@@ -2311,7 +2311,7 @@ function App() {
     // Pre-seed auth so we don't bounce to PIN setup screen after reload
     try {
       localStorage.setItem(STORAGE.auth, JSON.stringify({
-        pinHash: null, autoLockMinutes: 15, autoBackup: 'daily',
+        pinHash: null, autoLockMinutes: 30, autoBackup: 'daily',
         lastBackupAt: 0, downloadReminderAt: Date.now(), skipped: true
       }));
     } catch (e) {}
@@ -2635,7 +2635,7 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
   const [error, setError] = useState('');
 
   const hasPin = !!auth?.pinHash;
-  const autoLockMinutes = auth?.autoLockMinutes ?? 15;
+  const autoLockMinutes = auth?.autoLockMinutes ?? 30;
 
   const setAutoLock = (mins) => {
     setAuth({ ...auth, autoLockMinutes: mins });
@@ -6272,13 +6272,15 @@ function FrequencyView({ draws, lottery, onSendToJot, onTool }) {
 }
 
 function RandomGen() {
-  const [count, setCount] = useState(6);
+  const [count, setCount] = useState('6');
   const [digits, setDigits] = useState(3);
   const [gen, setGen] = useState([]);
   const roll = () => {
     const out = new Set();
     const max = digits === 3 ? 1000 : 100;
-    while (out.size < Math.min(count, max)) {
+    const n = Math.min(Math.max(parseInt(count, 10) || 1, 1), max);   // ช่องว่าง/0/ติดลบ → 1
+    if (String(n) !== String(count)) setCount(String(n));
+    while (out.size < n) {
       const n = Math.floor(Math.random() * max).toString().padStart(digits, '0');
       out.add(n);
     }
@@ -6293,7 +6295,7 @@ function RandomGen() {
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="num-tile rounded-lg p-2.5">
           <div className="text-base uppercase text-red-500 font-display">จำนวน</div>
-          <input type="number" value={count} onChange={e=>setCount(parseInt(e.target.value)||1)}
+          <input type="number" inputMode="numeric" value={count} onChange={e=>setCount(e.target.value.replace(/\D/g, '').slice(0, 4))}
             className="w-full bg-transparent outline-none font-numeric text-2xl font-bold text-gray-900 mt-1"/>
         </div>
         <div className="num-tile rounded-lg p-2.5">
