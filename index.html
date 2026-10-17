@@ -465,21 +465,19 @@ const DEFAULT_LOTTERIES = [
   { id: 'stock',  name: 'หวยหุ้น',     types: ['3บน', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'lao',    name: 'หวยลาว',     types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'hanoi',  name: 'ฮานอยปกติ',  types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },   // 18:30 · ผลทางการ XSMB (อัตโนมัติ)
-  { id: 'hanoi_sp', name: 'ฮานอยพิเศษ', types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] }, // 17:00 · ไม่มีแหล่งทางการ (กรอกเอง)
+  { id: 'hanoi_sp', name: 'ฮานอยพิเศษ', types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] }, // 17:30 · อัตโนมัติ (เว็บรวมผล 2 แหล่งต้องตรงกัน)
+  { id: 'hanoi_vip', name: 'ฮานอย VIP', types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },  // 19:30 · อัตโนมัติ (เว็บรวมผล 2 แหล่งต้องตรงกัน)
   { id: 'malay',  name: 'หวยมาเลย์',   types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'yeekee', name: 'หวยยี่กี',    types: ['3บน', '2บน', '2ล่าง', 'โต๊ด'] },
 ];
 
 const INITIAL_RATES = { '3บน': 800, '3ตัว': 800, 'โต๊ด': 130, '2บน': 90, '2ล่าง': 90 };
-const LAST_ACTIVE_KEY = 'lotto888-last-active';  // เวลาใช้งานล่าสุด — เปิดแอปใหม่ภายในเวลาล็อก ไม่ต้องใส่ PIN
-const readLastActive = () => { try { return +localStorage.getItem(LAST_ACTIVE_KEY) || 0; } catch { return 0; } };
-const writeLastActive = (t) => { try { localStorage.setItem(LAST_ACTIVE_KEY, String(t)); } catch {} };
 const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lotto888-config', rates: 'lotto888-rates', caps: 'lotto888-caps', cuts: 'lotto888-cuts', auth: 'lotto888-auth', backups: 'lotto888-backups', forwards: 'lotto888-forwards', forwardSettings: 'lotto888-forward-settings' };
 
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
-// ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron 16:15–21:45 ทุก 30 นาที)
+// ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.2 · 17 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4.2
+const APP_VERSION = 'v4.2 · 17 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-2
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -500,8 +498,11 @@ const AUTO_LOTTERIES = {
   gov:   { table: 'thai_draws',  cols: 'draw_date,first_prize,last2,front3,back3', time: '16:00', days: 'ทุกวันที่ 1 และ 16', src: 'กองสลาก (GLO)', tag: 'ทางการ' },
   lao:   { table: 'lao_draws',   cols: 'draw_date,six,top3,top2,bottom2',          time: '20:00', days: 'จ.–ศ. 20:00',      src: 'ข่าวสด · เทียบ 2 แหล่ง', tag: 'อัตโนมัติ' },
   hanoi: { table: 'hanoi_draws', cols: 'draw_date,special,prize1,top3,top2,bottom2', time: '18:30', days: 'ทุกวัน 18:30',   src: 'ผลทางการเวียดนาม (XSMB)', tag: 'ทางการ' },
+  // ฮานอยพิเศษ/VIP ไม่มีผู้ออกผลทางการ → บันทึกเมื่อเว็บรวมผล 2 แห่ง (saihuay + 98lotto) ตรงกันเท่านั้น
+  hanoi_sp:  { table: 'hanoi_sp_draws',  cols: 'draw_date,top3,top2,bottom2', time: '17:30', days: 'ทุกวัน 17:30', src: 'เว็บรวมผล · เทียบ 2 แหล่ง', tag: 'อัตโนมัติ' },
+  hanoi_vip: { table: 'hanoi_vip_draws', cols: 'draw_date,top3,top2,bottom2', time: '19:30', days: 'ทุกวัน 19:30', src: 'เว็บรวมผล · เทียบ 2 แหล่ง', tag: 'อัตโนมัติ' },
 };
-const AUTO_IDS = ['gov', 'lao', 'hanoi'];
+const AUTO_IDS = ['gov', 'lao', 'hanoi', 'hanoi_sp', 'hanoi_vip'];
 
 async function supaGet(path, ms = 15000) {
   const ctrl = new AbortController();
@@ -524,7 +525,7 @@ function autoRowToDraw(lotteryId, r) {
   } else {
     if (!/^\d{3}$/.test(String(r.top3 || '')) || !/^\d{2}$/.test(String(r.bottom2 || ''))) return null;
     results = { '3ตัว': r.top3, '2บน': r.top2, '2ล่าง': r.bottom2 };
-    meta = lotteryId === 'lao' ? { six: r.six } : { special: r.special, prize1: r.prize1 };
+    meta = lotteryId === 'lao' ? { six: r.six } : lotteryId === 'hanoi' ? { special: r.special, prize1: r.prize1 } : {};
   }
   return { id: 'auto:' + lotteryId + ':' + r.draw_date, lotteryId, date: r.draw_date, results, meta, source: 'auto', createdAt: Date.now() };
 }
@@ -533,7 +534,7 @@ const sameResults = (a = {}, b = {}) => ['3บน', '3ตัว', '2บน', '2�
 
 // รวมผลอัตโนมัติเข้า draws — กติกา: ผลที่ผู้ใช้กรอกเองจะไม่ถูกทับ ถ้าไม่ตรงจะเก็บ autoResults ไว้เตือน
 // กันพื้นที่เครื่องเต็ม: ผลอัตโนมัติที่เก่ากว่า 120 วันและไม่มีโพยอ้างถึง จะถูกลบ (ผลกรอกเองไม่ลบ)
-const AUTO_KEEP_DAYS = { gov: 400, lao: 120, hanoi: 120 };   // ไทยออกเดือนละ 2 งวด → เก็บนานกว่า
+const AUTO_KEEP_DAYS = { gov: 400, lao: 120, hanoi: 120, hanoi_sp: 120, hanoi_vip: 120 };   // ไทยออกเดือนละ 2 งวด → เก็บนานกว่า
 function autoCutDate(lotteryId) {
   const c = new Date(Date.now() - (AUTO_KEEP_DAYS[lotteryId] || 120) * 864e5);
   return c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0');
@@ -561,7 +562,7 @@ function mergeAutoDraws(prev, autoDraws, betKeys) {
 function isDrawDay(lotteryId, iso) {
   const d = new Date(iso + 'T00:00:00');
   if (lotteryId === 'lao') return d.getDay() >= 1 && d.getDay() <= 5;          // จ.–ศ. (ข่าวสด 23 ก.ย. 69)
-  if (lotteryId === 'hanoi') return true;                                      // XSMB ออกทุกวัน
+  if (lotteryId === 'hanoi' || lotteryId === 'hanoi_sp' || lotteryId === 'hanoi_vip') return true; // ฮานอยทุกแบบออกทุกวัน
   if (lotteryId === 'gov') {
     const m = d.getMonth() + 1, day = d.getDate();
     if ((m === 1 && (day === 1 || day === 16)) || (m === 5 && day === 1)) return false; // วันที่มักเลื่อน
@@ -573,11 +574,13 @@ function isDrawDay(lotteryId, iso) {
 
 // ==================== CAPS / HALF-PAY HELPER ====================
 // caps: [{ lotteryId, drawDate, number, type, halfPay: true }]
+// โต๊ด = ชุดตัวเลขเดียวกันไม่สนตำแหน่ง → อั้น 123 โต๊ด ต้องครอบ 321/213/… ด้วย (เดิมเทียบตรงตัว ลูกค้าเขียน 321 โต๊ด ได้จ่ายเต็ม)
+const toadKey = (n) => String(n || '').split('').sort().join('');
 function isCombosHalfPay(caps, lotteryId, drawDate, number, type) {
   return caps.some(c =>
     c.lotteryId === lotteryId &&
     c.drawDate === drawDate &&
-    c.number === number &&
+    (c.number === number || (type === 'โต๊ด' && toadKey(c.number) === toadKey(number))) &&
     c.type === type &&
     c.halfPay
   );
@@ -667,6 +670,12 @@ function getNextDrawDate(todayISO, lotteryId) {
     // After 16th — next draw is 1st of next month
     const next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
     return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-01`;
+  }
+  // ลาวออก จ.–ศ. เท่านั้น → เสาร์/อาทิตย์ ไปวันจันทร์
+  if (lotteryId === 'lao') {
+    const d = new Date(todayISO + 'T00:00:00');
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
   // Other lotteries: default to today (they draw daily/weekly)
   return todayISO;
@@ -782,7 +791,13 @@ function normalize(line) {
   return line
     .replace(/[๐-๙]/g, (c) => THAI_DIGITS[c])
     .replace(/[×xX✕✖*]/g, '×')
-    .replace(/(\d),(?=\d{3}\b)/g, '$1')        // 1,000 → 1000
+    .replace(/^([^=]*)(=.*)?$/, (all, left, right) => {
+      // 1,000 → 1000 เฉพาะฝั่งราคา (หลัง =) · ฝั่งเลข "123,456,789=20" คือเลข 3 ตัวหลายตัว ไม่ใช่หลักพัน
+      const th = (s) => s.replace(/(\d),(?=\d{3}\b)/g, '$1');
+      if (right !== undefined) return left + th(right);
+      const m = /[\u0E00-\u0E7F]/.exec(left);             // ไม่มี = → ราคาอยู่หลังคำประเภท (บน/ล่าง/…)
+      return m ? left.slice(0, m.index) + th(left.slice(m.index)) : th(left);
+    })
     .replace(/[＝]/g, '=')
     .trim();
 }
@@ -959,6 +974,9 @@ return function parseBetText(text, lottery) {
   };
 }
 })();
+
+// "ถ้าออก 123 / 45" — มีแต่ 2 ตัวล่าง → "45" (เดิมขึ้น "null / 45")
+const scenLabel = (x) => [x && x.num3, x && x.num2low].filter(Boolean).join(' / ') || '-';
 
 function typeShort(type) {
   if (type === '3บน' || type === '3ตัว') return 'ตรง';
@@ -1289,7 +1307,7 @@ function formatListForLine(bets, lottery, drawDate) {
     Object.entries(byNum).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([num, group]) => {
       const parts = group.map(b => `${typeShort(b.type)} ${fmt(b.amount)}`).join(' / ');
       lines.push(`  ${num}  ${parts}`);
-      group.forEach(b => { custTotal += b.amount; });
+      group.forEach(b => { custTotal += parseFloat(b.amount) || 0; }); // จำนวนที่แก้ในรายการเป็นข้อความ → ต้องแปลงก่อนบวก
     });
     lines.push(`  รวม: ฿${fmt(custTotal)} (${items.length} รายการ)`);
     total += custTotal;
@@ -1328,9 +1346,9 @@ function formatSummaryForLine(bets, lottery, drawDate) {
     '',
     '📊 ความเสี่ยง',
     `   เสี่ยงได้สูงสุด: ${fmtSigned(s.best.net)}`,
-    `      (ถ้าออก ${s.best.num3}${s.best.num2low ? ' / ' + s.best.num2low : ''})`,
+    `      (ถ้าออก ${scenLabel(s.best)})`,
     `   เสี่ยงเสียสุด:  ${fmtSigned(s.worst.net)}`,
-    `      (ถ้าออก ${s.worst.num3}${s.worst.num2low ? ' / ' + s.worst.num2low : ''})`,
+    `      (ถ้าออก ${scenLabel(s.worst)})`,
     '',
   ];
   if (custList.length > 1 || (custList.length === 1 && !custList[0][0].startsWith('—'))) {
@@ -1427,6 +1445,29 @@ function formatCutsForLine(cuts, lottery, drawDate) {
 }
 
 // ==================== STORAGE HOOK (localStorage) ====================
+// เวลาใช้งานล่าสุด (ใช้ตัดสินว่ารีเฟรช/เปิดใหม่แล้วต้องใส่ PIN หรือไม่)
+const ACTIVE_KEY = 'lotto888-active-at';
+const readActiveAt = () => { try { return Number(localStorage.getItem(ACTIVE_KEY)) || 0; } catch { return 0; } };
+const writeActiveAt = (t) => { try { localStorage.setItem(ACTIVE_KEY, String(t)); } catch {} };
+const clearActiveAt = () => { try { localStorage.removeItem(ACTIVE_KEY); } catch {} };
+
+// บันทึกลงเครื่อง: พื้นที่เต็ม → ทิ้งสำรองอัตโนมัติชุดเก่าแล้วลองใหม่ · ยังไม่พอ → แจ้งเตือน (เดิมบันทึกไม่ลงเงียบๆ รีเฟรชแล้วโพยหาย)
+function saveLS(key, v) {
+  const raw = JSON.stringify(v);
+  for (let attempt = 0; attempt < 8; attempt++) {
+    try { localStorage.setItem(key, raw); return true; }
+    catch (e) {
+      let snaps = [];
+      try { snaps = JSON.parse(localStorage.getItem(STORAGE.backups) || '[]'); } catch (_) {}
+      if (key === STORAGE.backups || !snaps.length) break;
+      try { localStorage.setItem(STORAGE.backups, JSON.stringify(snaps.slice(0, snaps.length - 1))); } catch (_) { try { localStorage.removeItem(STORAGE.backups); } catch (__) {} }
+    }
+  }
+  console.error('บันทึกไม่ได้ (พื้นที่เต็ม):', key);
+  if (key !== STORAGE.backups) window.dispatchEvent(new CustomEvent('lotto-storage-full', { detail: key }));
+  return false;
+}
+
 const useStorage = (key, initial) => {
   const [value, setValue] = useState(() => {
     try {
@@ -1437,7 +1478,7 @@ const useStorage = (key, initial) => {
   const save = (next) => {
     setValue(prev => {
       const v = typeof next === 'function' ? next(prev) : next;
-      try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { console.error(e); }
+      saveLS(key, v);
       return v;
     });
   };
@@ -1873,12 +1914,12 @@ function DrawDateSelector({ config, setConfig, isGov }) {
           </div>
           <div className="flex items-center gap-2 min-w-0">
             <input type="date" value={config.purchaseDate || today}
-              onChange={e => setConfig({ ...config, purchaseDate: e.target.value })}
+              onChange={e => setConfig({ ...config, purchaseDate: e.target.value, purchasePickedOn: todayISO() })}
               max={today}
               className="bg-transparent text-base font-numeric font-bold outline-none cursor-pointer text-right"
               style={{ colorScheme: 'light', maxWidth: '130px', color: '#2a2a2a' }}/>
             {!isToday && (
-              <button onClick={() => setConfig({ ...config, purchaseDate: today })}
+              <button onClick={() => setConfig({ ...config, purchaseDate: today, purchasePickedOn: today })}
                 className="text-base font-display flex-shrink-0 active:scale-95 px-3 py-1.5 rounded-full font-semibold"
                 style={{ background: '#fdf9ed', color: '#8a6d36', border: '1px solid #dccfa6' }}>
                 วันนี้
@@ -1904,7 +1945,7 @@ function DrawDateSelector({ config, setConfig, isGov }) {
               </>
             ) : (
               <input type="date" value={config.drawDate}
-                onChange={e => setConfig({ ...config, drawDate: e.target.value })}
+                onChange={e => setConfig({ ...config, drawDate: e.target.value, drawPickedOn: todayISO() })}
                 className="bg-transparent text-base font-numeric font-bold outline-none cursor-pointer text-right"
                 style={{ colorScheme: 'light', maxWidth: '130px', color: '#2a2a2a' }} onClick={e => e.stopPropagation()}/>
             )}
@@ -1919,11 +1960,11 @@ function DrawDateSelector({ config, setConfig, isGov }) {
               ปกติออกวันที่ <strong>1</strong> และ <strong>16</strong> ของทุกเดือน · บางครั้งเลื่อนเป็นวันสิ้นเดือน
             </div>
             <DrawDateList dates={upcomingDraws} selected={config.drawDate}
-              onSelect={d => { setConfig({ ...config, drawDate: d }); setOpenSheet(false); }}/>
+              onSelect={d => { setConfig({ ...config, drawDate: d, drawPickedOn: todayISO() }); setOpenSheet(false); }}/>
             <div className="border-t border-stone-100 pt-3">
               <div className="text-base uppercase tracking-widest text-stone-400 font-display mb-2">หรือเลือกวันที่อื่น</div>
               <input type="date" value={config.drawDate}
-                onChange={e => setConfig({ ...config, drawDate: e.target.value })}
+                onChange={e => setConfig({ ...config, drawDate: e.target.value, drawPickedOn: todayISO() })}
                 className="w-full bg-white border border-stone-200 rounded-lg px-3 py-2.5 text-stone-800 font-numeric font-semibold outline-none focus:border-red-300"
                 style={{ colorScheme: 'light' }}/>
             </div>
@@ -2007,18 +2048,27 @@ function App() {
   const [cuts, setCuts] = useStorage(STORAGE.cuts, []);
   const [forwards, setForwards] = useStorage(STORAGE.forwards, []);
   const [forwardSettings, setForwardSettings] = useStorage(STORAGE.forwardSettings, { defaultMaxKeep3D: null, defaultMaxKeep2D: null });
-  const [auth, setAuth] = useStorage(STORAGE.auth, { pinHash: null, autoLockMinutes: 30, autoBackup: 'daily', lastBackupAt: 0, downloadReminderAt: 0 });
+  const [auth, setAuth] = useStorage(STORAGE.auth, { pinHash: null, autoLockMinutes: 15, autoBackup: 'daily', lastBackupAt: 0, downloadReminderAt: 0 });
   const [backups, setBackups] = useStorage(STORAGE.backups, []);
-  // เปิดแอปใหม่: ล็อกเฉพาะเมื่อไม่ได้ใช้งานเกินเวลาที่ตั้งไว้ (ไม่ใช่ทุกครั้งที่เข้า-ออก)
+  // ล็อกตอนเปิดแอป/รีเฟรช: เฉพาะเมื่อไม่ได้ใช้งานนานเกินเวลาที่ตั้ง "ล็อกอัตโนมัติ" หรือกดล็อกเอง
+  // (เดิมล็อกทุกครั้งที่รีเฟรช แม้เพิ่งใส่ PIN ไปไม่กี่วินาที)
   const [locked, setLocked] = useState(() => {
     if (!auth?.pinHash) return false;
-    const minutes = auth.autoLockMinutes ?? 30;
-    if (minutes === 0) return false;
-    return Date.now() - readLastActive() >= minutes * 60 * 1000;
+    const last = readActiveAt();
+    if (!last) return true;                       // ไม่เคยปลดล็อก / กดล็อกเอง
+    const mins = auth.autoLockMinutes ?? 15;
+    if (mins === 0) return false;                 // ปิดล็อกอัตโนมัติ
+    return Date.now() - last >= mins * 60 * 1000;
   });
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [showDownloadReminder, setShowDownloadReminder] = useState(false);
   const lastActiveRef = React.useRef(Date.now());
+  const savedActiveRef = React.useRef(0);
+  const touchActive = (force) => {
+    lastActiveRef.current = Date.now();
+    if (force || Date.now() - savedActiveRef.current > 10000) { savedActiveRef.current = Date.now(); writeActiveAt(Date.now()); }
+  };
+  useEffect(() => { if (!locked && auth?.pinHash) touchActive(true); }, []); // รีเฟรชแล้วไม่ล็อก = นับเป็นการใช้งาน
 
   // ===== ผลอัตโนมัติ: ดึงตอนเปิดแอป · ทุก 10 นาทีระหว่างเปิดอยู่ · ตอนกลับมาที่แอป =====
   const [autoState, setAutoState] = useState({ at: 0, ok: null, error: '', busy: false });
@@ -2037,8 +2087,10 @@ function App() {
       const betKeys = new Set((betsRef.current || []).map(b => b.lotteryId + '|' + b.drawDate));
       setDraws(prev => mergeAutoDraws(prev, all, betKeys));
       setAutoState({ at: Date.now(), ok: true, error: '', busy: false });
+      return all;
     } catch (e) {
       setAutoState(s => ({ ...s, ok: false, error: e.name === 'AbortError' ? 'หมดเวลา' : (e.message || 'เชื่อมต่อไม่ได้'), busy: false }));
+      return null;
     } finally { syncingRef.current = false; }
   };
   const lastSyncRef = React.useRef(0);
@@ -2054,56 +2106,49 @@ function App() {
   // Auto-lock timer
   useEffect(() => {
     if (!auth?.pinHash || locked) return;
-    const minutes = auth.autoLockMinutes ?? 30;
+    // เดิม `|| 15` ทำให้ตัวเลือก "ปิดล็อกอัตโนมัติ" (0) กลายเป็น 15 นาที → ใช้ ?? แทน
+    const minutes = auth.autoLockMinutes ?? 15;
     if (minutes === 0) return; // never
     const check = () => {
-      const idle = Date.now() - Math.max(lastActiveRef.current, readLastActive());
+      const idle = Date.now() - lastActiveRef.current;
       if (idle >= minutes * 60 * 1000) {
+        clearActiveAt();
         setLocked(true);
       }
     };
-    const onVis = () => { if (document.visibilityState === 'visible') check(); };
     const interval = setInterval(check, 30000); // check every 30s
+    const onVis = () => { if (document.visibilityState === 'visible') check(); }; // กลับเข้าแอป → ตรวจทันที ไม่รอ 30 วิ
     document.addEventListener('visibilitychange', onVis);
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', onVis); };
   }, [auth?.pinHash, auth?.autoLockMinutes, locked]);
 
-  // Reset activity on any user interaction
+  // Reset activity on any user interaction (จำเวลาไว้ในเครื่อง ให้รีเฟรชแล้วรู้ว่าเพิ่งใช้งาน)
+  // ติดตามการใช้งานตลอด แม้ยังไม่ตั้ง PIN (เดิมตั้ง PIN จากหน้าตั้งค่าหลังใช้แอปมา >15 นาที → โดนล็อกใน 30 วิ)
+  useEffect(() => { if (auth?.pinHash && !locked) touchActive(true); }, [auth?.pinHash]);
   useEffect(() => {
-    if (!auth?.pinHash || locked) return;
-    let lastWrite = 0;
-    const reset = () => {
-      const now = Date.now();
-      lastActiveRef.current = now;
-      if (now - lastWrite > 15000) { lastWrite = now; writeLastActive(now); }  // บันทึกไม่เกินทุก 15 วิ
-    };
-    const flush = () => { if (document.visibilityState === 'hidden') writeLastActive(lastActiveRef.current); };
-    reset();
+    if (locked) return;
+    const reset = () => touchActive(false);
     window.addEventListener('touchstart', reset, { passive: true });
     window.addEventListener('mousedown', reset);
     window.addEventListener('keydown', reset);
-    document.addEventListener('visibilitychange', flush);
-    window.addEventListener('pagehide', flush);
     return () => {
       window.removeEventListener('touchstart', reset);
       window.removeEventListener('mousedown', reset);
       window.removeEventListener('keydown', reset);
-      document.removeEventListener('visibilitychange', flush);
-      window.removeEventListener('pagehide', flush);
     };
-  }, [auth?.pinHash, locked]);
+  }, [locked]);
 
   // (Removed: auto-lock on tab hide. Use idle timer only.)
 
   const setupPin = (pinHash) => {
     setAuth({ ...auth, pinHash });
     setLocked(false);
-    lastActiveRef.current = Date.now();
+    touchActive(true);
   };
 
   const unlockApp = () => {
     setLocked(false);
-    lastActiveRef.current = Date.now();
+    touchActive(true);
   };
 
   const skipPinSetup = () => {
@@ -2114,7 +2159,7 @@ function App() {
   };
 
   const lockApp = () => {
-    writeLastActive(0);  // กดล็อกเอง → เปิดใหม่ต้องใส่ PIN
+    clearActiveAt(); // กดล็อกเอง → รีเฟรชแล้วต้องใส่ PIN
     setLocked(true);
   };
 
@@ -2127,12 +2172,26 @@ function App() {
     weekly: 7 * 24 * 60 * 60 * 1000,
   };
 
+  // ข้อมูลล่าสุดเสมอ (เดิมรอบสำรองทุก 5 นาทีใช้ข้อมูลเก่าตอนที่จำนวนโพยเปลี่ยนครั้งล่าสุด → แก้ยอด/อั้น/อัตรา ไม่ติดไปในไฟล์สำรอง)
+  const dataRef = React.useRef(null);
+  dataRef.current = { bets, draws, config, rates, caps, cuts, forwards, forwardSettings };
+  const applyBackupData = (d) => {
+    if (d.bets) setBets(d.bets);
+    if (d.draws) setDraws(d.draws);
+    if (d.config) setConfig(d.config);
+    if (d.rates) setRates(d.rates);
+    if (d.caps) setCaps(d.caps);
+    if (d.cuts) setCuts(d.cuts);
+    if (d.forwards) setForwards(d.forwards);               // เดิมไม่ได้สำรอง "เลขส่งต่อ" → กู้คืนแล้วหาย
+    if (d.forwardSettings) setForwardSettings(d.forwardSettings);
+  };
+
   // Snapshot current data into backups list (auto)
   const saveAutoBackup = () => {
     const snapshot = {
       id: uid(),
       createdAt: Date.now(),
-      data: { bets, draws, config, rates, caps, cuts },
+      data: { ...dataRef.current },
     };
     setBackups(prev => {
       const next = [snapshot, ...prev];
@@ -2146,13 +2205,7 @@ function App() {
   const restoreFromBackup = (backupId) => {
     const snap = backups.find(b => b.id === backupId);
     if (!snap || !snap.data) return false;
-    const d = snap.data;
-    if (d.bets) setBets(d.bets);
-    if (d.draws) setDraws(d.draws);
-    if (d.config) setConfig(d.config);
-    if (d.rates) setRates(d.rates);
-    if (d.caps) setCaps(d.caps);
-    if (d.cuts) setCuts(d.cuts);
+    applyBackupData(snap.data);
     return true;
   };
 
@@ -2202,20 +2255,13 @@ function App() {
     const backup = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      data: {
-        bets: bets,
-        draws: draws,
-        config: config,
-        rates: rates,
-        caps: caps,
-        cuts: cuts,
-      },
+      data: { ...dataRef.current },
     };
     const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const dateStr = new Date().toISOString().slice(0, 10);
+    const dateStr = todayISO(); // เดิม toISOString → ก่อน 7 โมงเช้าได้วันที่ของเมื่อวาน
     a.href = url;
     a.download = `lotto888-backup-${dateStr}.json`;
     document.body.appendChild(a);
@@ -2236,13 +2282,6 @@ function App() {
             reject(new Error('ไฟล์ไม่ถูกต้อง'));
             return;
           }
-          const d = backup.data;
-          if (d.bets) setBets(d.bets);
-          if (d.draws) setDraws(d.draws);
-          if (d.config) setConfig(d.config);
-          if (d.rates) setRates(d.rates);
-          if (d.caps) setCaps(d.caps);
-          if (d.cuts) setCuts(d.cuts);
           resolve(backup);
         } catch (err) {
           reject(err);
@@ -2265,11 +2304,11 @@ function App() {
       try { localStorage.removeItem(key); } catch (e) {}
     });
     // also clear extras
-    try { localStorage.removeItem('lotto888-tab'); localStorage.removeItem('lotto888-hist-v1'); } catch (e) {}
+    try { localStorage.removeItem('lotto888-tab'); localStorage.removeItem('lotto888-hist-v1'); localStorage.removeItem(ACTIVE_KEY); } catch (e) {}
     // Pre-seed auth so we don't bounce to PIN setup screen after reload
     try {
       localStorage.setItem(STORAGE.auth, JSON.stringify({
-        pinHash: null, autoLockMinutes: 30, autoBackup: 'daily',
+        pinHash: null, autoLockMinutes: 15, autoBackup: 'daily',
         lastBackupAt: 0, downloadReminderAt: Date.now(), skipped: true
       }));
     } catch (e) {}
@@ -2291,6 +2330,11 @@ function App() {
   const totalAmt = currentBets.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
 
   const appToast = useToast();
+  useEffect(() => {
+    const onFull = () => appToast.show('พื้นที่เก็บข้อมูลในเครื่องเต็ม — รายการล่าสุดบันทึกไม่ลง · ดาวน์โหลดไฟล์สำรองไว้ก่อน (ตั้งค่า → ดาวน์โหลด)', 'error', 8000);
+    window.addEventListener('lotto-storage-full', onFull);
+    return () => window.removeEventListener('lotto-storage-full', onFull);
+  }, []);
   const [showShareSheet, setShowShareSheet] = useState(false);
 
   const shareApp = async () => {
@@ -2309,12 +2353,25 @@ function App() {
     setShowShareSheet(true);
   };
 
-  // Migration: ensure config has purchaseDate
+  // วันที่ซื้อ: เปิดแอปวันใหม่ → เป็นวันนี้ (เดิมค้างวันแรกที่ใช้ → โพยทุกใบได้วันที่ซื้อเก่า)
+  // ถ้าวันนี้ผู้ใช้เลือกวันเองแล้ว → คงไว้ (รีเฟรชไม่รีเซ็ต)
   useEffect(() => {
-    if (config && !config.purchaseDate) {
-      setConfig({ ...config, purchaseDate: todayISO() });
-    }
+    const today = todayISO();
+    setConfig(prev => (prev && prev.purchaseDate !== today && prev.purchasePickedOn !== today) ? { ...prev, purchaseDate: today } : prev);
   }, []);
+
+  // เปลี่ยนหวย: จำงวดของแต่ละหวยไว้ (เดิมใช้งวดเดียวกันทุกหวย → กดหวยลาวแล้วโพยลงวันที่งวดรัฐบาล 1 พ.ย.)
+  // งวดที่จำไว้ผ่านไปแล้ว (และไม่ได้เลือกเองวันนี้) → ไปงวดถัดไปของหวยนั้น
+  const switchLottery = (id) => setConfig(prev => {
+    if (prev.lotteryId === id) return prev;
+    const today = todayISO();
+    const mem = { ...(prev.drawMem || {}), [prev.lotteryId]: { d: prev.drawDate, on: prev.drawPickedOn || '' } };
+    const m = mem[id];
+    const keep = m && m.d && (m.d >= today || m.on === today);
+    return { ...prev, lotteryId: id, drawDate: keep ? m.d : getNextDrawDate(today, id), drawPickedOn: keep ? m.on : '', drawMem: mem };
+  });
+  const nextDrawDate = getNextDrawDate(todayISO(), config.lotteryId);
+  const drawIsPast = !!config.drawDate && config.drawDate < todayISO();
 
   // Hide loader after mount
   useEffect(() => {
@@ -2411,7 +2468,7 @@ function App() {
         <div className="px-4 pb-3">
           <div className="grid grid-cols-3 gap-1.5">
             {DEFAULT_LOTTERIES.map(l => (
-              <button key={l.id} type="button" onClick={() => setConfig({ ...config, lotteryId: l.id })}
+              <button key={l.id} type="button" onClick={() => switchLottery(l.id)}
                 className="px-1 py-3 rounded-xl text-sm font-display font-semibold transition-all active:scale-95 leading-tight border-2 text-center whitespace-nowrap"
                 style={config.lotteryId === l.id ? {
                   background: '#2a2a2a', color: '#f5e8c8', borderColor: '#1a1a1a',
@@ -2425,6 +2482,20 @@ function App() {
 
         <div className="px-4 pb-3">
           <DrawDateSelector config={config} setConfig={setConfig} isGov={currentLottery.id === 'gov'}/>
+          {tab === 'jot' && drawIsPast && nextDrawDate > config.drawDate && (
+            <div data-testid="past-draw-warn" className="mt-2 rounded-xl px-3 py-2 flex items-center gap-2 flex-wrap"
+              style={{ background: '#fff7ed', border: '1px solid #fdba74' }}>
+              <AlertTriangle size={16} className="flex-shrink-0" style={{ color: '#c2410c' }}/>
+              <span className="font-display text-base font-semibold flex-1 min-w-0" style={{ color: '#9a3412' }}>
+                งวด {formatDrawDateShort(config.drawDate)} ผ่านไปแล้ว · โพยที่จดจะลงงวดนี้
+              </span>
+              <button data-testid="go-next-draw" onClick={() => setConfig(prev => ({ ...prev, drawDate: nextDrawDate, drawPickedOn: todayISO() }))}
+                className="rounded-full px-3 py-1.5 font-display text-base font-bold active:scale-95 whitespace-nowrap"
+                style={{ background: '#c2410c', color: '#fff' }}>
+                ไปงวด {formatDrawDateShort(nextDrawDate)}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2471,8 +2542,15 @@ function App() {
         {tab === 'pick' && <PickTab lottery={currentLottery} draws={draws}
           onSendToJot={(numbers, pos) => { setJotPrefill({ numbers, pos, at: Date.now() }); setTab('jot'); window.scrollTo({ top: 0 }); }}/>}
         {tab === 'result' && <ResultTab lottery={currentLottery} drawDate={config.drawDate} draws={draws} setDraws={setDraws} currentDraw={currentDraw}
-          autoState={autoState} onSync={syncAuto}
-          onCheck={(lotteryId, date) => { setConfig({ ...config, lotteryId, drawDate: date }); setTab('jot'); window.scrollTo({ top: 0 }); }}/>}
+          autoState={autoState} onSync={async () => {
+            // กดดึงเอง → บอกผลให้รู้ว่าทำงานแล้ว (เดิมกดแล้วเงียบ ไม่รู้ว่าอัปเดตหรือยัง)
+            const all = await syncAuto();
+            if (all === undefined) return; // กำลังดึงอยู่แล้ว
+            if (!all) { appToast.show('ดึงผลไม่ได้ · ตรวจเน็ตแล้วลองใหม่', 'error'); return; }
+            const mine = all.filter(d => d.lotteryId === config.lotteryId).sort((a, b) => b.date.localeCompare(a.date))[0];
+            appToast.show('อัปเดตผลแล้ว' + (mine ? ' · ' + currentLottery.name + ' ล่าสุด ' + formatDrawDateShort(mine.date) : ''), 'success');
+          }}
+          onCheck={(lotteryId, date) => { setConfig({ ...config, lotteryId, drawDate: date, drawPickedOn: todayISO() }); setTab('jot'); window.scrollTo({ top: 0 }); }}/>}
         {tab === 'lotstats' && <LotteryStatsTab/>}
         {tab === 'stats' && <StatsTab bets={bets} draws={draws} isSeller={isSeller} caps={caps} rates={rates} forwards={forwards} forwardSettings={forwardSettings}/>}
       </div>
@@ -2486,7 +2564,10 @@ function App() {
           auth={auth}
           setAuth={setAuth}
           backups={backups}
-          onRestoreFromBackup={(id) => {
+          onRestoreFromBackup={async (id) => {
+            const snap = backups.find(x => x.id === id);
+            const go = await appToast.askConfirm('กู้คืนข้อมูลชุดนี้ ?\nโพย ' + fmt((snap?.data?.bets || []).length) + ' รายการ\n\nข้อมูลในเครื่องตอนนี้ (โพย ' + fmt(bets.length) + ' รายการ) จะถูกแทนที่', { danger: true, confirmLabel: 'กู้คืน' });
+            if (!go) return;
             const ok = restoreFromBackup(id);
             if (ok) {
               appToast.show('กู้คืนข้อมูลสำเร็จ', 'success');
@@ -2508,7 +2589,13 @@ function App() {
           }}
           onRestore={async (file) => {
             try {
-              await restoreBackup(file);
+              const backup = await restoreBackup(file);
+              // ยืนยันก่อนแทนที่ (เดิมเลือกไฟล์ปุ๊บ ข้อมูลในเครื่องถูกแทนทันที — เลือกไฟล์ผิด = โพยปัจจุบันหาย)
+              const d = backup.data, when = backup.exportedAt ? new Date(backup.exportedAt) : null;
+              const ok = await appToast.askConfirm('นำเข้าไฟล์สำรอง' + (when && !isNaN(when) ? ' (' + formatDrawDateShort(when.getFullYear() + '-' + String(when.getMonth() + 1).padStart(2, '0') + '-' + String(when.getDate()).padStart(2, '0')) + ')' : '') +
+                '\nโพย ' + fmt((d.bets || []).length) + ' รายการ\n\nข้อมูลในเครื่องตอนนี้ (โพย ' + fmt(bets.length) + ' รายการ) จะถูกแทนที่', { danger: true, confirmLabel: 'นำเข้า' });
+              if (!ok) return;
+              applyBackupData(d);
               appToast.show('นำเข้าข้อมูลสำเร็จ', 'success');
               setShowAuthSheet(false);
             } catch (err) {
@@ -2543,7 +2630,7 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
   const [error, setError] = useState('');
 
   const hasPin = !!auth?.pinHash;
-  const autoLockMinutes = auth?.autoLockMinutes ?? 30;
+  const autoLockMinutes = auth?.autoLockMinutes ?? 15;
 
   const setAutoLock = (mins) => {
     setAuth({ ...auth, autoLockMinutes: mins });
@@ -3227,15 +3314,25 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
     setNumber('');
   };
 
+  // กดเร็ว: ตัวเลขครบหลักแล้วรอ 80ms ให้เห็นก่อนเพิ่ม — ถ้ากดตัวถัดไประหว่างรอ → เพิ่มเลขเดิมทันที แล้วเริ่มเลขใหม่
+  // (เดิมกดตัวถัดไปเร็ว ตัวนั้นหายและเลขเดิมเข้ารายการซ้ำ 2 ใบ)
+  const digitTimerRef = useRef(null);
   const onDigit = (d) => {
     setError('');
+    if (digitTimerRef.current) {
+      clearTimeout(digitTimerRef.current); digitTimerRef.current = null;
+      addToPending(number);
+      setNumber(d.slice(0, digits));
+      return;
+    }
     const newNum = (number + d).slice(0, digits);
     setNumber(newNum);
-    if (newNum.length === digits) setTimeout(() => addToPending(newNum), 80);
+    if (newNum.length === digits) digitTimerRef.current = setTimeout(() => { digitTimerRef.current = null; addToPending(newNum); }, 80);
   };
 
-  const onBackspace = () => { setNumber(n => n.slice(0, -1)); setError(''); };
-  const onClear = () => { setNumber(''); setError(''); };
+  const stopDigitTimer = () => { if (digitTimerRef.current) { clearTimeout(digitTimerRef.current); digitTimerRef.current = null; } };
+  const onBackspace = () => { stopDigitTimer(); setNumber(n => n.slice(0, -1)); setError(''); };
+  const onClear = () => { stopDigitTimer(); setNumber(''); setError(''); };
 
   const removePending = (id) => setPending(prev => prev.filter(p => p.id !== id));
   const clearAllPending = async () => {
@@ -3279,7 +3376,8 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
   };
 
   const removeBet = (id) => setBets(prev => prev.filter(b => b.id !== id));
-  const updateBet = (id, field, value) => setBets(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b));
+  // จำนวน/อัตรา เก็บเป็นตัวเลขเสมอ (เดิมเก็บเป็นข้อความ → ยอดรวมในข้อความ LINE ต่อกันเป็น "10050")
+  const updateBet = (id, field, value) => setBets(prev => prev.map(b => b.id === id ? { ...b, [field]: (field === 'amount' || field === 'rate') && value !== '' && !isNaN(Number(value)) ? Number(value) : value } : b));
   const clearAllSaved = async () => {
     if (bets.length === 0) return;
     const ok = await toast.askConfirm('ลบโพยทั้งหมดในงวดนี้ ?\n(' + bets.length + ' รายการ)', { danger: true, confirmLabel: 'ลบทั้งหมด' });
@@ -3292,7 +3390,7 @@ function JotTab({ lottery, drawDate, purchaseDate, bets, allBets, setBets, rates
     if (!parsed || parsed.length === 0) return;
     const newPending = parsed.map(p => ({ id: uid(), number: p.number, type: p.type, amount: p.amount || '', rate: rates[p.type] || 90 }));
     setPending(prev => [...prev, ...newPending]);
-    if (name) setCustomer(name);
+    if (typeof name === 'string') setCustomer(name); // ลบชื่อในแผ่นวาง = ไม่ใส่ชื่อ (เดิมกลับไปใช้ชื่อลูกค้าคนก่อน)
     setSheet(null);
     setStep('pricing');
     toast.show('ลง ' + newPending.length + ' รายการ · ตรวจแล้วกดบันทึก', 'success', 3500);
@@ -4002,7 +4100,7 @@ function formatPerCustomerForLine(bets, lottery, drawDate, customerName) {
   Object.entries(byNum).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([num, group]) => {
     const parts = group.map(b => `${typeShort(b.type)} ${fmt(b.amount)}`).join(' / ');
     lines.push(`${num}  ${parts}`);
-    group.forEach(b => { total += b.amount; });
+    group.forEach(b => { total += parseFloat(b.amount) || 0; });
   });
   lines.push('─────────────');
   lines.push(`💰 รวม ฿${fmt(total)} · ${items.length} รายการ`);
@@ -4081,7 +4179,7 @@ function buildSlip(mode, bets, lottery, drawDate, customer) {
   const maxPay = bets.reduce((s, b) => s + (parseFloat(b.amount) || 0) * (parseFloat(b.rate) || 0), 0);
   const sc = computeScenarios(bets);
   const extra = [['จ่ายเพดาน (ถ้าถูกทุกใบ)', '฿' + fmt(maxPay)]];
-  if (sc && sc.worst) extra.push(['เสียมากสุด (ถ้าออก ' + sc.worst.num3 + (sc.worst.num2low ? ' / ' + sc.worst.num2low : '') + ')',
+  if (sc && sc.worst) extra.push(['เสียมากสุด (ถ้าออก ' + scenLabel(sc.worst) + ')',
     (sc.worst.net >= 0 ? '+' : '-') + '฿' + fmt(Math.abs(sc.worst.net))]);
   return { ...head, kind: 'สรุปยอด', whoLabel: 'ลูกค้า', who: custs.length + ' คน', count: bets.length, total: sumAmt(bets), sections: [{ rows, nameRows: true }], extra };
 }
@@ -4593,20 +4691,22 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
 
   const perCombo = useMemo(() => {
     const map = {};
+    const fullAmt = new Map(bets.map(b => [b.id, parseFloat(b.amount) || 0]));
     enrichedBets.forEach(b => {
       const key = b.number + '|' + b.type;
       if (!map[key]) map[key] = {
-        number: b.number, type: b.type, intake: 0, payout: 0, ids: [], halfPay: b.halfPay
+        number: b.number, type: b.type, intake: 0, fullIntake: 0, payout: 0, ids: [], halfPay: b.halfPay
       };
       const amt = parseFloat(b.amount) || 0;
       const rate = parseFloat(b.rate) || 0;
       const halfMult = b.halfPay ? 0.5 : 1;
-      map[key].intake += amt;
+      map[key].intake += amt;                       // ยอดที่เก็บไว้เอง (หลังส่งต่อ)
+      map[key].fullIntake += fullAmt.get(b.id) || 0; // ยอดที่ลูกค้าซื้อจริง (ใช้ตอนลด/ตัด)
       map[key].payout += amt * rate * halfMult;
       map[key].ids.push(b.id);
     });
     return Object.values(map).sort((a, b) => b.payout - a.payout);
-  }, [enrichedBets]);
+  }, [enrichedBets, bets]);
 
   const [cutThreshold, setCutThreshold] = useState('');
   const [simNumber, setSimNumber] = useState('');
@@ -4639,7 +4739,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
     perCombo.forEach(c => {
       if (c.payout > th) {
         c.ids.forEach(id => idsToCut.add(id));
-        cutItems.push({ number: c.number, type: c.type, amount: c.intake, count: c.ids.length });
+        cutItems.push({ number: c.number, type: c.type, amount: c.fullIntake, count: c.ids.length }); // ตัดทั้งใบ = ยอดที่ลูกค้าซื้อ
       }
     });
     if (idsToCut.size === 0) { toast.show('ไม่มีโพยที่จ่ายเกิน ฿' + fmt(th), 'info'); return; }
@@ -4657,18 +4757,17 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
     if (!ok) return;
     setBets(prev => prev.filter(b => !idsToCut.has(b.id)));
     setCaps(prev => prev.filter(c => !(c.lotteryId === lottery.id && c.drawDate === drawDate && c.number === combo.number && c.type === combo.type)));
-    logCut('cut-combo', [{ number: combo.number, type: combo.type, amount: combo.intake, count: combo.ids.length }]);
+    logCut('cut-combo', [{ number: combo.number, type: combo.type, amount: combo.fullIntake ?? combo.intake, count: combo.ids.length }]);
     toast.show('ตัดเลข ' + combo.number + ' สำเร็จ', 'success');
   };
 
   const toggleHalfPay = (combo) => {
     setCaps(prev => {
-      const exists = prev.find(c =>
-        c.lotteryId === lottery.id && c.drawDate === drawDate &&
-        c.number === combo.number && c.type === combo.type
-      );
+      const same = (c) => c.lotteryId === lottery.id && c.drawDate === drawDate && c.type === combo.type &&
+        (c.number === combo.number || (combo.type === 'โต๊ด' && toadKey(c.number) === toadKey(combo.number)));
+      const exists = prev.find(same);
       if (exists) {
-        return prev.filter(c => c !== exists);
+        return prev.filter(c => !same(c)); // โต๊ด: ยกเลิกครั้งเดียวได้ทั้งชุด
       } else {
         return [...prev, {
           id: uid(),
@@ -4684,7 +4783,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
   const reduceCombo = (combo, factor) => {
     if (factor <= 0 || factor > 1) return;
     const idsInCombo = new Set(combo.ids);
-    const reducedAmt = combo.intake * (1 - factor);
+    const reducedAmt = (combo.fullIntake ?? combo.intake) * (1 - factor); // ลดจากยอดที่ลูกค้าซื้อจริง
     setBets(prev => prev.map(b => {
       if (!idsInCombo.has(b.id)) return b;
       const newAmt = (parseFloat(b.amount) || 0) * factor;
@@ -4920,23 +5019,23 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
                 )}
                 <div className="ml-auto flex items-center gap-1">
                   <button onClick={() => toggleHalfPay(c)}
-                    className={`w-7 h-7 rounded-lg text-base font-bold font-display flex items-center justify-center transition-all ${
+                    className={`w-10 h-10 rounded-lg text-lg font-bold font-display flex items-center justify-center transition-all ${
                       c.halfPay
                         ? 'bg-orange-200 text-orange-800 border border-orange-400'
-                        : 'text-orange-400 hover:bg-orange-100 border border-transparent'
+                        : 'text-orange-500 hover:bg-orange-100 border border-orange-200'
                     }`}
                     title={c.halfPay ? 'ยกเลิกอั้นครึ่ง' : 'อั้นจ่ายครึ่ง'}>
                     ½
                   </button>
                   <button onClick={() => setManageCombo(c)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-500/15"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-red-500 hover:bg-red-500/15 border border-red-100"
                     title="ลดยอด">
-                    <TrendingDown size={13}/>
+                    <TrendingDown size={17}/>
                   </button>
                   <button onClick={() => cutOneCombo(c)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:text-red-500 hover:bg-red-50"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-red-500 hover:text-red-500 hover:bg-red-50 border border-red-100"
                     title="ตัดทั้งหมด">
-                    <Scissors size={13}/>
+                    <Scissors size={17}/>
                   </button>
                 </div>
               </div>
@@ -5033,7 +5132,8 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
 function ReduceSheet({ combo, onReduce, onClose }) {
   const toast = useToast();
   const [custom, setCustom] = useState('');
-  const currentIntake = combo.intake;
+  // ลดยอด = ลดยอดที่ลูกค้าซื้อจริง (เดิมใช้ยอดหลังส่งต่อ → ตั้ง "เหลือ ฿200" แต่โพยลูกค้าลดไม่ตรง)
+  const currentIntake = combo.fullIntake ?? combo.intake;
   const currentPayout = combo.payout;
 
   const applyPreset = async (keepPercent) => {
@@ -5069,6 +5169,11 @@ function ReduceSheet({ combo, onReduce, onClose }) {
             <div className="font-numeric font-bold text-red-600 num-wrap" style={{fontSize: 'clamp(0.95rem, 4.5vw, 1.25rem)', lineHeight: 1.2}}>฿{fmt(currentPayout)}</div>
           </div>
         </div>
+        {combo.fullIntake != null && Math.abs(combo.fullIntake - combo.intake) > 0.009 && (
+          <div data-testid="reduce-kept" className="text-base font-display mt-2" style={{color:'#0e7490'}}>
+            ส่งต่อแล้ว · เก็บไว้เอง ฿{fmt(combo.intake)}
+          </div>
+        )}
       </div>
 
       <div>
@@ -5966,7 +6071,7 @@ function SimRow({ label, value }) {
 // หวยอื่น → ใช้ผลที่กรอกเองในเครื่อง
 const HIST_KEY = 'lotto888-hist-v1';
 const HIST_TTL = 6 * 3600e3;
-const HIST_COLS = { gov: 'draw_date,first_prize,last2', lao: 'draw_date,top3,top2,bottom2', hanoi: 'draw_date,top3,top2,bottom2' };
+const HIST_COLS = { gov: 'draw_date,first_prize,last2', lao: 'draw_date,top3,top2,bottom2', hanoi: 'draw_date,top3,top2,bottom2', hanoi_sp: 'draw_date,top3,top2,bottom2', hanoi_vip: 'draw_date,top3,top2,bottom2' };
 const _histMem = {};
 function readHistCache(lid) {
   if (_histMem[lid]) return _histMem[lid];
@@ -6358,6 +6463,8 @@ const RESULT_THEME = {
   gov:   { flag: '🇹🇭', fg: '#7a5a24', bg: '#fbf6ea', bd: '#e3cf9e' },
   lao:   { flag: '🇱🇦', fg: '#b4233a', bg: '#fdf1f3', bd: '#f2c1ca' },
   hanoi: { flag: '🇻🇳', fg: '#0e7490', bg: '#eef8fa', bd: '#b9e0e8' },
+  hanoi_sp:  { flag: '🇻🇳', fg: '#c2410c', bg: '#fff4ec', bd: '#fbcfae' },
+  hanoi_vip: { flag: '🇻🇳', fg: '#7e22ce', bg: '#f8f1ff', bd: '#ddc6f7' },
   manual:{ flag: '✍️', fg: '#6d28d9', bg: '#f5f1ff', bd: '#ddd2fb' },
 };
 const r3Of = (res) => (res && (res['3บน'] || res['3ตัว'])) || '';
@@ -6516,7 +6623,7 @@ function ManualResultCard({ lottery, drawDate, currentDraw, setDraws, isAuto }) 
         <div className="w-10 h-10 rounded-xl grid place-items-center text-2xl flex-shrink-0" style={{ background: th.bg }}>{lottery.id.startsWith('hanoi') ? '🇻🇳' : th.flag}</div>
         <div className="flex-1 min-w-0">
           <div className="font-display text-lg font-bold leading-tight text-stone-900">{lottery.name}</div>
-          <div className="text-sm text-stone-500 font-display">{lottery.id === 'hanoi_sp' ? 'ทุกวัน 17:00 · ไม่มีแหล่งทางการ' : 'งวด ' + formatDrawDateShort(drawDate)}</div>
+          <div className="text-sm text-stone-500 font-display">{'งวด ' + formatDrawDateShort(drawDate)}</div>
         </div>
         <ResultChip kind="man">กรอกเอง</ResultChip>
       </div>
@@ -6554,7 +6661,7 @@ function ResultHistory({ draws }) {
   const [lid, setLid] = useState('gov');
   const list = useMemo(() => draws.filter(d => d.lotteryId === lid && d.results && r3Of(d.results))
     .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30), [draws, lid]);
-  const ids = ['gov', 'lao', 'hanoi', 'hanoi_sp', 'stock', 'malay', 'yeekee'].filter(id => id === lid || draws.some(d => d.lotteryId === id));
+  const ids = ['gov', 'lao', 'hanoi', 'hanoi_sp', 'hanoi_vip', 'stock', 'malay', 'yeekee'].filter(id => id === lid || draws.some(d => d.lotteryId === id));
   return (
     <div className="glass-strong rounded-2xl p-3.5 space-y-3">
       <div className="flex flex-wrap gap-1.5">
@@ -6640,11 +6747,15 @@ function LotteryStatsTab() {
 
 function StatsTab({ bets, draws, isSeller, caps, rates }) {
   const stats = useMemo(() => {
-    let totalIntake = 0, totalPayout = 0, wonCount = 0, totalCount = 0;
+    let totalIntake = 0, totalPayout = 0, wonCount = 0, totalCount = 0, pendingAmt = 0, pendingCount = 0;
     const byLottery = {};
+    const drawMap = new Map(draws.map(d => [d.lotteryId + '|' + d.date, d]));
     bets.forEach(b => {
-      const draw = draws.find(d => d.lotteryId === b.lotteryId && d.date === b.drawDate);
-      const P = betPayout(b, draw && draw.results, caps, rates);
+      const draw = drawMap.get(b.lotteryId + '|' + b.drawDate);
+      const r = draw && draw.results;
+      // งวดที่ยังไม่ออกผล → ไม่นับในกำไร (เดิมนับยอดรับเป็นกำไรทันที เช่นจด ฿5,000 งวดหน้า = กำไร +฿5,000)
+      if (!r || !(r['3บน'] || r['3ตัว'] || r['2ล่าง'])) { pendingAmt += parseFloat(b.amount) || 0; pendingCount++; return; }
+      const P = betPayout(b, r, caps, rates);
       const amt = P.amt;
       totalIntake += amt;
       totalCount++;
@@ -6659,7 +6770,7 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
     return {
       totalIntake, totalPayout,
       profit: isSeller ? totalIntake - totalPayout : totalPayout - totalIntake,
-      wonCount, totalCount,
+      wonCount, totalCount, pendingAmt, pendingCount,
       byLottery: Object.values(byLottery),
     };
   }, [bets, draws, isSeller, caps, rates]);
@@ -6684,8 +6795,15 @@ function StatsTab({ bets, draws, isSeller, caps, rates }) {
         <div className={`rounded-xl p-3 border overflow-hidden ${stats.profit >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-400'}`}>
           <div className={`text-base uppercase tracking-widest font-display ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>กำไร/ขาดทุน</div>
           <div className={`font-numeric font-bold mt-1 num-wrap ${stats.profit >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{fontSize: 'clamp(1.1rem, 6vw, 1.5rem)', lineHeight: 1.2}}>{stats.profit >= 0 ? '+' : '-'}฿{fmt(Math.abs(stats.profit))}</div>
-          <div className="text-base text-gray-500 mt-1 font-display">{stats.wonCount} / {stats.totalCount} โพยถูก</div>
+          <div className="text-base text-gray-500 mt-1 font-display">{stats.wonCount} / {stats.totalCount} โพยถูก · นับเฉพาะงวดที่ออกผลแล้ว</div>
         </div>
+        {stats.pendingCount > 0 && (
+          <div data-testid="stats-pending" className="mt-2 rounded-xl px-3 py-2 flex items-center justify-between gap-2 flex-wrap"
+            style={{ background: '#eff6ff', border: '1px solid #93c5fd' }}>
+            <span className="font-display text-base font-semibold" style={{ color: '#1d4ed8' }}>⏳ รอผล {stats.pendingCount} โพย</span>
+            <span className="font-numeric font-bold num-wrap" style={{ color: '#1d4ed8' }}>฿{fmt(stats.pendingAmt)}</span>
+          </div>
+        )}
       </div>
       {stats.byLottery.length > 0 && (
         <div className="glass rounded-2xl p-4">

@@ -1,5 +1,5 @@
-// Royal 888 Service Worker v4.2 — แท็บสถิติหวย · PIN ล็อกเมื่อไม่ใช้งาน
-const CACHE = 'royal888-v4.2';
+// Royal 888 Service Worker v4.2 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
+const CACHE = 'royal888-v4-2b';
 const APP_SHELL = [
   './',
   './index.html',
