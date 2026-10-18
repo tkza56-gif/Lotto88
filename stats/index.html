@@ -120,8 +120,8 @@ details.tbl td,details.tbl th{padding:3px 4px;border-bottom:1px solid var(--line
 .heat button{aspect-ratio:1;border:0;border-radius:6px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;padding:0}
 .ramp{height:8px;border-radius:99px;margin:10px 0 2px}
 .ramp-l{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted)}
-.miss{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center}
-.miss .c{width:52px;height:52px;margin:0 auto;border-radius:50%;border:2px solid var(--acc);display:grid;place-items:center;font-weight:700;font-size:19px;color:var(--acc)}
+.miss{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;text-align:center}
+.miss .c{width:min(52px,100%);aspect-ratio:1;margin:0 auto;border-radius:50%;border:2px solid var(--acc);display:grid;place-items:center;font-weight:700;font-size:19px;color:var(--acc)}
 .miss small{display:block;font-size:11.5px;color:var(--ink2);margin-top:4px}
 /* bayes rows */
 .brow{display:grid;grid-template-columns:20px 42px 54px 1fr;align-items:center;gap:6px;padding:7px 0;border-top:1px solid var(--line)}
@@ -150,7 +150,7 @@ details.tbl td,details.tbl th{padding:3px 4px;border-bottom:1px solid var(--line
   <header class="top">
     <div class="brand">
       <div class="logo" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div>
-      <div><h1>สถิติหวย</h1><small>ผลจริงจากแหล่งทางการ</small></div>
+      <div><h1>สถิติหวย</h1><small>ผลจริง · ตรวจหลายแหล่ง</small></div>
     </div>
     <button class="chip-status load" id="status" type="button" aria-live="polite"><span class="dot"></span><span id="statusText">กำลังโหลด…</span></button>
   </header>
@@ -179,7 +179,7 @@ details.tbl td,details.tbl th{padding:3px 4px;border-bottom:1px solid var(--line
 // ═══ การเชื่อมต่อ (Supabase โปรเจกต์ Lotto888 — คีย์สาธารณะ อ่านอย่างเดียว) ═══
 const SUPA = "https://tlykaqoypstvdrlivwvu.supabase.co";
 const KEY = "sb_publishable_IAmYP1QeDb5otH0sjMZaMA_Bme1gxwG";
-const APP_VER = "2.1.0";
+const APP_VER = "2.3.0";
 const REFRESH_MS = 5 * 60 * 1000;
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -196,7 +196,7 @@ const store = {
 
 // ═══ สถานะ ═══
 const ALLOW = { lottery: ["thai", "lao", "hanoi"], round: ["r17", "r18", "r19"], range: ["3m", "1y", "2y", "5y"],
-  tab: ["latest", "analysis", "freq", "map", "learn"], pick: ["top2", "bottom2"] };
+  tab: ["latest", "analysis", "freq", "map", "learn"], pick: ["top2", "bottom2", "top3"] };
 const S = { lottery: "thai", round: "r18", range: "2y", tab: "latest", pick: "bottom2" };
 { const saved = store.get("lotto.ui") || {}; for (const k in ALLOW) if (ALLOW[k].includes(saved[k])) S[k] = saved[k]; }
 
@@ -210,10 +210,19 @@ const cleanHanoi = (rows) => (Array.isArray(rows) ? rows : []).filter((r) => r &
   r.top3 === r.special.slice(-3) && r.top2 === r.special.slice(-2) && r.bottom2 === r.prize1.slice(-2));
 // ลาว: ผลประกาศมีแค่เลข 6 ตัว (เลข 5/4/3/2 ตัว = หางของเลข 6 ตัว) → เก็บเฉพาะ six แล้วตัดหางเอง
 const cleanLao = (rows) => (Array.isArray(rows) ? rows : []).filter((r) => r && isDate(r.draw_date) && D(r.six, 6));
-const cleanAll = (d) => ({ thai: cleanThai(d.thai), hanoi: cleanHanoi(d.hanoi), lao: cleanLao(d.lao) });
-const hasData = (d) => d && ((d.thai || []).length || (d.hanoi || []).length || (d.lao || []).length);
-const rowsOf = (L) => (L === "thai" ? DATA.thai : L === "lao" ? DATA.lao : DATA.hanoi) || [];
-let DATA = { thai: [], hanoi: [], lao: [], log: null, at: null, offline: false };
+// ฮานอยพิเศษ/VIP: ไม่มีผลทางการ → ฐานข้อมูลเก็บเฉพาะงวดที่เว็บรวมผล ≥ 2 แห่งตรงกัน (3 ตัวบน + 2 ตัวล่าง · 2 ตัวบน = หางของ 3 ตัว)
+const cleanHx = (rows) => (Array.isArray(rows) ? rows : []).filter((r) => r && isDate(r.draw_date) && D(r.top3, 3) && D(r.bottom2, 2) && r.top2 === r.top3.slice(-2));
+const cleanAll = (d) => ({ thai: cleanThai(d.thai), hanoi: cleanHanoi(d.hanoi), lao: cleanLao(d.lao), hsp: cleanHx(d.hsp), hvip: cleanHx(d.hvip) });
+const hasData = (d) => d && ((d.thai || []).length || (d.hanoi || []).length || (d.lao || []).length || (d.hsp || []).length || (d.hvip || []).length);
+// ฮานอย 3 รอบ: พิเศษ 17:30 · ปกติ 18:30 (ทางการ XSMB) · VIP 19:30
+const ROUNDS = [
+  { id: "r17", key: "hsp", name: "พิเศษ", time: "17:30" },
+  { id: "r18", key: "hanoi", name: "ปกติ", time: "18:30" },
+  { id: "r19", key: "hvip", name: "VIP", time: "19:30" },
+];
+const roundOf = () => ROUNDS.find((r) => r.id === S.round) || ROUNDS[1];
+const rowsOf = (L) => (L === "thai" ? DATA.thai : L === "lao" ? DATA.lao : DATA[roundOf().key]) || [];
+let DATA = { thai: [], hanoi: [], lao: [], hsp: [], hvip: [], log: null, at: null, offline: false };
 
 // ═══ โหลดข้อมูล ═══
 async function rest(path) {
@@ -237,17 +246,22 @@ async function refresh() {
   setStatus("load", "กำลังอัปเดต…");
   $("#view").classList.add("dim");
   try {
-    const [thai, hanoi, lao, log] = await Promise.all([
+    const HX = "draw_date,top3,top2,bottom2";
+    const [thai, hanoi, lao, hsp, hvip, log] = await Promise.all([
       loadAll("thai_draws", "draw_date,first_prize,last2,front3,back3"),
       loadAll("hanoi_draws", "draw_date,special,prize1,top3,top2,bottom2"),
       loadAll("lao_draws", "draw_date,six").catch(() => null),
+      loadAll("hanoi_sp_draws", HX).catch(() => null),
+      loadAll("hanoi_vip_draws", HX).catch(() => null),
       rest("fetch_log?select=run_at,job,status&status=in.(ok,conflict)&order=id.desc&limit=1").catch(() => []),
     ]);
-    if (!thai.length && !hanoi.length && !lao.length) throw new Error("ไม่มีข้อมูล");
-    // ลาวโหลดไม่ได้ → ใช้ของเดิม (ในหน่วยความจำ หรือในแคช) ไม่ล้างทิ้ง และขึ้นป้ายเตือน
-    const laoMiss = lao === null;
-    const prevLao = (DATA.lao && DATA.lao.length) ? DATA.lao : cleanLao((store.get("lotto.data") || {}).lao);
-    DATA = { ...cleanAll({ thai, hanoi, lao: laoMiss ? prevLao : lao }), laoMiss, log: (log[0] && typeof log[0].run_at === "string") ? log[0] : null, at: new Date().toISOString(), offline: false };
+    if (!thai.length && !hanoi.length && !(lao || []).length) throw new Error("ไม่มีข้อมูล");
+    // ลาว/ฮานอยพิเศษ/VIP โหลดไม่ได้ → ใช้ของเดิม (ในหน่วยความจำ หรือในแคช) ไม่ล้างทิ้ง และขึ้นป้ายเตือน
+    const old = store.get("lotto.data") || {};
+    const keep = (k, rows, clean) => rows !== null ? rows : ((DATA[k] && DATA[k].length) ? DATA[k] : clean(old[k]));
+    const miss = [lao === null && "ลาว", hsp === null && "พิเศษ", hvip === null && "VIP"].filter(Boolean);
+    DATA = { ...cleanAll({ thai, hanoi, lao: keep("lao", lao, cleanLao), hsp: keep("hsp", hsp, cleanHx), hvip: keep("hvip", hvip, cleanHx) }),
+      miss, log: (log[0] && typeof log[0].run_at === "string") ? log[0] : null, at: new Date().toISOString(), offline: false };
     if (!hasData(DATA)) throw new Error("ข้อมูลไม่ผ่านการตรวจรูปแบบ");
     store.set("lotto.data", DATA);
   } catch (e) {
@@ -270,51 +284,70 @@ function chiP(chi2, df) { // Wilson–Hilferty
   const z = (Math.cbrt(chi2 / df) - (1 - 2 / (9 * df))) / Math.sqrt(2 / (9 * df));
   return 1 - normalCdf(z);
 }
+function cutDate() {
+  const days = { "3m": 92, "1y": 365, "2y": 730, "5y": 1826 }[S.range];
+  return new Date(Date.now() + 7 * 3600e3 - (days ?? 730) * 864e5).toISOString().slice(0, 10); // วันที่ตามเวลาไทย
+}
 function draws() {
   const L = S.lottery;
-  if (L === "hanoi" && S.round !== "r18") return [];
   const all = rowsOf(L);
-  const days = { "3m": 92, "1y": 365, "2y": 730, "5y": 1826 }[S.range];
-  const cut = new Date(Date.now() + 7 * 3600e3 - (days ?? 730) * 864e5).toISOString().slice(0, 10); // วันที่ตามเวลาไทย
+  const cut = cutDate();
   return all.filter((d) => d.draw_date > cut);
 }
-const num2 = (d) => (S.lottery === "thai" ? d.last2 : S.lottery === "lao" ? d.six.slice(-2) : S.pick === "top2" ? d.top2 : d.bottom2);
+// ประเภทเลข: 2 บน · 2 ล่าง · 3 ตัวบน — ทุกหวย
+// ไทย: 2/3 บน = ท้ายรางวัลที่ 1 · 2 ล่าง = เลขท้าย 2 ตัว
+// ลาว: 2/3 บน = ท้ายเลข 6 ตัว · 2 ล่าง = หลักที่ 3–4 ของเลข 6 ตัว (ตรงกับคอลัมน์ bottom2 ในฐานครบ 314/314 งวด)
+// ฮานอย: top2 / bottom2 / top3 จากฐาน
+const PICKS = [["top2", "2 บน"], ["bottom2", "2 ล่าง"], ["top3", "3 ตัว"]];
+const ND = () => (S.pick === "top3" ? 3 : 2);
+function numOf(d) {
+  const L = S.lottery, k = S.pick;
+  if (L === "thai") return k === "top3" ? d.first_prize.slice(-3) : k === "top2" ? d.first_prize.slice(-2) : d.last2;
+  if (L === "lao") return k === "top3" ? d.six.slice(-3) : k === "top2" ? d.six.slice(-2) : d.six.slice(2, 4);
+  return k === "top3" ? d.top3 : k === "top2" ? d.top2 : d.bottom2;
+}
+// ผลรวมหลักตามทฤษฎี (%) สำหรับเลข nd หลัก
+function sumTheory(nd) {
+  let w = [1];
+  for (let i = 0; i < nd; i++) { const n = Array(w.length + 9).fill(0); w.forEach((c, j) => { for (let k = 0; k < 10; k++) n[j + k] += c; }); w = n; }
+  return w.map((c) => (c / 10 ** nd) * 100);
+}
 function stats(list) {
-  const N = list.length, counts = Array(100).fill(0), digit = Array(10).fill(0), sum = Array(19).fill(0), mon = Array.from({ length: 12 }, () => [0, 0]);
+  const nd = ND(), K = 10 ** nd, p0 = 1 / K;   // 2 ตัว: 100 เลข โอกาส 1% · 3 ตัว: 1,000 เลข โอกาส 0.1%
+  const N = list.length, counts = Array(K).fill(0), digit = Array(10).fill(0), sum = Array(9 * nd + 1).fill(0), mon = Array.from({ length: 12 }, () => [0, 0]);
   let even = 0;
-  const lastIdx = Array(100).fill(-1);
+  const lastIdx = Array(K).fill(-1);
   // list เรียงใหม่→เก่า : index 0 = งวดล่าสุด
   list.forEach((d, i) => {
-    const n = Number(num2(d)), a = Math.floor(n / 10), b = n % 10;
-    counts[n]++; digit[a]++; digit[b]++; sum[a + b]++; if (n % 2 === 0) even++;
+    const t = numOf(d), n = Number(t);
+    let ds = 0; for (const ch of t) { const x = Number(ch); digit[x]++; ds += x; }
+    counts[n]++; sum[ds]++; if (n % 2 === 0) even++;
     if (lastIdx[n] < 0) lastIdx[n] = i;
-    const m = Number(d.draw_date.slice(5, 7)) - 1; mon[m][0] += a + b; mon[m][1]++;
+    const m = Number(d.draw_date.slice(5, 7)) - 1; mon[m][0] += ds; mon[m][1]++;
   });
-  const expD = (2 * N) / 10;
+  const expD = (nd * N) / 10;
   const chiD = expD > 0 ? digit.reduce((s, o) => s + (o - expD) ** 2 / expD, 0) : 0;
-  const exp2 = N / 100;
+  const exp2 = N / K;
   const chi2 = exp2 > 0 ? counts.reduce((s, o) => s + (o - exp2) ** 2 / exp2, 0) : 0;
   const gap = lastIdx.map((i) => (i < 0 ? N : i)); // จำนวนงวดที่ยังไม่ออก
-  const post = counts.map((c) => {
-    const a = c + 1, b = N - c + 99, m = a / (a + b), sd = Math.sqrt((a * b) / ((a + b) ** 2 * (a + b + 1)));
-    return { c, m, lo: Math.max(0, m - 1.96 * sd), hi: m + 1.96 * sd };
-  });
-  // จำนวนเลขที่ "คาดว่า" ช่วง 95% จะไม่คร่อม 1% ถ้าสุ่มจริง: Σ P(c | Binom(N,0.01)) × [ช่วงของ c ไม่คร่อม 1%] × 100
+  const beta = (c) => { const a = c + 1, b = N - c + K - 1, m = a / (a + b), sd = Math.sqrt((a * b) / ((a + b) ** 2 * (a + b + 1))); return { m, lo: Math.max(0, m - 1.96 * sd), hi: m + 1.96 * sd }; };
+  const post = counts.map((c) => ({ c, ...beta(c) }));
+  // จำนวนเลขที่ "คาดว่า" ช่วง 95% จะไม่คร่อมค่าทฤษฎีถ้าสุ่มจริง: Σ P(c | Binom(N,p0)) × [ช่วงของ c ไม่คร่อม p0] × K
   let expOut = 0;
   if (N > 0) {
-    let pmf = Math.pow(0.99, N);
+    let pmf = Math.pow(1 - p0, N);
     for (let c = 0; c <= N; c++) {
-      const a = c + 1, b = N - c + 99, m = a / (a + b), sd = Math.sqrt((a * b) / ((a + b) ** 2 * (a + b + 1)));
-      if (m - 1.96 * sd > 0.01 || m + 1.96 * sd < 0.01) expOut += pmf;
-      pmf *= ((N - c) / (c + 1)) * (0.01 / 0.99);
-      if (c > 60 && pmf < 1e-12) break;
+      const b = beta(c);
+      if (b.lo > p0 || b.hi < p0) expOut += pmf;
+      pmf *= ((N - c) / (c + 1)) * (p0 / (1 - p0));
+      if (c > N * p0 * 3 + 60 && pmf < 1e-12) break;
     }
-    expOut *= 100;
+    expOut *= K;
   }
   return {
-    N, counts, digit, sum, even, odd: N - even, mon, gap, post, expOut,
+    nd, K, p0, N, counts, digit, sum, even, odd: N - even, mon, gap, post, expOut,
     expD, chiD, pD: expD >= 5 ? chiP(chiD, 9) : null,
-    exp2, chi2, p2: exp2 >= 5 ? chiP(chi2, 99) : null,
+    exp2, chi2, p2: exp2 >= 5 ? chiP(chi2, K - 1) : null,
   };
 }
 
@@ -326,7 +359,7 @@ const IC = {
   bars: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 20V11M12 20V5M18 20v-6"/></svg>',
   info: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
 };
-const NOTE = `<div class="note">${IC.info}เพื่อศึกษาสถิติ · ทุกเลขโอกาส 1% เท่ากัน</div>`;
+const NOTE = `<div class="note">${IC.info}เพื่อศึกษาสถิติ · ทุกเลขโอกาสเท่ากัน (2 ตัว 1% · 3 ตัว 0.1%)</div>`;
 function setStatus(kind, text) {
   const el = $("#status"); el.className = "chip-status " + (kind === "ok" ? "" : kind); $("#statusText").textContent = text;
 }
@@ -334,8 +367,6 @@ function emptyCard(title, body) { return `<div class="card"><div class="empty"><
 
 function viewBlocked() {
   if (DATA.error && !hasData(DATA)) return emptyCard("เชื่อมต่อไม่ได้", `${esc(DATA.error)}<br><button class="chip" style="margin-top:10px" onclick="refresh()">ลองใหม่</button>`);
-  if (S.lottery === "hanoi" && S.round !== "r18") return emptyCard(`ฮานอย ${S.round === "r17" ? "17:00" : "19:00"} · ไม่มีแหล่งทางการ`,
-    "รอบนี้ไม่ใช่การออกรางวัลของรัฐเวียดนาม และแต่ละเว็บรายงานเลขไม่ตรงกัน<br>ดูสถิติได้ที่รอบ <b style='display:inline'>18:00</b> (ผลทางการ XSMB)");
   return null;
 }
 
@@ -347,22 +378,31 @@ function vLatest() {
   if (S.lottery === "thai") {
     html += `<section class="hero"><div class="deco"></div><div class="lbl">รางวัลที่ 1</div><div class="date">${thDate(d.draw_date)}</div><div class="big">${esc(d.first_prize)}</div></section>
     <div class="card"><div class="grid2">
-      <div class="kv"><div class="k">2 ตัวล่าง</div><div class="v">${esc(d.last2)}</div></div>
+      <div class="kv"><div class="k">2 ตัวบน · ล่าง</div><div class="v">${esc(d.first_prize.slice(-2))} <small style="font-size:.6em;color:var(--muted)">·</small> ${esc(d.last2)}</div></div>
       <div class="kv"><div class="k">3 ตัวหน้า</div><div class="v sm">${d.front3.map(esc).join(" · ")}</div></div>
       <div class="kv"><div class="k">3 ตัวท้าย</div><div class="v sm">${d.back3.map(esc).join(" · ")}</div></div>
       <div class="kv"><div class="k">ออกทุกวันที่</div><div class="v sm" style="color:var(--ink)">1 และ 16</div></div>
     </div></div>`;
   } else if (S.lottery === "lao") {
     const six = d.six;
-    html += `<section class="hero"><div class="deco"></div><div class="lbl">หวยลาว · เลข 6 ตัว</div><div class="date">${thDate(d.draw_date)}</div><div class="big">${esc(six)}</div></section>
+    html += `<section class="hero"><div class="deco"></div><div class="lbl">หวยลาว · เลข 6 ตัว · จ.–ศ. 20:00</div><div class="date">${thDate(d.draw_date)}</div><div class="big">${esc(six)}</div></section>
     <div class="card"><div class="grid2">
-      <div class="kv"><div class="k">เลข 2 ตัว</div><div class="v">${esc(six.slice(-2))}</div></div>
-      <div class="kv"><div class="k">เลข 3 ตัว</div><div class="v">${esc(six.slice(-3))}</div></div>
+      <div class="kv"><div class="k">2 ตัวบน</div><div class="v">${esc(six.slice(-2))}</div></div>
+      <div class="kv"><div class="k">2 ตัวล่าง</div><div class="v">${esc(six.slice(2, 4))}</div></div>
+      <div class="kv"><div class="k">3 ตัวบน</div><div class="v">${esc(six.slice(-3))}</div></div>
       <div class="kv"><div class="k">เลข 4 ตัว</div><div class="v sm">${esc(six.slice(-4))}</div></div>
-      <div class="kv"><div class="k">ออกผล</div><div class="v sm" style="color:var(--ink)">จ.–ศ. 20:00</div></div>
+    </div></div>`;
+  } else if (S.round !== "r18") {
+    const R = roundOf();
+    html += `<section class="hero"><div class="deco"></div><div class="lbl">ฮานอย${R.name === "VIP" ? " VIP" : R.name} ${R.time} · 3 ตัวบน</div><div class="date">${thDate(d.draw_date)}</div><div class="big">${esc(d.top3)}</div></section>
+    <div class="card"><div class="grid2">
+      <div class="kv"><div class="k">2 ตัวบน</div><div class="v">${esc(d.top2)}</div></div>
+      <div class="kv"><div class="k">2 ตัวล่าง</div><div class="v">${esc(d.bottom2)}</div></div>
+      <div class="kv"><div class="k">ออกผล</div><div class="v sm" style="color:var(--ink)">ทุกวัน ${R.time}</div></div>
+      <div class="kv"><div class="k">ยืนยัน</div><div class="v sm" style="color:var(--ink)">≥ 2 เว็บตรงกัน</div></div>
     </div></div>`;
   } else {
-    html += `<section class="hero"><div class="deco"></div><div class="lbl">ฮานอย 18:00 · 3 ตัวบน</div><div class="date">${thDate(d.draw_date)}</div><div class="big">${esc(d.top3)}</div></section>
+    html += `<section class="hero"><div class="deco"></div><div class="lbl">ฮานอยปกติ 18:30 · 3 ตัวบน</div><div class="date">${thDate(d.draw_date)}</div><div class="big">${esc(d.top3)}</div></section>
     <div class="card"><div class="grid2">
       <div class="kv"><div class="k">2 ตัวบน</div><div class="v">${esc(d.top2)}</div></div>
       <div class="kv"><div class="k">2 ตัวล่าง</div><div class="v">${esc(d.bottom2)}</div></div>
@@ -370,46 +410,54 @@ function vLatest() {
       <div class="kv"><div class="k">รางวัลที่ 1 (G1)</div><div class="v sm" style="color:var(--ink)">${esc(d.prize1)}</div></div>
     </div></div>`;
   }
-  const label = S.lottery === "thai" ? "2 ตัวล่าง" : S.lottery === "lao" ? "เลข 2 ตัว" : "บน · ล่าง";
+  const label = "2 บน · ล่าง";
+  const ud = (x) => (S.lottery === "thai" ? [x.first_prize.slice(-2), x.last2] : S.lottery === "lao" ? [x.six.slice(-2), x.six.slice(2, 4)] : [x.top2, x.bottom2]);
   html += `<div class="card"><h2><span class="ic">${IC.hist}</span>ผลย้อนหลัง<span style="margin-left:auto;font-size:12px;color:var(--muted);font-weight:500">${label}</span></h2><ul class="list">` +
-    all.slice(1, 9).map((x) => `<li><span class="d">${IC.cal}${thDate(x.draw_date)}</span><span class="n">${S.lottery === "thai" ? esc(x.last2) : S.lottery === "lao" ? esc(x.six.slice(-2)) : `${esc(x.top2)} <small>·</small>${esc(x.bottom2)}`}</span></li>`).join("") +
+    all.slice(1, 9).map((x) => `<li><span class="d">${IC.cal}${thDate(x.draw_date)}</span><span class="n">${esc(ud(x)[0])} <small>·</small>${esc(ud(x)[1])}</span></li>`).join("") +
     `</ul></div>`;
   return html + NOTE;
 }
 
 function pickSeg() {
-  if (S.lottery !== "hanoi") return `<span class="badge na">${S.lottery === "lao" ? "เลข 2 ตัว" : "2 ตัวล่าง"}</span>`;
-  return `<div class="seg" role="group" aria-label="เลขที่วิเคราะห์"><button data-pick="top2" aria-pressed="${S.pick === "top2"}">2 ตัวบน</button><button data-pick="bottom2" aria-pressed="${S.pick === "bottom2"}">2 ตัวล่าง</button></div>`;
+  return `<div class="seg" role="group" aria-label="เลขที่วิเคราะห์">` +
+    PICKS.map(([k, t]) => `<button data-pick="${k}" aria-pressed="${S.pick === k}">${t}</button>`).join("") + `</div>`;
 }
-function headRow(st) { return `<div class="row" style="margin-top:12px"><span style="font-size:13px;color:var(--ink2)">วิเคราะห์ <b style="color:var(--ink)">${st.N}</b> งวด</span>${pickSeg()}</div>`; }
+function headRow(st) {
+  const all = rowsOf(S.lottery), first = all.length ? all[all.length - 1].draw_date : null;
+  const since = first && first > cutDate() ? `<small style="display:block;font-size:11.5px;color:var(--muted)">มีผลตั้งแต่ ${thDate(first)}</small>` : "";
+  return `<div class="row" style="margin-top:12px"><span style="font-size:13px;color:var(--ink2)">วิเคราะห์ <b style="color:var(--ink)">${st.N}</b> งวด${since}</span>${pickSeg()}</div>`;
+}
 
 function vAnalysis(st) {
   let verdict, cls;
   if (st.pD === null) { verdict = "ข้อมูลน้อยเกินไป"; cls = "na"; }
   else if (st.pD >= 0.05) { verdict = "สอดคล้องกับการสุ่ม"; cls = "good"; }
   else { verdict = "เบี่ยงจากการสุ่ม (p<0.05)"; cls = "warn"; }
-  const p2txt = st.p2 === null ? `00–99: ต้องมี ≥ 500 งวด` : `00–99: χ² ${st.chi2.toFixed(1)} · p ${st.p2.toFixed(3)}`;
+  const rng = st.nd === 3 ? "000–999" : "00–99";
+  const p2txt = st.p2 === null ? `${rng}: ต้องมี ≥ ${(st.K * 5).toLocaleString()} งวด` : `${rng}: χ² ${st.chi2.toFixed(1)} · p ${st.p2.toFixed(3)}`;
   let html = headRow(st) + `<div class="card"><h2><span class="ic" style="color:var(--good)">${IC.shield}</span>ทดสอบความสุ่ม</h2>
     <div class="row" style="align-items:baseline"><span style="color:var(--ink2);font-size:14px">หลัก 0–9 · Chi-square</span>
     <span style="font-size:22px;font-weight:700">${st.pD === null ? "—" : `χ² ${st.chiD.toFixed(2)} <span style="color:var(--ink2);font-size:15px;font-weight:600">p ${st.pD.toFixed(3)}</span>`}</span></div>
     <div class="row" style="margin-top:8px"><span class="badge ${cls}">${cls === "good" ? "✓ " : cls === "warn" ? "! " : ""}${verdict}</span><span style="font-size:12px;color:var(--muted)">${p2txt}</span></div></div>`;
   // Bayesian top 5
   const top = st.post.map((p, n) => ({ n, ...p })).sort((a, b) => b.m - a.m || b.c - a.c || a.n - b.n).slice(0, 5);
-  const xmax = Math.max(0.03, ...top.map((t) => t.hi)) * 1.08, W = 100;
+  const p0 = st.p0, th = st.nd === 3 ? "0.1%" : "1%", dp = st.nd === 3 ? 2 : 1;
+  const xmax = Math.max(p0 * 3, ...top.map((t) => t.hi)) * 1.08, W = 100;
   const x = (v) => (v / xmax) * W;
-  const outN = st.post.filter((p) => p.lo > 0.01 || p.hi < 0.01).length;
-  const bnote = outN === 0 ? "ช่วง 95% ของทุกเลขคร่อมเส้น 1% = ไม่ต่างจากสุ่ม"
-    : `${outN} จาก 100 เลขช่วงไม่คร่อม 1% · ถ้าสุ่มจริง คาดว่าหลุดโดยบังเอิญ ~${st.expOut.toFixed(1)} เลข`;
-  html += `<div class="card"><h2>5 อันดับ Bayesian</h2><p class="sub">${bnote}</p>` +
-    top.map((t) => `<div class="brow" title="ออก ${t.c} ครั้ง"><span class="dot"></span><span class="num">${pad(t.n)}</span><span class="pct">${(t.m * 100).toFixed(1)}%</span>
-      <svg viewBox="0 0 100 14" preserveAspectRatio="none" style="width:100%;height:14px" aria-label="ช่วง ${(t.lo * 100).toFixed(1)}–${(t.hi * 100).toFixed(1)}%">
-        <line x1="${x(0.01)}" x2="${x(0.01)}" y1="0" y2="14" stroke="var(--ink2)" stroke-width="1.2" stroke-dasharray="3 2" vector-effect="non-scaling-stroke"/>
+  const outN = st.post.filter((p) => p.lo > p0 || p.hi < p0).length;
+  const bnote = outN === 0 ? `ช่วง 95% ทุกเลขคร่อม ${th} = ไม่ต่างจากสุ่ม`
+    : `${outN} จาก ${st.K.toLocaleString()} เลขไม่คร่อม ${th} · สุ่มจริงก็หลุดได้ ~${st.expOut.toFixed(1)} เลข`;
+  html += `<div class="card"><h2>5 อันดับออกบ่อย <small style="font-weight:500;color:var(--muted);font-size:12px">· Bayesian</small></h2>
+    <p class="sub">จากผลที่ผ่านมา · ไม่ใช่โอกาสงวดหน้า<br>${bnote}</p>` +
+    top.map((t) => `<div class="brow" title="ออก ${t.c} ครั้ง"><span class="dot"></span><span class="num">${pad(t.n, st.nd)}</span><span class="pct">${(t.m * 100).toFixed(dp)}%</span>
+      <svg viewBox="0 0 100 14" preserveAspectRatio="none" style="width:100%;height:14px" aria-label="ช่วง ${(t.lo * 100).toFixed(dp)}–${(t.hi * 100).toFixed(dp)}%">
+        <line x1="${x(p0)}" x2="${x(p0)}" y1="0" y2="14" stroke="var(--ink2)" stroke-width="1.2" stroke-dasharray="3 2" vector-effect="non-scaling-stroke"/>
         <line x1="${x(t.lo)}" x2="${x(t.hi)}" y1="7" y2="7" stroke="var(--acc)" stroke-width="2" vector-effect="non-scaling-stroke"/>
         <line x1="${x(t.lo)}" x2="${x(t.lo)}" y1="3" y2="11" stroke="var(--acc)" stroke-width="2" vector-effect="non-scaling-stroke"/>
         <line x1="${x(t.hi)}" x2="${x(t.hi)}" y1="3" y2="11" stroke="var(--acc)" stroke-width="2" vector-effect="non-scaling-stroke"/>
         <rect x="${x(t.m) - 1.6}" y="3.5" width="3.2" height="7" rx="1.6" fill="var(--acc)"/>
       </svg></div>`).join("") +
-    `<div class="legend"><span><i style="background:var(--acc)"></i>ค่าประมาณ + ช่วง 95%</span><span><i class="line"></i>ทฤษฎี 1%</span></div></div>`;
+    `<div class="legend"><span><i style="background:var(--acc)"></i>ค่าประมาณ + ช่วง 95%</span><span><i class="line"></i>ทฤษฎี ${th}</span></div></div>`;
   return html + NOTE;
 }
 
@@ -436,21 +484,21 @@ function table(head, rows) {
 }
 
 function vFreq(st) {
-  const pct = st.digit.map((c) => (st.N ? (c / (2 * st.N)) * 100 : 0));
+  const pct = st.digit.map((c) => (st.N ? (c / (st.nd * st.N)) * 100 : 0));
   let html = headRow(st);
   html += `<div class="card"><h2><span class="ic">${IC.bars}</span>ความถี่ตัวเลข 0–9</h2>` +
     barChart("c-digit", [...Array(10).keys()], pct, Array(10).fill(10), (v) => v.toFixed(0) + "%", (i) => `เลข ${i}: ${st.digit[i]} ครั้ง (${pct[i].toFixed(1)}%)`, "กราฟความถี่ตัวเลข 0 ถึง 9 เทียบทฤษฎี 10%") +
     `<div class="legend"><span><i style="background:var(--acc)"></i>สัดส่วนจริง</span><span><i class="line"></i>ทฤษฎี 10%</span></div>` +
     table(["เลข", "ครั้ง", "%", "ทฤษฎี"], st.digit.map((c, i) => [i, c, pct[i].toFixed(1), "10.0"])) + `</div>`;
-  const sp = st.sum.map((c) => (st.N ? (c / st.N) * 100 : 0)), th = [...Array(19).keys()].map((k) => (k <= 9 ? k + 1 : 19 - k));
-  html += `<div class="card"><h2><span class="ic">${IC.bars}</span>ผลรวมหลัก 0–18</h2>` +
-    barChart("c-sum", [...Array(19).keys()].map((k) => (k % 3 === 0 ? k : "")), sp, th, (v) => v.toFixed(0) + "%", (i) => `ผลรวม ${i}: ${st.sum[i]} งวด (${sp[i].toFixed(1)}%) · ทฤษฎี ${th[i]}%`, "กราฟผลรวมหลัก 0 ถึง 18 เทียบทฤษฎี") +
-    `<div class="legend"><span><i style="background:var(--acc)"></i>สัดส่วนจริง</span><span><i class="line"></i>ทฤษฎี (ยอดที่ 9)</span></div>` +
-    table(["ผลรวม", "งวด", "%", "ทฤษฎี %"], st.sum.map((c, i) => [i, c, sp[i].toFixed(1), th[i]])) + `</div>`;
+  const SM = 9 * st.nd, sp = st.sum.map((c) => (st.N ? (c / st.N) * 100 : 0)), th = sumTheory(st.nd), thf = (v) => (st.nd === 3 ? v.toFixed(1) : String(Math.round(v)));
+  html += `<div class="card"><h2><span class="ic">${IC.bars}</span>ผลรวมหลัก 0–${SM}</h2>` +
+    barChart("c-sum", [...Array(SM + 1).keys()].map((k) => (k % 3 === 0 ? k : "")), sp, th, (v) => v.toFixed(0) + "%", (i) => `ผลรวม ${i}: ${st.sum[i]} งวด (${sp[i].toFixed(1)}%) · ทฤษฎี ${thf(th[i])}%`, `กราฟผลรวมหลัก 0 ถึง ${SM} เทียบทฤษฎี`) +
+    `<div class="legend"><span><i style="background:var(--acc)"></i>สัดส่วนจริง</span><span><i class="line"></i>ทฤษฎี (ยอดที่ ${st.nd === 3 ? "13–14" : "9"})</span></div>` +
+    table(["ผลรวม", "งวด", "%", "ทฤษฎี %"], st.sum.map((c, i) => [i, c, sp[i].toFixed(1), thf(th[i])])) + `</div>`;
   const ma = st.mon.map(([s, c]) => (c ? s / c : 0));
   html += `<div class="card"><h2><span class="ic">${IC.bars}</span>ผลรวมหลักเฉลี่ย รายเดือน</h2>` +
-    barChart("c-mon", MON, ma, Array(12).fill(9), (v) => v.toFixed(0), (i) => `${MON[i]}: เฉลี่ย ${ma[i].toFixed(2)} (${st.mon[i][1]} งวด)`, "กราฟผลรวมหลักเฉลี่ยรายเดือน เทียบทฤษฎี 9") +
-    `<div class="legend"><span><i style="background:var(--acc)"></i>ค่าเฉลี่ยจริง</span><span><i class="line"></i>ทฤษฎี 9.0</span></div></div>`;
+    barChart("c-mon", MON, ma, Array(12).fill(4.5 * st.nd), (v) => v.toFixed(0), (i) => `${MON[i]}: เฉลี่ย ${ma[i].toFixed(2)} (${st.mon[i][1]} งวด)`, `กราฟผลรวมหลักเฉลี่ยรายเดือน เทียบทฤษฎี ${4.5 * st.nd}`) +
+    `<div class="legend"><span><i style="background:var(--acc)"></i>ค่าเฉลี่ยจริง</span><span><i class="line"></i>ทฤษฎี ${(4.5 * st.nd).toFixed(1)}</span></div></div>`;
   html += `<div class="card" style="display:flex;align-items:center;justify-content:center;gap:14px;font-size:20px;font-weight:700">
     <span style="color:var(--c-blue)">คู่ ${st.even}</span><span style="color:var(--muted)">:</span><span style="color:var(--thai)">คี่ ${st.odd}</span></div>`;
   return html + NOTE;
@@ -461,7 +509,37 @@ function mix(hexA, hexB, t) {
   const a = p(hexA), b = p(hexB);
   return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`;
 }
+function vMap3(st) {
+  const cs = getComputedStyle(document.documentElement);
+  const surf = cs.getPropertyValue("--soft").trim(), acc = cs.getPropertyValue("--acc").trim();
+  const accHex = acc.startsWith("#") ? acc : "#d71f2b", surfHex = surf.startsWith("#") ? surf : "#eef1f6";
+  const dark = cs.getPropertyValue("--on-acc").trim() !== "#ffffff";
+  // ช่อง [หลักร้อย][หลักสิบ] = รวมจำนวนครั้งของ 10 เลข (เช่น 47x = 470–479) · ทฤษฎีต่อช่อง = N/100
+  const cell = Array.from({ length: 100 }, (_, i) => st.counts.slice(i * 10, i * 10 + 10).reduce((a, b) => a + b, 0));
+  const max = Math.max(1, ...cell);
+  let html = headRow(st) + `<div class="card"><h2 style="font-size:15px">ตาราง 000–999 · ช่องละ 10 เลข (เช่น 47x = 470–479)</h2><div class="heat" id="heat">` + cell.map((c, i) => {
+    const t = c / max, bg = mix(surfHex, accHex, 0.08 + t * 0.92), fg = t > 0.55 ? (dark ? "#10141f" : "#ffffff") : "var(--ink)";
+    return `<button style="background:${bg};color:${fg}" data-tip="${pad(i)}x: ${c} ครั้ง" aria-label="${pad(i)}x ออก ${c} ครั้ง">${pad(i)}x</button>`;
+  }).join("") + `</div><div class="ramp" style="background:linear-gradient(90deg,${mix(surfHex, accHex, 0.08)},${accHex})"></div>
+    <div class="ramp-l"><span>0 ครั้ง</span><span>${max} ครั้ง</span></div><div class="tip" id="htip"></div></div>`;
+  const drawn = st.counts.filter((c) => c > 0).length;
+  html += `<div class="stat3" style="margin-top:12px">
+    <div class="tile"><div class="t" style="color:var(--c-green)">${drawn}<span style="font-size:14px;color:var(--ink2)">/1000</span></div><div class="l">เคยออก</div></div>
+    <div class="tile"><div class="t" style="color:var(--c-blue)">${1000 - drawn}</div><div class="l">ไม่เคยออก</div></div>
+    <div class="tile"><div class="t" style="color:var(--c-purple)">${(st.N / 1000).toFixed(2)}</div><div class="l">เฉลี่ย/เลข</div></div></div>`;
+  const hot = st.counts.map((c, n) => ({ c, n })).filter((x) => x.c > 0).sort((a, b) => b.c - a.c || st.gap[a.n] - st.gap[b.n] || a.n - b.n).slice(0, 5);
+  html += `<div class="card"><h2 style="justify-content:center">ออกบ่อยสุด</h2><div class="miss">` +
+    hot.map((m) => `<div><div class="c">${pad(m.n, 3)}</div><small>${m.c} ครั้ง</small></div>`).join("") + `</div></div>`;
+  const miss = st.gap.map((g, n) => ({ g, n })).sort((a, b) => b.g - a.g || a.n - b.n);
+  const never = miss.filter((m) => m.g === st.N).length;
+  html += `<div class="card"><h2 style="justify-content:center">ไม่ออกนานสุด</h2>` +
+    (never ? `<p class="sub" style="text-align:center;margin:0">ยังไม่เคยออกเลย ${never} เลข (ในช่วงที่เลือก)</p>` : `<div class="miss">` +
+    miss.slice(0, 5).map((m) => `<div><div class="c">${pad(m.n, 3)}</div><small>${m.g} งวด</small></div>`).join("") + `</div>`) +
+    `<p class="sub" style="margin:10px 0 0;text-align:center">ไม่ออกนาน ≠ ใกล้ออก — โอกาสงวดหน้ายังเท่าเดิม</p></div>`;
+  return html + NOTE;
+}
 function vMap(st) {
+  if (st.nd === 3) return vMap3(st);
   const cs = getComputedStyle(document.documentElement);
   const surf = cs.getPropertyValue("--soft").trim(), acc = cs.getPropertyValue("--acc").trim();
   const accHex = acc.startsWith("#") ? acc : "#d71f2b", surfHex = surf.startsWith("#") ? surf : "#eef1f6";
@@ -498,7 +576,8 @@ function vLearn() {
     <li>✗ เล่นนานไป ค่าคาดหวังติดลบเสมอ</li></ul></div>
   <div class="card src"><h2>แหล่งข้อมูล</h2><ul class="facts" style="list-style:none;padding:0">
     <li><b style="color:var(--thai)">ไทย</b> · <a href="https://gdcatalog.glo.or.th/dataset/dataset_c4-9_01" target="_blank" rel="noopener">API สำนักงานสลากฯ (GLO)</a></li>
-    <li><b style="color:var(--hanoi)">ฮานอย 18:00</b> · ผลทางการ XSMB · <a href="https://github.com/khiemdoan/vietnam-lottery-xsmb-analysis" target="_blank" rel="noopener">ชุดข้อมูลรายวัน</a></li>
+    <li><b style="color:var(--hanoi)">ฮานอยปกติ</b> · ผลทางการ XSMB · <a href="https://github.com/khiemdoan/vietnam-lottery-xsmb-analysis" target="_blank" rel="noopener">ชุดข้อมูลรายวัน</a></li>
+    <li><b style="color:var(--hanoi)">ฮานอยพิเศษ · VIP</b> · เว็บรวมผล ≥ 2 แห่งตรงกัน</li>
     <li><b style="color:var(--lao)">ลาว</b> · ผลจากข่าว (ข่าวสด·สนุก·กะปุก) · ไม่มี API ทางการ</li>
     <li style="color:var(--muted)">ดึงผลอัตโนมัติทุก 5–10 นาที ช่วง 15:00–03:50 น.${last ? ` · ดึงล่าสุด ${thDate(`${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`)} ${hhmm(last)}` : ""}</li>
     <li style="color:var(--muted)">เวอร์ชัน ${APP_VER}</li></ul></div>` + NOTE;
@@ -513,14 +592,14 @@ function render() {
   document.querySelectorAll("#nav button").forEach((b) => { if (b.dataset.t === S.tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const rounds = $("#rounds");
   rounds.hidden = S.lottery !== "hanoi";
-  rounds.innerHTML = [["r17", "17:00"], ["r18", "18:00"], ["r19", "19:00"]].map(([id, t]) =>
-    `<button class="chip" data-r="${id}" aria-pressed="${S.round === id}">${t}${id === "r18" ? "" : ' <span class="na">· ไม่มีแหล่ง</span>'}</button>`).join("");
+  rounds.innerHTML = ROUNDS.map((r) =>
+    `<button class="chip" data-r="${r.id}" aria-pressed="${S.round === r.id}">${r.name} <span class="na">${r.time}</span></button>`).join("");
   $("#ranges").innerHTML = [["3m", "3 เดือน"], ["1y", "1 ปี"], ["2y", "2 ปี"], ["5y", "5 ปี"]].map(([id, t]) =>
     `<button class="chip" data-g="${id}" aria-pressed="${S.range === id}">${t}</button>`).join("");
-  $("#ranges").hidden = S.tab === "latest" || S.tab === "learn" || (S.lottery === "hanoi" && S.round !== "r18");
+  $("#ranges").hidden = S.tab === "latest" || S.tab === "learn";
 
   if (DATA.offline) setStatus("warn", `ออฟไลน์ · ${hhmm(new Date(DATA.at))}`);
-  else if (DATA.at && DATA.laoMiss) setStatus("warn", `ลาวโหลดไม่ได้ · ${hhmm(new Date(DATA.at))}`);
+  else if (DATA.at && DATA.miss && DATA.miss.length) setStatus("warn", `${DATA.miss.join("·")} โหลดไม่ได้ · ${hhmm(new Date(DATA.at))}`);
   else if (DATA.at) setStatus("ok", `อัปเดต ${hhmm(new Date(DATA.at))}`);
   else if (DATA.error) setStatus("warn", "เชื่อมต่อไม่ได้");
 
@@ -562,7 +641,7 @@ document.addEventListener("pointerdown", chartTip);
 
 // ═══ start ═══
 const cached = store.get("lotto.data");
-if (hasData(cached)) { DATA = { ...cached, ...cleanAll(cached), laoMiss: false, offline: false }; render(); }
+if (hasData(cached)) { DATA = { ...cached, ...cleanAll(cached), miss: [], offline: false }; render(); }
 refresh();
 setInterval(() => { if (document.visibilityState === "visible") refresh(); }, REFRESH_MS);
 document.addEventListener("visibilitychange", () => {

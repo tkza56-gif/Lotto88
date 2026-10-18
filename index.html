@@ -466,8 +466,8 @@ const ALL_LOTTERIES = [
   { id: 'stock',  name: 'หวยหุ้น',     types: ['3บน', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'lao',    name: 'หวยลาว',     types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'hanoi',  name: 'ฮานอยปกติ',  types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },   // 18:30 · ผลทางการ XSMB (อัตโนมัติ)
-  { id: 'hanoi_sp', name: 'ฮานอยพิเศษ', types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] }, // 17:30 · อัตโนมัติ (เว็บรวมผล 2 แหล่งต้องตรงกัน)
-  { id: 'hanoi_vip', name: 'ฮานอย VIP', types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },  // 19:30 · อัตโนมัติ (เว็บรวมผล 2 แหล่งต้องตรงกัน)
+  { id: 'hanoi_sp', name: 'ฮานอยพิเศษ', types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] }, // 17:30 · อัตโนมัติ (เว็บรวมผล ≥ 2 แหล่งต้องตรงกัน · มีตั้งแต่ 25 ก.ค. 69)
+  { id: 'hanoi_vip', name: 'ฮานอย VIP', types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },  // 19:30 · อัตโนมัติ (เว็บรวมผล ≥ 2 แหล่งต้องตรงกัน · มีตั้งแต่ 25 ก.ค. 69)
   { id: 'malay',  name: 'หวยมาเลย์',   types: ['3ตัว', '2บน', '2ล่าง', 'โต๊ด'] },
   { id: 'yeekee', name: 'หวยยี่กี',    types: ['3บน', '2บน', '2ล่าง', 'โต๊ด'] },
 ];
@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.4 · 17 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-4
+const APP_VERSION = 'v4.6 · 18 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-6
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -502,8 +502,8 @@ const AUTO_LOTTERIES = {
   lao:   { table: 'lao_draws',   cols: 'draw_date,six,top3,top2,bottom2',          time: '20:00', days: 'จ.–ศ. 20:00',      src: 'ข่าวสด · เทียบ 2 แหล่ง', tag: 'อัตโนมัติ' },
   hanoi: { table: 'hanoi_draws', cols: 'draw_date,special,prize1,top3,top2,bottom2', time: '18:30', days: 'ทุกวัน 18:30',   src: 'ผลทางการเวียดนาม (XSMB)', tag: 'ทางการ' },
   // ฮานอยพิเศษ/VIP ไม่มีผู้ออกผลทางการ → บันทึกเมื่อเว็บรวมผล 2 แห่ง (saihuay + 98lotto) ตรงกันเท่านั้น
-  hanoi_sp:  { table: 'hanoi_sp_draws',  cols: 'draw_date,top3,top2,bottom2', time: '17:30', days: 'ทุกวัน 17:30', src: 'เว็บรวมผล · เทียบ 2 แหล่ง', tag: 'อัตโนมัติ' },
-  hanoi_vip: { table: 'hanoi_vip_draws', cols: 'draw_date,top3,top2,bottom2', time: '19:30', days: 'ทุกวัน 19:30', src: 'เว็บรวมผล · เทียบ 2 แหล่ง', tag: 'อัตโนมัติ' },
+  hanoi_sp:  { table: 'hanoi_sp_draws',  cols: 'draw_date,top3,top2,bottom2', time: '17:30', days: 'ทุกวัน 17:30', src: 'เว็บรวมผล · ตรง ≥ 2 แหล่ง', tag: 'อัตโนมัติ' },
+  hanoi_vip: { table: 'hanoi_vip_draws', cols: 'draw_date,top3,top2,bottom2', time: '19:30', days: 'ทุกวัน 19:30', src: 'เว็บรวมผล · ตรง ≥ 2 แหล่ง', tag: 'อัตโนมัติ' },
 };
 const AUTO_IDS = ['gov', 'lao', 'hanoi', 'hanoi_sp', 'hanoi_vip'];
 
@@ -6072,9 +6072,10 @@ function SimRow({ label, value }) {
 
 // ==================== PICK TAB ====================
 // ==================== คัดเลข: สถิติจากผลจริง ====================
-// หวยที่มีผลอัตโนมัติ (ไทย/ลาว/ฮานอยปกติ) → ดึงประวัติทั้งหมดจากฐานข้อมูล (หน้าละ 1,000 แถว) + เก็บสำรองในเครื่อง
+// หวยที่มีผลอัตโนมัติ (ไทย/ลาว/ฮานอยปกติ/พิเศษ/VIP) → ดึงประวัติทั้งหมดจากฐานข้อมูล (หน้าละ 1,000 แถว) + เก็บสำรองในเครื่อง
 // หวยอื่น → ใช้ผลที่กรอกเองในเครื่อง
-const HIST_KEY = 'lotto888-hist-v1';
+const HIST_KEY = 'lotto888-hist-v2';   // v2 (v4.5): ฮานอยพิเศษ/VIP มีย้อนหลังเพิ่ม → ทิ้งแคชเก่าที่มีแค่ 21 งวด
+try { localStorage.removeItem('lotto888-hist-v1'); } catch (e) {}
 const HIST_TTL = 6 * 3600e3;
 const HIST_COLS = { gov: 'draw_date,first_prize,last2', lao: 'draw_date,top3,top2,bottom2', hanoi: 'draw_date,top3,top2,bottom2', hanoi_sp: 'draw_date,top3,top2,bottom2', hanoi_vip: 'draw_date,top3,top2,bottom2' };
 const _histMem = {};
