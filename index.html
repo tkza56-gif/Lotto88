@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.6 · 18 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-6
+const APP_VERSION = 'v4.7 · 19 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-7
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -6074,8 +6074,8 @@ function SimRow({ label, value }) {
 // ==================== คัดเลข: สถิติจากผลจริง ====================
 // หวยที่มีผลอัตโนมัติ (ไทย/ลาว/ฮานอยปกติ/พิเศษ/VIP) → ดึงประวัติทั้งหมดจากฐานข้อมูล (หน้าละ 1,000 แถว) + เก็บสำรองในเครื่อง
 // หวยอื่น → ใช้ผลที่กรอกเองในเครื่อง
-const HIST_KEY = 'lotto888-hist-v2';   // v2 (v4.5): ฮานอยพิเศษ/VIP มีย้อนหลังเพิ่ม → ทิ้งแคชเก่าที่มีแค่ 21 งวด
-try { localStorage.removeItem('lotto888-hist-v1'); } catch (e) {}
+const HIST_KEY = 'lotto888-hist-v3';   // v3 (v4.7): ฮานอยพิเศษ/VIP เติมย้อนหลังถึง 1 ส.ค. 67 → ทิ้งแคชเก่า (v2 มีแค่ 85 งวด)
+try { localStorage.removeItem('lotto888-hist-v1'); localStorage.removeItem('lotto888-hist-v2'); } catch (e) {}
 const HIST_TTL = 6 * 3600e3;
 const HIST_COLS = { gov: 'draw_date,first_prize,last2', lao: 'draw_date,top3,top2,bottom2', hanoi: 'draw_date,top3,top2,bottom2', hanoi_sp: 'draw_date,top3,top2,bottom2', hanoi_vip: 'draw_date,top3,top2,bottom2' };
 const _histMem = {};
