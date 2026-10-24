@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.7 · 19 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-7
+const APP_VERSION = 'v4.8 · 24 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-8
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -6169,7 +6169,7 @@ function PickTab({ lottery, draws, onSendToJot }) {
         ))}
       </div>
       {subTab === 'freq' && <FrequencyView draws={draws} lottery={lottery} onSendToJot={onSendToJot} onTool={setSubTab}/>}
-      {subTab === 'random' && <RandomGen/>}
+      {subTab === 'random' && <><QuickRoll3 onSendToJot={onSendToJot}/><RandomGen/></>}
       {subTab === 'tools' && <ToolsView/>}
     </div>
   );
@@ -6268,6 +6268,65 @@ function FrequencyView({ draws, lottery, onSendToJot, onTool }) {
       <div className="text-center text-sm font-display" style={{ color: '#9a8f78' }} data-testid="pick-src">
         {H.isAuto ? 'สถิติจากผลจริง ' + AUTO_LOTTERIES[lottery.id].src : 'สถิติจากผลที่กรอกในเครื่อง'}{H.error ? ' · ออฟไลน์ ใช้ข้อมูลที่เก็บไว้' : ''} · ไม่ใช่การทำนาย
       </div>
+    </div>
+  );
+}
+
+// สุ่มเลข 3 ตัว — กดปุ่มแล้วเลขหมุน หยุดทีละหลักจากซ้ายไปขวา
+function QuickRoll3({ onSendToJot }) {
+  const [digits, setDigits] = useState(['?', '?', '?']);
+  const [rolling, setRolling] = useState(false);
+  const [result, setResult] = useState('');
+  const [history, setHistory] = useState([]);
+  const timer = useRef(null);
+  useEffect(() => () => clearInterval(timer.current), []);
+  const roll = () => {
+    if (rolling) return;
+    const final = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+    const start = Date.now();
+    setRolling(true); setResult('');
+    timer.current = setInterval(() => {
+      const t = Date.now() - start;
+      const locked = t >= 1200 ? 3 : t >= 900 ? 2 : t >= 600 ? 1 : 0;   // หลักที่หยุดแล้ว
+      setDigits([0, 1, 2].map(i => (i < locked ? final[i] : String(Math.floor(Math.random() * 10)))));
+      if (locked === 3) {
+        clearInterval(timer.current);
+        setRolling(false); setResult(final);
+        setHistory(h => [final, ...h].slice(0, 8));
+      }
+    }, 60);
+  };
+  return (
+    <div className="glass rounded-2xl p-4 mb-3" data-testid="quick-roll3">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <h3 className="font-display text-xl font-bold tracking-wide text-stone-900">🎲 สุ่มเลข 3 ตัว</h3>
+        <span className="text-sm font-display" style={{ color: '#9a8f78' }}>ตัวอย่าง</span>
+      </div>
+      <div className="flex justify-center gap-2.5 mb-3">
+        {digits.map((d, i) => (
+          <div key={i} className="num-tile rounded-xl w-20 py-3 text-center" data-testid="roll-digit"
+            style={{ borderColor: GRP.g3.bd, background: GRP.g3.bg }}>
+            <span className="font-numeric font-bold leading-none" style={{ fontSize: 48, color: GRP.g3.fg, opacity: rolling && d !== result[i] ? 0.7 : 1 }}>{d}</span>
+          </div>
+        ))}
+      </div>
+      <button onClick={roll} disabled={rolling} data-testid="roll3-btn"
+        className="w-full py-3.5 rounded-2xl btn-premium font-bold font-display text-lg flex items-center justify-center gap-2 active:scale-95"
+        style={rolling ? { opacity: 0.6 } : undefined}>
+        {rolling ? 'กำลังสุ่ม…' : (result ? '🎲 สุ่มใหม่' : '🎲 กดสุ่มเลข')}
+      </button>
+      {result && onSendToJot && (
+        <button onClick={() => onSendToJot([result], '3')} data-testid="roll3-send"
+          className="w-full mt-2 py-2.5 rounded-2xl border-2 font-bold font-display text-base"
+          style={{ borderColor: GRP.g3.bd, color: GRP.g3.fg, background: '#fff' }}>
+          จดเลข {result} (3 ตัวบน) →
+        </button>
+      )}
+      {history.length > 1 && (
+        <div className="mt-3 text-sm font-display" style={{ color: '#6b6357' }}>
+          สุ่มก่อนหน้า: {history.slice(1).map((n, i) => <span key={i} className="font-numeric font-bold mx-1" style={{ color: GRP.g3.fg }}>{n}</span>)}
+        </div>
+      )}
     </div>
   );
 }
