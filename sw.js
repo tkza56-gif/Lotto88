@@ -1,5 +1,5 @@
-// Royal 888 Service Worker v4.9 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
-const CACHE = 'royal888-v4-9';
+// Royal 888 Service Worker v4.9.1 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
+const CACHE = 'royal888-v4-9-1';
 const APP_SHELL = [
   './',
   './index.html',
@@ -21,7 +21,8 @@ const CDN_PATTERNS = [
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(APP_SHELL))
+      // cache: 'reload' — ข้ามแคช HTTP ของเบราว์เซอร์ (GitHub Pages ให้เก็บ 10 นาที) ไม่งั้นแคชใหม่อาจได้หน้าเวอร์ชันเก่าไปค้าง
+      .then(c => c.addAll(APP_SHELL.map(u => new Request(u, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -53,6 +54,18 @@ self.addEventListener('fetch', e => {
   // เปิดจากการแชร์ (./index.html?text=…) — ไม่แคชตาม query (กันแคชบวม) · ออฟไลน์ใช้หน้าแอปที่แคชไว้
   if (isApp && req.mode === 'navigate' && url.search) {
     e.respondWith(fetch(req).catch(() => caches.match('./index.html')));
+    return;
+  }
+
+  // เปิดหน้าแอป: เน็ตก่อน (ได้เวอร์ชันใหม่ทันทีที่ deploy) · ช้าเกิน 4 วิ/ออฟไลน์ → หน้าที่แคชไว้
+  if (isApp && req.mode === 'navigate') {
+    const net = fetch(req, { cache: 'no-cache' }).then(resp => {
+      if (resp && resp.status === 200) { const copy = resp.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)).catch(() => {}); }
+      return resp;
+    });
+    const fallback = () => caches.match(req).then(r => r || caches.match('./index.html'));
+    e.respondWith(Promise.race([net, new Promise((_, rej) => setTimeout(rej, 4000))])
+      .catch(() => fallback().then(r => r || net)));
     return;
   }
 
