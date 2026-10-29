@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.10 · 29 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-10
+const APP_VERSION = 'v4.11 · 29 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-11
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -6779,21 +6779,248 @@ const US_CACHE_KEY = 'lotto888-us-v1';
 // แจ็คพอต (ดอลลาร์) → "$723 ล้าน" / "$1.25 พันล้าน"
 const fmtUsd = (n) => !n ? '' : n >= 1e9 ? '$' + +(n / 1e9).toFixed(2) + ' พันล้าน' : '$' + +(n / 1e6).toFixed(1) + ' ล้าน';
 
-function UsBalls({ row, color, size = 40 }) {
-  const ball = (n, special) => (
-    <span key={(special ? 'b' : 'w') + n} className="rounded-full grid place-items-center font-numeric font-bold flex-shrink-0"
+// ขั้นรางวัล: "ลูกขาวที่ตรง+ลูกพิเศษ(0/1)" → เงินรางวัล · Mega Millions (กติกา เม.ย. 2025) เป็นยอดก่อนคูณ 2–10 เท่า
+const US_PRIZE = {
+  powerball:    { '5+1': 'แจ็คพอต', '5+0': '$1,000,000', '4+1': '$50,000', '4+0': '$100', '3+1': '$100', '3+0': '$7', '2+1': '$7', '1+1': '$4', '0+1': '$4' },
+  megamillions: { '5+1': 'แจ็คพอต', '5+0': '$1,000,000', '4+1': '$10,000', '4+0': '$500', '3+1': '$200', '3+0': '$10', '2+1': '$10', '1+1': '$7', '0+1': '$5' },
+};
+const US_MAX = { powerball: [69, 26], megamillions: [70, 24] };
+
+// hl = ลูกขาวที่ต้องเน้น · ballHl = เน้นลูกพิเศษ · tone: 'rep' (ซ้ำงวดก่อน · ส้ม) / 'hit' (ตรงกับเลขที่ตรวจ · เขียว)
+function UsBalls({ row, color, size = 40, hl, ballHl, tone = 'rep' }) {
+  const ring = tone === 'hit' ? { bd: '#16a34a', bg: '#eaf7ef' } : { bd: '#f97316', bg: '#fff4ec' };
+  const ball = (n, special, on, i) => (
+    <span key={special ? 'b' : 'w' + i} className="rounded-full grid place-items-center font-numeric font-bold flex-shrink-0"
       style={{ width: size, height: size, fontSize: size * 0.42,
-        background: special ? color : '#fff', color: special ? '#fff' : '#2a2a2a',
-        border: special ? 'none' : '2px solid #dccfa6', boxShadow: '0 1px 3px rgba(0,0,0,.12)' }}>{n}</span>
+        background: special ? color : on ? ring.bg : '#fff', color: special ? '#fff' : '#2a2a2a',
+        border: on ? `3px solid ${ring.bd}` : special ? 'none' : '2px solid #dccfa6', boxShadow: '0 1px 3px rgba(0,0,0,.12)' }}>{n}</span>
   );
-  return <div className="flex items-center gap-1.5">{row.white.map(n => ball(n, false))}{ball(row.ball, true)}</div>;
+  return <div className="flex items-center gap-1.5">{row.white.map((n, i) => ball(n, false, hl && hl.includes(n), i))}{ball(row.ball, true, ballHl)}</div>;
+}
+
+const usCard = 'glass-strong rounded-2xl p-3.5';
+const UsNote = ({ children }) => <div className="text-center text-sm font-display mt-2.5" style={{ color: '#9a8f78' }}>{children}</div>;
+
+// ===== 📊 สถิติ: ออกบ่อย · ไม่ออกนาน · คู่เลข · รูปแบบ (คำนวณในฐานข้อมูล rpc us_stats) =====
+function UsStats({ game }) {
+  const G = US_GAMES[game];
+  const [win, setWin] = useState(60);   // 60 งวด / 0 = ทั้งช่วงกติกาปัจจุบัน
+  const [cache, setCache] = useState({});
+  const [err, setErr] = useState('');
+  const key = game + ':' + win;
+  const S = cache[key];
+  useEffect(() => {
+    if (S) return;
+    setErr('');
+    supaGet('rpc/us_stats?p_game=' + game + (win ? '&p_last=' + win : ''))
+      .then(r => setCache(c => ({ ...c, [key]: r })))
+      .catch(() => setErr(navigator.onLine === false ? 'ออฟไลน์ · ต่อเน็ตแล้วลองใหม่' : 'โหลดสถิติไม่ได้ · ลองใหม่'));
+  }, [key]);
+  const chip = (n, sub, kind, big) => {
+    const c = kind === 'hot' ? { fg: '#c2410c', bg: '#fff4ec', bd: '#fdd2b6' } : kind === 'cold' ? { fg: '#1d4ed8', bg: '#eff4ff', bd: '#c7d7fe' } : { fg: '#fff', bg: G.color, bd: G.color };
+    return (
+      <div key={kind + n} className="rounded-2xl border-2 py-1.5 text-center" style={{ background: c.bg, borderColor: c.bd, color: c.fg }}>
+        <span className="block font-numeric font-bold leading-tight" style={{ fontSize: big ? 24 : 20 }}>{n}</span>
+        <span className="block text-sm font-display font-semibold" style={kind === 'ball' ? { color: '#fff' } : undefined}>{sub}</span>
+      </div>
+    );
+  };
+  const gapTxt = (g, total) => (g === null ? '>' + total : g) + ' งวด';
+  let body = null;
+  if (S) {
+    const white = S.white.map(([n, c, gap]) => ({ n, c, gap }));
+    const ball = S.ball.map(([n, c, gap]) => ({ n, c, gap }));
+    const byHot = (a, b) => b.c - a.c || (a.gap ?? 1e9) - (b.gap ?? 1e9) || a.n - b.n;
+    const byCold = (a, b) => (b.gap ?? 1e9) - (a.gap ?? 1e9) || a.c - b.c || a.n - b.n;
+    const expW = S.draws * 5 / S.wmax, expB = S.draws / S.bmax;
+    const odd = [0, 1, 2, 3, 4, 5].map(k => (S.odd && S.odd[k]) || 0);
+    const oddMax = Math.max(1, ...odd);
+    body = (<>
+      <div className={usCard} data-testid="us-hot">
+        <div className="flex items-center justify-between gap-2 mb-2.5"><b className="font-display text-lg">🔥 ลูกขาวออกบ่อย</b><span className="text-sm font-display" style={{ color: '#6b6357' }}>เฉลี่ย ≈ {expW.toFixed(1)} ครั้ง/เลข</span></div>
+        <div className="grid grid-cols-5 gap-1.5">{[...white].sort(byHot).slice(0, 10).map(x => chip(x.n, x.c + ' ครั้ง', 'hot'))}</div>
+      </div>
+      <div className={usCard} data-testid="us-cold">
+        <div className="flex items-center justify-between gap-2 mb-2.5"><b className="font-display text-lg">❄️ ลูกขาวไม่ออกนาน</b><span className="text-sm font-display" style={{ color: '#6b6357' }}>นับจากงวดล่าสุด</span></div>
+        <div className="grid grid-cols-5 gap-1.5">{[...white].sort(byCold).slice(0, 10).map(x => chip(x.n, gapTxt(x.gap, S.draws), 'cold'))}</div>
+      </div>
+      <div className={usCard} data-testid="us-ballstats">
+        <div className="flex items-center justify-between gap-2 mb-2.5"><b className="font-display text-lg">{G.ball}</b><span className="text-sm font-display" style={{ color: '#6b6357' }}>เฉลี่ย ≈ {expB.toFixed(1)} ครั้ง/เลข</span></div>
+        <div className="text-sm font-display font-semibold mb-1.5" style={{ color: '#c2410c' }}>ออกบ่อย</div>
+        <div className="grid grid-cols-5 gap-1.5 mb-2.5">{[...ball].sort(byHot).slice(0, 5).map(x => chip(x.n, x.c + ' ครั้ง', 'ball'))}</div>
+        <div className="text-sm font-display font-semibold mb-1.5" style={{ color: '#1d4ed8' }}>ไม่ออกนาน</div>
+        <div className="grid grid-cols-5 gap-1.5">{[...ball].sort(byCold).slice(0, 5).map(x => chip(x.n, gapTxt(x.gap, S.draws), 'cold'))}</div>
+      </div>
+      <div className={usCard} data-testid="us-pairs">
+        <div className="flex items-center justify-between gap-2 mb-2.5"><b className="font-display text-lg">🤝 คู่ที่ออกด้วยกันบ่อย</b><span className="text-sm font-display" style={{ color: '#6b6357' }}>ลูกขาว</span></div>
+        <div className="grid grid-cols-2 gap-1.5">
+          {(S.pairs || []).map(([a, b, c], i) => (
+            <div key={a + '-' + b} className="flex items-center justify-between rounded-xl border px-2.5 py-1.5" style={{ borderColor: '#e8dfc8', background: '#fff' }}>
+              <span className="text-sm font-display" style={{ color: '#9a8f78' }}>{i + 1}.</span>
+              <span className="font-numeric font-bold text-lg">{a} · {b}</span>
+              <span className="text-sm font-display font-semibold" style={{ color: '#c2410c' }}>{c} ครั้ง</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className={usCard} data-testid="us-patterns">
+        <b className="font-display text-lg block mb-2.5">📐 รูปแบบที่ออก</b>
+        <div className="text-sm font-display font-semibold mb-1" style={{ color: '#6b6357' }}>จำนวนเลขคี่ใน 5 ลูก</div>
+        {odd.map((c, k) => (
+          <div key={k} className="flex items-center gap-2 py-0.5">
+            <span className="w-14 text-sm font-display flex-shrink-0">คี่ {k} ลูก</span>
+            <span className="flex-1 h-3 rounded-full overflow-hidden" style={{ background: '#f3eee2' }}><i className="block h-full rounded-full" style={{ width: (c / oddMax * 100) + '%', background: '#d4b572' }}/></span>
+            <span className="w-12 text-right text-sm font-numeric font-semibold flex-shrink-0">{Math.round(c / S.draws * 100)}%</span>
+          </div>
+        ))}
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {[['ผลรวมลูกขาว (กลาง)', Math.round(S.sum.p50)], ['80% ของงวดอยู่ในช่วง', Math.round(S.sum.p10) + '–' + Math.round(S.sum.p90)],
+            ['มีเลขติดกัน (เช่น 44-45)', Math.round(S.consec * 100) + '% ของงวด'], ['ลูกขาวซ้ำงวดก่อน', 'เฉลี่ย ' + (+S.repeat_avg).toFixed(2) + ' ลูก/งวด'],
+            ['ซ้ำงวดก่อน ≥ 2 ลูก', S.repeat2 + ' ครั้ง'], [G.ball + ' ซ้ำงวดก่อน', S.ball_repeat + ' ครั้ง']].map(([l, v]) => (
+            <div key={l} className="rounded-xl border px-2.5 py-2" style={{ borderColor: '#e8dfc8', background: '#fff' }}>
+              <div className="text-sm font-display" style={{ color: '#6b6357' }}>{l}</div>
+              <div className="font-numeric font-bold text-lg leading-tight">{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <UsNote>จาก {fmt(S.draws)} งวด ({formatDrawDateShort(S.since)} – {formatDrawDateShort(S.until)}) · เป็นสถิติจากผลที่ผ่านมา ไม่ใช่การทำนาย · ทุกชุดเลขมีโอกาสเท่ากัน</UsNote>
+    </>);
+  }
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-1 rounded-xl p-1" style={{ background: '#efe8d6' }}>
+        {[[60, '60 งวดล่าสุด'], [0, game === 'powerball' ? 'ทั้งหมด (ตั้งแต่ 2015)' : 'ทั้งหมด (ตั้งแต่ เม.ย. 68)']].map(([k, l]) => (
+          <button key={k} onClick={() => setWin(k)} data-testid={'us-win-' + k} className="py-2 rounded-lg font-display text-base font-bold"
+            style={win === k ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' }}>{l}</button>
+        ))}
+      </div>
+      {!S && <div className={usCard + ' text-center font-display text-lg'} style={{ color: err ? '#b45309' : '#6b6357' }}>{err ? '⚠ ' + err : '⏳ กำลังคำนวณสถิติ…'}</div>}
+      {body}
+    </div>
+  );
+}
+
+// ===== 🎲 สุ่มเลข 5 + 1 (หมุน แล้วหยุดทีละลูกจากซ้ายไปขวา) =====
+function UsQuickPick({ game, onCheck }) {
+  const G = US_GAMES[game];
+  const [wMax, bMax] = US_MAX[game];
+  const [shown, setShown] = useState(null);
+  const [pick, setPick] = useState(null);
+  const [rolling, setRolling] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearInterval(timer.current), []);
+  useEffect(() => { clearInterval(timer.current); setRolling(false); setShown(null); setPick(null); }, [game]);
+  const rnd = (m) => 1 + Math.floor(Math.random() * m);
+  const roll = () => {
+    if (rolling) return;
+    const w = new Set();
+    while (w.size < 5) w.add(rnd(wMax));
+    const final = { white: [...w].sort((a, b) => a - b), ball: rnd(bMax) };
+    const start = Date.now();
+    setRolling(true); setPick(null);
+    timer.current = setInterval(() => {
+      const locked = Math.min(6, Math.floor((Date.now() - start) / 220));   // ลูกที่หยุดแล้ว
+      setShown({ white: final.white.map((n, i) => (i < locked ? n : rnd(wMax))), ball: locked >= 6 ? final.ball : rnd(bMax) });
+      if (locked >= 6) { clearInterval(timer.current); setRolling(false); setPick(final); }
+    }, 60);
+  };
+  return (
+    <div className={usCard} data-testid="us-quickpick">
+      <b className="font-display text-lg block mb-2.5">🎲 สุ่มเลขให้ (Quick Pick)</b>
+      <div className="flex justify-center mb-3" style={{ opacity: rolling ? 0.75 : 1 }}>
+        {shown ? <UsBalls row={shown} color={G.color} size={44}/> : <UsBalls row={{ white: ['?', '?', '?', '?', '?'], ball: '?' }} color={G.color} size={44}/>}
+      </div>
+      <button onClick={roll} disabled={rolling} data-testid="us-roll"
+        className="w-full py-3.5 rounded-2xl font-bold font-display text-lg active:scale-95"
+        style={{ background: '#2a2a2a', color: '#fff', border: '1.5px solid #d4b572', opacity: rolling ? 0.7 : 1 }}>
+        🎲 {rolling ? 'กำลังสุ่ม…' : pick ? 'สุ่มใหม่' : 'กดสุ่มเลข'}
+      </button>
+      {pick && (
+        <button onClick={() => onCheck(pick)} data-testid="us-roll-check"
+          className="w-full mt-2 py-2.5 rounded-2xl border-2 font-bold font-display text-base active:scale-95"
+          style={{ borderColor: '#d4b572', color: '#8a6d36', background: '#fff' }}>🎟 ตรวจชุดนี้กับผลย้อนหลัง ↓</button>
+      )}
+      <UsNote>ลูกขาว 5 ลูก (1–{wMax}) + {G.ball} 1 ลูก (1–{bMax}) · สุ่มด้วยเครื่อง ไม่ได้เพิ่มโอกาสถูก</UsNote>
+    </div>
+  );
+}
+
+// ===== 🎟 ตรวจเลข: เทียบเลขของเรากับผลที่โหลดไว้ (ล่าสุด + ย้อนหลัง 60 งวด) =====
+function UsChecker({ game, rows, preset }) {
+  const G = US_GAMES[game];
+  const [wMax, bMax] = US_MAX[game];
+  const [vals, setVals] = useState(['', '', '', '', '', '']);
+  const [res, setRes] = useState(null);
+  const refs = useRef([]);
+  useEffect(() => { setVals(['', '', '', '', '', '']); setRes(null); }, [game]);
+  useEffect(() => { if (preset) { setVals([...preset.white.map(String), String(preset.ball)]); setRes(null); } }, [preset]);
+  const nums = vals.map(v => parseInt(v, 10));
+  const whites = nums.slice(0, 5), ball = nums[5];
+  const problem = whites.some(n => !(n >= 1 && n <= wMax)) ? `ลูกขาวต้องเป็นเลข 1–${wMax} ให้ครบ 5 ลูก`
+    : new Set(whites).size < 5 ? 'ลูกขาวห้ามซ้ำกัน'
+    : !(ball >= 1 && ball <= bMax) ? `${G.ball} ต้องเป็นเลข 1–${bMax}` : '';
+  const setAt = (i, v) => {
+    const d = v.replace(/\D/g, '').slice(0, 2);
+    setVals(a => a.map((x, j) => (j === i ? d : x))); setRes(null);
+    if (d.length === 2 && i < 5) refs.current[i + 1]?.focus();
+  };
+  const check = () => {
+    if (problem) return;
+    const out = rows.map(r => {
+      const hitW = r.white.filter(n => whites.includes(n));
+      const hitB = r.ball === ball;
+      return { r, hitW, hitB, prize: US_PRIZE[game][hitW.length + '+' + (hitB ? 1 : 0)] };
+    });
+    setRes(out);
+  };
+  const won = res ? res.filter(x => x.prize).sort((a, b) => b.hitW.length + (b.hitB ? 0.5 : 0) - a.hitW.length - (a.hitB ? 0.5 : 0) || b.r.draw_date.localeCompare(a.r.draw_date)) : [];
+  const best = res ? res.reduce((m, x) => Math.max(m, x.hitW.length), 0) : 0;
+  return (
+    <div className={usCard} data-testid="us-checker">
+      <b className="font-display text-lg block mb-1">🎟 ตรวจเลขของคุณ</b>
+      <div className="text-sm font-display mb-2.5" style={{ color: '#6b6357' }}>กรอกลูกขาว 5 ลูก + {G.ball} แล้วเทียบกับ {rows.length} งวดล่าสุด</div>
+      <div className="grid grid-cols-6 gap-1.5 mb-2.5">
+        {vals.map((v, i) => (
+          <input key={i} ref={el => (refs.current[i] = el)} value={v} onChange={e => setAt(i, e.target.value)} inputMode="numeric" data-testid={'us-in-' + i}
+            placeholder={i === 5 ? (game === 'powerball' ? 'PB' : 'MB') : '–'} aria-label={i === 5 ? G.ball : 'ลูกขาว ' + (i + 1)}
+            className="w-full aspect-square rounded-full text-center font-numeric font-bold text-xl outline-none"
+            style={i === 5 ? { background: G.color, color: '#fff', border: 'none' } : { background: '#fff', border: '2px solid #dccfa6', color: '#2a2a2a' }}/>
+        ))}
+      </div>
+      <button onClick={check} disabled={!!problem || rows.length === 0} data-testid="us-check"
+        className="w-full py-3 rounded-2xl btn-premium font-bold font-display text-lg active:scale-95 disabled:opacity-50">ตรวจเลข</button>
+      {problem && vals.some(Boolean) && <div className="text-center text-sm font-display mt-2" style={{ color: '#b45309' }}>{problem}</div>}
+      {res && (
+        <div className="mt-3" data-testid="us-check-result">
+          <div className="rounded-xl px-3 py-2.5 text-center font-display font-bold text-base border"
+            style={won.length ? { background: '#eaf7ef', borderColor: '#bfe5cc', color: '#15803d' } : { background: '#f5f1e8', borderColor: '#e8dfc8', color: '#6b6357' }}>
+            {won.length ? `ถูกรางวัล ${won.length} งวด จาก ${res.length} งวด` : `ไม่ถูกรางวัลใน ${res.length} งวด`} · ลูกขาวตรงมากสุด {best} ลูก
+          </div>
+          {won.map(({ r, hitW, hitB, prize }) => (
+            <div key={r.draw_date} className="flex items-center justify-between gap-2 py-2 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }}>
+              <span className="flex-shrink-0 whitespace-nowrap leading-tight">
+                <span className="block text-sm text-stone-500 font-display">{formatDrawDateShort(r.draw_date)}</span>
+                <span className="block text-sm font-display font-bold" style={{ color: '#15803d' }}>ตรง {hitW.length}{hitB ? ' + ' + (game === 'powerball' ? 'PB' : 'MB') : ''} · {prize}</span>
+              </span>
+              <UsBalls row={r} color={G.color} size={28} hl={hitW} ballHl={hitB} tone="hit"/>
+            </div>
+          ))}
+          <UsNote>วงเขียว = ตรงกับเลขของคุณ{game === 'megamillions' ? ' · เงินรางวัล Mega Millions เป็นยอดก่อนคูณ 2–10 เท่าตามตัวคูณของงวด' : ' · ไม่รวม Power Play'}</UsNote>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function UsLottoView() {
   const [game, setGame] = useState('powerball');
+  const [sub, setSub] = useState('results');
+  const [preset, setPreset] = useState(null);
   const [data, setData] = useState(() => { try { return JSON.parse(localStorage.getItem(US_CACHE_KEY)) || {}; } catch (e) { return {}; } });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const checkerRef = useRef(null);
   const G = US_GAMES[game];
   const rows = data[game] || [];
   const load = async () => {
@@ -6810,6 +7037,7 @@ function UsLottoView() {
   };
   useEffect(() => { load(); }, [game]);
   const latest = rows[0];
+  const sendToCheck = (p) => { setPreset({ ...p, at: Date.now() }); setTimeout(() => checkerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-1.5">
@@ -6821,7 +7049,19 @@ function UsLottoView() {
           </button>
         ))}
       </div>
+      <div className="grid grid-cols-3 gap-1 rounded-xl p-1" style={{ background: '#efe8d6' }}>
+        {[['results', '🏆 ผล'], ['stats', '📊 สถิติ'], ['play', '🎟 ตรวจ/สุ่ม']].map(([k, l]) => (
+          <button key={k} onClick={() => setSub(k)} data-testid={'us-sub-' + k} className="py-2 rounded-lg font-display text-base font-bold"
+            style={sub === k ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' }}>{l}</button>
+        ))}
+      </div>
 
+      {sub === 'stats' && <UsStats game={game}/>}
+      {sub === 'play' && (<>
+        <UsQuickPick game={game} onCheck={sendToCheck}/>
+        <div ref={checkerRef} style={{ scrollMarginTop: 12 }}><UsChecker game={game} rows={rows} preset={preset}/></div>
+      </>)}
+      {sub === 'results' && (<>
       <div className="glass-strong rounded-2xl overflow-hidden" data-testid="us-latest">
         <div className="flex items-center gap-2.5 px-3.5 py-3 border-b" style={{ borderColor: '#e8dfc8' }}>
           <div className="w-10 h-10 rounded-xl grid place-items-center text-2xl flex-shrink-0" style={{ background: '#eef2ff' }}>🇺🇸</div>
@@ -6836,7 +7076,7 @@ function UsLottoView() {
             <div className="text-center py-4 text-stone-400 font-display">{busy ? '⏳ กำลังโหลด…' : (err || 'ยังไม่มีผล')}</div>
           ) : (<>
             <div className="text-center text-sm text-stone-500 font-display">งวด {formatDrawDateLong(latest.draw_date)} (เวลาสหรัฐฯ)</div>
-            <div className="flex justify-center"><UsBalls row={latest} color={G.color} size={46}/></div>
+            <div className="flex justify-center"><UsBalls row={latest} color={G.color} size={46} hl={rows[1] && latest.white.filter(n => rows[1].white.includes(n))} ballHl={rows[1] && rows[1].ball === latest.ball}/></div>
             <div className="flex justify-center gap-3 text-sm font-display text-stone-500 flex-wrap">
               <span>ลูกสีขาว 5 ลูก + <b style={{ color: G.color }}>{G.ball}</b></span>
               {latest.multiplier && <span>{G.mult} <b className="font-numeric text-stone-800">×{latest.multiplier}</b></span>}
@@ -6860,18 +7100,22 @@ function UsLottoView() {
           <b className="font-display text-lg">ผลย้อนหลัง</b>
           <span className="text-sm font-display" style={{ color: '#6b6357' }}>{rows.length > 1 ? rows.length - 1 : 0} งวดล่าสุด</span>
         </div>
-        {rows.slice(1).map(r => (
-          <div key={r.draw_date} className="flex items-center justify-between gap-2 py-2 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }}>
-            <span className="flex-shrink-0 whitespace-nowrap leading-tight">
-              <span className="block text-sm text-stone-500 font-display">{formatDrawDateShort(r.draw_date)}</span>
-              {r.jackpot > 0 && <span className="block text-sm font-numeric font-bold" style={{ color: '#8a6d36' }}>{fmtUsd(r.jackpot)}</span>}
-            </span>
-            <UsBalls row={r} color={G.color} size={30}/>
-          </div>
-        ))}
+        {rows.slice(1).map((r, i) => {
+          const prev = rows[i + 2];   // งวดก่อนหน้าของแถวนี้ (rows เรียงใหม่ → เก่า)
+          return (
+            <div key={r.draw_date} className="flex items-center justify-between gap-2 py-2 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }}>
+              <span className="flex-shrink-0 whitespace-nowrap leading-tight">
+                <span className="block text-sm text-stone-500 font-display">{formatDrawDateShort(r.draw_date)}</span>
+                {r.jackpot > 0 && <span className="block text-sm font-numeric font-bold" style={{ color: '#8a6d36' }}>{fmtUsd(r.jackpot)}</span>}
+              </span>
+              <UsBalls row={r} color={G.color} size={30} hl={prev && r.white.filter(n => prev.white.includes(n))} ballHl={prev && prev.ball === r.ball}/>
+            </div>
+          );
+        })}
         {err && <div className="text-center text-sm font-display mt-2" style={{ color: '#b45309' }}>⚠ {err}</div>}
-        <div className="text-center text-sm font-display mt-2.5" style={{ color: '#9a8f78' }}>{G.thai} · ผลขึ้นในแอปภายในราว 1–2 ชม. หลังออก</div>
+        <UsNote>🟠 วงส้ม = เลขซ้ำกับงวดก่อนหน้า · {G.thai} · ผลขึ้นในแอปภายในราว 1–2 ชม. หลังออก</UsNote>
       </div>
+      </>)}
     </div>
   );
 }
