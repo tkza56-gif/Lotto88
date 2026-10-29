@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.9.1 · 29 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-9-1
+const APP_VERSION = 'v4.10 · 29 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-10
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -6776,6 +6776,8 @@ const US_GAMES = {
 };
 const US_HISTORY = 60;   // ผลล่าสุด + ย้อนหลัง 60 งวด
 const US_CACHE_KEY = 'lotto888-us-v1';
+// แจ็คพอต (ดอลลาร์) → "$723 ล้าน" / "$1.25 พันล้าน"
+const fmtUsd = (n) => !n ? '' : n >= 1e9 ? '$' + +(n / 1e9).toFixed(2) + ' พันล้าน' : '$' + +(n / 1e6).toFixed(1) + ' ล้าน';
 
 function UsBalls({ row, color, size = 40 }) {
   const ball = (n, special) => (
@@ -6797,7 +6799,7 @@ function UsLottoView() {
   const load = async () => {
     setBusy(true); setErr('');
     try {
-      const got = await supaGet('us_draws?select=draw_date,white,ball,multiplier&game=eq.' + game + '&order=draw_date.desc&limit=' + (US_HISTORY + 1));
+      const got = await supaGet('us_draws?select=draw_date,white,ball,multiplier,jackpot,cash_value&game=eq.' + game + '&order=draw_date.desc&limit=' + (US_HISTORY + 1));
       setData(prev => {
         const next = { ...prev, [game]: got };
         try { localStorage.setItem(US_CACHE_KEY, JSON.stringify(next)); } catch (e) {}   // ไว้ดูตอนออฟไลน์
@@ -6839,10 +6841,17 @@ function UsLottoView() {
               <span>ลูกสีขาว 5 ลูก + <b style={{ color: G.color }}>{G.ball}</b></span>
               {latest.multiplier && <span>{G.mult} <b className="font-numeric text-stone-800">×{latest.multiplier}</b></span>}
             </div>
+            {latest.jackpot > 0 && (
+              <div className="rounded-xl py-2.5 text-center border-2" data-testid="us-jackpot" style={{ borderColor: '#e3cf9e', background: 'linear-gradient(160deg, #fdf6e3, #f5e6bf)' }}>
+                <div className="text-sm font-display font-semibold" style={{ color: '#8a6d36' }}>💰 แจ็คพอตงวดนี้</div>
+                <div className="font-numeric font-bold leading-tight" style={{ color: '#2a2a2a', fontSize: 'clamp(1.6rem, 8vw, 2rem)' }}>{fmtUsd(latest.jackpot)}</div>
+                {latest.cash_value > 0 && <div className="text-sm font-display" style={{ color: '#6b6357' }}>รับเงินสดก้อนเดียว {fmtUsd(latest.cash_value)}</div>}
+              </div>
+            )}
           </>)}
         </div>
         <div className="flex justify-between px-3.5 py-2 text-sm font-display border-t" style={{ color: '#9a8f78', background: '#fcfaf4', borderColor: '#e8dfc8' }}>
-          <span className="min-w-0">ที่มา: New York Lottery (data.ny.gov)</span><span className="flex-shrink-0 ml-2">ทางการ ✓</span>
+          <span className="min-w-0">ที่มา: ผล New York Lottery (data.ny.gov) · แจ็คพอต {game === 'powerball' ? 'powerball.com' : 'megamillions.com'}</span><span className="flex-shrink-0 ml-2">ทางการ ✓</span>
         </div>
       </div>
 
@@ -6853,7 +6862,10 @@ function UsLottoView() {
         </div>
         {rows.slice(1).map(r => (
           <div key={r.draw_date} className="flex items-center justify-between gap-2 py-2 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }}>
-            <span className="text-sm text-stone-500 font-display flex-shrink-0 whitespace-nowrap">{formatDrawDateShort(r.draw_date)}</span>
+            <span className="flex-shrink-0 whitespace-nowrap leading-tight">
+              <span className="block text-sm text-stone-500 font-display">{formatDrawDateShort(r.draw_date)}</span>
+              {r.jackpot > 0 && <span className="block text-sm font-numeric font-bold" style={{ color: '#8a6d36' }}>{fmtUsd(r.jackpot)}</span>}
+            </span>
             <UsBalls row={r} color={G.color} size={30}/>
           </div>
         ))}
