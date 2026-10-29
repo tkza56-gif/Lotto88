@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.12 · 29 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-12
+const APP_VERSION = 'v4.13 · 30 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-13
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -6169,7 +6169,7 @@ function PickTab({ lottery, draws, onSendToJot }) {
         ))}
       </div>
       {subTab === 'freq' && <FrequencyView draws={draws} lottery={lottery} onSendToJot={onSendToJot} onTool={setSubTab}/>}
-      {subTab === 'random' && <><QuickRoll3 onSendToJot={onSendToJot}/><RandomGen/></>}
+      {subTab === 'random' && <><QuickRoll3 lottery={lottery} draws={draws} onSendToJot={onSendToJot}/><RandomGen/></>}
       {subTab === 'tools' && <ToolsView/>}
     </div>
   );
@@ -6272,41 +6272,73 @@ function FrequencyView({ draws, lottery, onSendToJot, onTool }) {
   );
 }
 
-// สุ่มเลข 3 ตัว — กดปุ่มแล้วเลขหมุน หยุดทีละหลักจากซ้ายไปขวา
-function QuickRoll3({ onSendToJot }) {
+// สุ่มเลข — กดปุ่มแล้วเลขหมุน หยุดทีละหลักจากซ้ายไปขวา (ใช้ได้ทุกหวยที่มีผลย้อนหลัง)
+// โหมด 'hot' = แต่ละหลัก (ร้อย/สิบ/หน่วย) สุ่มจาก 5 ตัวเลขที่ออกบ่อยสุดในหลักนั้น ถ่วงน้ำหนักตามจำนวนครั้ง · นับจาก 100 งวดล่าสุด
+const ROLL_WINDOW = 100, ROLL_TOP = 5;
+const DIGIT_NAMES = { 3: ['หลักร้อย', 'หลักสิบ', 'หลักหน่วย'], 2: ['หลักสิบ', 'หลักหน่วย'] };
+function QuickRoll3({ lottery, draws, onSendToJot }) {
+  const [pos, setPos] = useState('3');
+  const [mode, setMode] = useState('hot');
+  const P = PICK_POS.find(p => p.id === pos);
+  const H = useResultHistory(lottery, draws);
+  const vals = useMemo(() => H.rows.map(r => r[P.col]).filter(v => v && v.length === P.len).slice(0, ROLL_WINDOW), [H.rows, pos]);
+  // [[ตัวเลข, ครั้ง], …] 5 อันดับแรกของแต่ละหลัก
+  const top = useMemo(() => Array.from({ length: P.len }, (_, i) => {
+    const c = Array(10).fill(0);
+    vals.forEach(v => c[+v[i]]++);
+    return c.map((n, d) => [String(d), n]).filter(x => x[1] > 0).sort((x, y) => y[1] - x[1] || x[0] - y[0]).slice(0, ROLL_TOP);
+  }), [vals]);
+  const canHot = vals.length >= 10;
+  const hot = mode === 'hot' && canHot;
   const [digits, setDigits] = useState(['?', '?', '?']);
   const [rolling, setRolling] = useState(false);
   const [result, setResult] = useState('');
   const [history, setHistory] = useState([]);
   const timer = useRef(null);
   useEffect(() => () => clearInterval(timer.current), []);
+  useEffect(() => { clearInterval(timer.current); setRolling(false); setResult(''); setHistory([]); setDigits(Array(P.len).fill('?')); }, [pos, lottery.id]);
+  const rd = () => String(Math.floor(Math.random() * 10));
   const roll = () => {
     if (rolling) return;
-    const final = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+    const final = Array.from({ length: P.len }, (_, i) => (hot ? wPick(top[i]) : rd())).join('');
     const start = Date.now();
     setRolling(true); setResult('');
     timer.current = setInterval(() => {
-      const t = Date.now() - start;
-      const locked = t >= 1200 ? 3 : t >= 900 ? 2 : t >= 600 ? 1 : 0;   // หลักที่หยุดแล้ว
-      setDigits([0, 1, 2].map(i => (i < locked ? final[i] : String(Math.floor(Math.random() * 10)))));
-      if (locked === 3) {
+      const locked = Math.min(P.len, Math.max(0, Math.floor((Date.now() - start - 300) / 300)));   // หลักที่หยุดแล้ว
+      setDigits(Array.from({ length: P.len }, (_, i) => (i < locked ? final[i] : rd())));
+      if (locked === P.len) {
         clearInterval(timer.current);
         setRolling(false); setResult(final);
         setHistory(h => [final, ...h].slice(0, 8));
       }
     }, 60);
   };
+  const seg = (on) => on ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' };
   return (
     <div className="rounded-2xl p-1.5 mb-3" data-testid="quick-roll3"
       style={{ background: 'linear-gradient(135deg, #e3cf9e, #f7eed8 45%, #d4b572)', boxShadow: '0 6px 18px rgba(138,109,54,.16)' }}>
       <div className="rounded-xl px-4 pt-4 pb-3.5" style={{ background: '#fdfaf2', border: '1px solid #e3cf9e' }}>
-        <h3 className="font-display text-2xl font-bold text-center mb-1" style={{ color: '#2a2a2a' }}>🎲 สุ่มเลข 3 ตัว</h3>
-        <div className="flex items-center justify-center gap-2 mb-3.5" aria-hidden="true">
+        <h3 className="font-display text-2xl font-bold text-center" style={{ color: '#2a2a2a' }}>🎲 สุ่มเลข {P.label}</h3>
+        <div className="text-center text-base font-display font-semibold" style={{ color: '#8a6d36' }} data-testid="roll-lottery">{lottery.name}</div>
+        <div className="flex items-center justify-center gap-2 mt-1 mb-3" aria-hidden="true">
           <i className="block h-px w-14" style={{ background: 'linear-gradient(90deg, transparent, #d4b572)' }}/>
           <i className="block w-1.5 h-1.5 rotate-45" style={{ background: '#d4b572' }}/>
           <i className="block h-px w-14" style={{ background: 'linear-gradient(270deg, transparent, #d4b572)' }}/>
         </div>
-        <div className="grid grid-cols-3 gap-2.5 mb-4">
+        <div className="flex gap-1.5 mb-2">
+          {[PICK_POS[2], PICK_POS[1], PICK_POS[0]].map(p => (
+            <button key={p.id} onClick={() => setPos(p.id)} disabled={rolling} data-testid={'roll-pos-' + p.id}
+              className="flex-1 py-1.5 rounded-full border-2 font-display font-bold text-base"
+              style={pos === p.id ? { background: p.len === 3 ? GRP.g3.solid : GRP.g2.solid, borderColor: 'transparent', color: '#fff' }
+                : { background: '#fff', borderColor: p.len === 3 ? GRP.g3.bd : GRP.g2.bd, color: p.len === 3 ? GRP.g3.fg : GRP.g2.fg }}>{p.label}</button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-1 rounded-xl p-1 mb-3.5" style={{ background: '#efe8d6' }}>
+          {[['hot', '🔥 ออกบ่อยรายหลัก'], ['random', '🎲 สุ่มทั่วไป']].map(([k, l]) => (
+            <button key={k} onClick={() => setMode(k)} disabled={rolling} data-testid={'roll-mode-' + k} className="py-2 rounded-lg font-display text-sm font-bold" style={seg(mode === k)}>{l}</button>
+          ))}
+        </div>
+        <div className={'grid gap-2.5 mb-4 mx-auto ' + (P.len === 3 ? 'grid-cols-3' : 'grid-cols-2')} style={P.len === 2 ? { maxWidth: '68%' } : undefined}>
           {digits.map((d, i) => (
             <div key={i} className="rounded-xl text-center flex items-center justify-center" data-testid="roll-digit"
               style={{ aspectRatio: '0.85', background: 'linear-gradient(160deg, #f9ecc9, #edd7a2)', border: '1.5px solid #d9bd80',
@@ -6321,10 +6353,10 @@ function QuickRoll3({ onSendToJot }) {
           🎲 {rolling ? 'กำลังสุ่ม…' : (result ? 'สุ่มใหม่' : 'กดสุ่มเลข')}
         </button>
         {result && onSendToJot && (
-          <button onClick={() => onSendToJot([result], '3')} data-testid="roll3-send"
+          <button onClick={() => onSendToJot([result], pos)} data-testid="roll3-send"
             className="w-full mt-2.5 py-3 rounded-2xl border-2 font-bold font-display text-lg active:scale-95"
             style={{ borderColor: '#d4b572', color: '#8a6d36', background: '#fff' }}>
-            จดเลข {result} (3 ตัวบน) →
+            จดเลข {result} ({P.label}) →
           </button>
         )}
         {history.length > 1 && (
@@ -6332,6 +6364,33 @@ function QuickRoll3({ onSendToJot }) {
             สุ่มก่อนหน้า: <span className="font-numeric">{history.slice(1).join(' · ')}</span>
           </div>
         )}
+        {mode === 'hot' && (canHot ? (
+          <div className="mt-3.5" data-testid="roll-hot-table">
+            <div className="text-sm font-display font-semibold mb-1.5" style={{ color: '#6b6357' }}>ตัวเลขออกบ่อยแต่ละหลัก ({P.label} · {fmt(vals.length)} งวดล่าสุด)</div>
+            <div className={'grid gap-1.5 ' + (P.len === 3 ? 'grid-cols-3' : 'grid-cols-2')}>
+              {top.map((col, i) => (
+                <div key={i}>
+                  <div className="text-center text-sm font-display font-bold mb-1" style={{ color: '#8a6d36' }}>{DIGIT_NAMES[P.len][i]}</div>
+                  {col.map(([d, c]) => {
+                    const on = result && !rolling && result[i] === d;
+                    return (
+                      <div key={d} className="flex items-center justify-between rounded-lg border px-2.5 py-0.5 mb-1"
+                        style={on ? { background: '#16a34a', borderColor: '#16a34a', color: '#fff' } : { background: '#fff', borderColor: '#e8dfc8', color: '#2a2a2a' }}>
+                        <span className="font-numeric font-bold text-lg">{d}</span>
+                        <span className="text-sm font-display" style={{ color: on ? '#fff' : '#9a8f78' }}>{c} ครั้ง</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <div className="text-center text-sm font-display mt-1.5" style={{ color: '#9a8f78' }}>ช่องเขียว = ตัวเลขที่สุ่มได้ · สถิติจากผลที่ผ่านมา ไม่ใช่การทำนาย</div>
+          </div>
+        ) : (
+          <div className="mt-3 text-center text-sm font-display" style={{ color: '#9a8f78' }} data-testid="roll-hot-none">
+            {H.loading ? '⏳ กำลังโหลดผลย้อนหลัง…' : 'ผลย้อนหลังของหวยนี้ยังไม่ถึง 10 งวด · ใช้สุ่มทั่วไปแทน'}
+          </div>
+        ))}
       </div>
     </div>
   );
