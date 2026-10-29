@@ -21,8 +21,8 @@
 - 📱 PWA — ติดตั้งบนหน้าจอหลักได้
 
 ## 🇺🇸 v4.9 (29 ต.ค. 69) — ผลหวยอเมริกา Powerball · Mega Millions
-- ผลออก → แท็บ **🇺🇸 อเมริกา**: ผลล่าสุด (ลูกขาว 5 ลูก + Powerball/Mega Ball · Power Play) และผลย้อนหลัง กด "ดูเพิ่ม" ทีละ 30 งวด
-- ผลทางการจาก New York Lottery Open Data (data.ny.gov) · ย้อนหลังครบ: Powerball 2,018 งวด (ตั้งแต่ 3 ก.พ. 2010) · Mega Millions 2,552 งวด (ตั้งแต่ 17 พ.ค. 2002)
+- ผลออก → แท็บ **🇺🇸 อเมริกา**: ผลล่าสุด (ลูกขาว 5 ลูก + Powerball/Mega Ball · Power Play) และผลย้อนหลัง 60 งวด
+- ผลทางการจาก New York Lottery Open Data (data.ny.gov) · ฐานข้อมูลเก็บครบตั้งแต่ 2010 (Powerball) / 2002 (Mega Millions) แต่แอปโหลดแค่ 61 งวดล่าสุด
 - Supabase: ตาราง `us_draws` (อ่านได้อย่างเดียว) · pg_cron `lotto-us` ดึงผลใหม่ทุกชั่วโมง · ไม่ทับผลเดิม ถ้าไม่ตรงบันทึก conflict ใน fetch_log
 - แสดงผลอย่างเดียว ไม่ได้เพิ่มเป็นหวยให้จดโพย
 

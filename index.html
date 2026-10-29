@@ -6769,12 +6769,12 @@ function ResultHistory({ draws }) {
 // ผลทางการ New York Lottery Open Data (data.ny.gov) → ตาราง us_draws (pg_cron 'lotto-us' ทุกชั่วโมง)
 // แสดงผลอย่างเดียว ไม่ได้ใช้จดโพย · draw_date = วันออกผลตามเวลาสหรัฐฯ (ไทยคือเช้าวันถัดไป)
 const US_GAMES = {
-  powerball:    { name: 'Powerball',     ball: 'Powerball', mult: 'Power Play', color: '#dc2626', since: '3 ก.พ. 2010',
+  powerball:    { name: 'Powerball',     ball: 'Powerball', mult: 'Power Play', color: '#dc2626',
                   days: 'จ. · พ. · ส. 22:59 น. (ET)', thai: 'ไทย อ. · พฤ. · อา. ราว 10:00–11:00 น.' },
-  megamillions: { name: 'Mega Millions', ball: 'Mega Ball', mult: 'Megaplier',  color: '#d4a017', since: '17 พ.ค. 2002',
+  megamillions: { name: 'Mega Millions', ball: 'Mega Ball', mult: 'Megaplier',  color: '#d4a017',
                   days: 'อ. · ศ. 23:00 น. (ET)',      thai: 'ไทย พ. · ส. ราว 10:00–11:00 น.' },
 };
-const US_PAGE = 30;
+const US_HISTORY = 60;   // ผลล่าสุด + ย้อนหลัง 60 งวด
 const US_CACHE_KEY = 'lotto888-us-v1';
 
 function UsBalls({ row, color, size = 40 }) {
@@ -6794,21 +6794,19 @@ function UsLottoView() {
   const [err, setErr] = useState('');
   const G = US_GAMES[game];
   const rows = data[game] || [];
-  const load = async (more) => {
+  const load = async () => {
     setBusy(true); setErr('');
     try {
-      const off = more ? rows.length : 0;
-      const got = await supaGet('us_draws?select=draw_date,white,ball,multiplier&game=eq.' + game + '&order=draw_date.desc&limit=' + US_PAGE + '&offset=' + off);
+      const got = await supaGet('us_draws?select=draw_date,white,ball,multiplier&game=eq.' + game + '&order=draw_date.desc&limit=' + (US_HISTORY + 1));
       setData(prev => {
-        const next = { ...prev, [game]: more ? [...(prev[game] || []), ...got] : got, [game + ':end']: got.length < US_PAGE };
-        // เก็บแค่หน้าแรกไว้ดูตอนออฟไลน์
-        try { localStorage.setItem(US_CACHE_KEY, JSON.stringify({ powerball: (next.powerball || []).slice(0, US_PAGE), megamillions: (next.megamillions || []).slice(0, US_PAGE) })); } catch (e) {}
+        const next = { ...prev, [game]: got };
+        try { localStorage.setItem(US_CACHE_KEY, JSON.stringify(next)); } catch (e) {}   // ไว้ดูตอนออฟไลน์
         return next;
       });
     } catch (e) { setErr(navigator.onLine === false ? 'ออฟไลน์ · แสดงผลที่เก็บไว้' : 'ดึงผลไม่ได้ · ลองใหม่'); }
     setBusy(false);
   };
-  useEffect(() => { load(false); }, [game]);
+  useEffect(() => { load(); }, [game]);
   const latest = rows[0];
   return (
     <div className="space-y-3">
@@ -6851,7 +6849,7 @@ function UsLottoView() {
       <div className="glass-strong rounded-2xl p-3.5" data-testid="us-history">
         <div className="flex items-center justify-between gap-2 mb-2">
           <b className="font-display text-lg">ผลย้อนหลัง</b>
-          <span className="text-sm font-display" style={{ color: '#6b6357' }}>มีผลตั้งแต่ {G.since}</span>
+          <span className="text-sm font-display" style={{ color: '#6b6357' }}>{rows.length > 1 ? rows.length - 1 : 0} งวดล่าสุด</span>
         </div>
         {rows.slice(1).map(r => (
           <div key={r.draw_date} className="flex items-center justify-between gap-2 py-2 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }}>
@@ -6860,13 +6858,6 @@ function UsLottoView() {
           </div>
         ))}
         {err && <div className="text-center text-sm font-display mt-2" style={{ color: '#b45309' }}>⚠ {err}</div>}
-        {!data[game + ':end'] && rows.length > 0 && (
-          <button onClick={() => load(true)} disabled={busy} data-testid="us-more"
-            className="w-full mt-2.5 py-2.5 rounded-xl border-2 font-display font-bold text-base active:scale-95 disabled:opacity-60"
-            style={{ borderColor: '#dccfa6', background: '#fff', color: '#2a2a2a' }}>
-            {busy ? 'กำลังโหลด…' : 'ดูเพิ่มอีก ' + US_PAGE + ' งวด'}
-          </button>
-        )}
         <div className="text-center text-sm font-display mt-2.5" style={{ color: '#9a8f78' }}>{G.thai} · ผลขึ้นในแอปภายในราว 1–2 ชม. หลังออก</div>
       </div>
     </div>
