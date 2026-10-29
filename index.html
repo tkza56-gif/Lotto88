@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.11 · 29 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-11
+const APP_VERSION = 'v4.12 · 29 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-12
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -6902,21 +6902,45 @@ function UsStats({ game }) {
 }
 
 // ===== 🎲 สุ่มเลข 5 + 1 (หมุน แล้วหยุดทีละลูกจากซ้ายไปขวา) =====
+// โหมด 'pos' = สุ่มจากเลขที่ออกบ่อยในแต่ละตำแหน่ง (ลูกขาวเรียงน้อย→มาก · ทั้งช่วงกติกาปัจจุบัน) ถ่วงน้ำหนักตามจำนวนครั้ง
+const US_POS_TOP = 8;   // ต่อตำแหน่ง สุ่มจาก 8 อันดับแรก
+const wPick = (list) => { const t = list.reduce((s, x) => s + x[1], 0); let r = Math.random() * t; for (const x of list) { if ((r -= x[1]) < 0) return x[0]; } return list[list.length - 1][0]; };
+function usPosPick(S) {
+  for (let tries = 0; tries < 200; tries++) {
+    const white = [];
+    let prev = 0, ok = true;
+    for (let i = 0; i < 5 && ok; i++) {
+      // ต้องมากกว่าตำแหน่งก่อน และเหลือที่ให้ตำแหน่งถัดไป
+      const c = S.pos[i].slice(0, US_POS_TOP).filter(([n]) => n > prev && n <= S.wmax - (4 - i));
+      if (!c.length) ok = false; else { prev = wPick(c); white.push(prev); }
+    }
+    if (ok) return { white, ball: wPick([...S.ball].sort((x, y) => y[1] - x[1]).slice(0, US_POS_TOP)) };
+  }
+  return null;
+}
+
 function UsQuickPick({ game, onCheck }) {
   const G = US_GAMES[game];
   const [wMax, bMax] = US_MAX[game];
+  const [mode, setMode] = useState('pos');
+  const [S, setS] = useState(null);       // สถิติทั้งช่วง (สำหรับโหมด pos)
+  const [sErr, setSErr] = useState('');
   const [shown, setShown] = useState(null);
   const [pick, setPick] = useState(null);
   const [rolling, setRolling] = useState(false);
   const timer = useRef(null);
   useEffect(() => () => clearInterval(timer.current), []);
-  useEffect(() => { clearInterval(timer.current); setRolling(false); setShown(null); setPick(null); }, [game]);
+  useEffect(() => {
+    clearInterval(timer.current); setRolling(false); setShown(null); setPick(null); setS(null); setSErr('');
+    supaGet('rpc/us_stats?p_game=' + game).then(r => setS(r && r.pos ? r : null))
+      .catch(() => setSErr(navigator.onLine === false ? 'ออฟไลน์' : 'โหลดสถิติไม่ได้'));
+  }, [game]);
   const rnd = (m) => 1 + Math.floor(Math.random() * m);
+  const plain = () => { const w = new Set(); while (w.size < 5) w.add(rnd(wMax)); return { white: [...w].sort((a, b) => a - b), ball: rnd(bMax) }; };
+  const usePos = mode === 'pos' && S;
   const roll = () => {
-    if (rolling) return;
-    const w = new Set();
-    while (w.size < 5) w.add(rnd(wMax));
-    const final = { white: [...w].sort((a, b) => a - b), ball: rnd(bMax) };
+    if (rolling || (mode === 'pos' && !S)) return;
+    const final = (usePos && usPosPick(S)) || plain();
     const start = Date.now();
     setRolling(true); setPick(null);
     timer.current = setInterval(() => {
@@ -6925,23 +6949,54 @@ function UsQuickPick({ game, onCheck }) {
       if (locked >= 6) { clearInterval(timer.current); setRolling(false); setPick(final); }
     }, 60);
   };
+  const ballTop = S ? [...S.ball].sort((x, y) => y[1] - x[1] || x[0] - y[0]).slice(0, US_POS_TOP) : [];
+  const cell = (n, c, on, special) => (
+    <div key={n} className="rounded-lg border text-center py-0.5" style={on ? { background: '#16a34a', borderColor: '#16a34a', color: '#fff' }
+      : special ? { background: '#fff', borderColor: G.color, color: G.color } : { background: '#fff', borderColor: '#e8dfc8', color: '#2a2a2a' }}>
+      <span className="block font-numeric font-bold leading-tight">{n}</span>
+      <span className="block font-display leading-tight" style={{ fontSize: 11, color: on ? '#fff' : '#9a8f78' }}>{c}</span>
+    </div>
+  );
   return (
     <div className={usCard} data-testid="us-quickpick">
       <b className="font-display text-lg block mb-2.5">🎲 สุ่มเลขให้ (Quick Pick)</b>
-      <div className="flex justify-center mb-3" style={{ opacity: rolling ? 0.75 : 1 }}>
-        {shown ? <UsBalls row={shown} color={G.color} size={44}/> : <UsBalls row={{ white: ['?', '?', '?', '?', '?'], ball: '?' }} color={G.color} size={44}/>}
+      <div className="grid grid-cols-2 gap-1 rounded-xl p-1 mb-3" style={{ background: '#efe8d6' }}>
+        {[['pos', '🔥 ออกบ่อยรายตำแหน่ง'], ['random', '🎲 สุ่มทั่วไป']].map(([k, l]) => (
+          <button key={k} onClick={() => { setMode(k); setPick(null); }} disabled={rolling} data-testid={'us-mode-' + k} className="py-2 px-1 rounded-lg font-display text-sm font-bold"
+            style={mode === k ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' }}>{l}</button>
+        ))}
       </div>
-      <button onClick={roll} disabled={rolling} data-testid="us-roll"
+      <div className="flex justify-center mb-3" style={{ opacity: rolling ? 0.75 : 1 }}>
+        <UsBalls row={shown || { white: ['?', '?', '?', '?', '?'], ball: '?' }} color={G.color} size={44}/>
+      </div>
+      <button onClick={roll} disabled={rolling || (mode === 'pos' && !S)} data-testid="us-roll"
         className="w-full py-3.5 rounded-2xl font-bold font-display text-lg active:scale-95"
-        style={{ background: '#2a2a2a', color: '#fff', border: '1.5px solid #d4b572', opacity: rolling ? 0.7 : 1 }}>
-        🎲 {rolling ? 'กำลังสุ่ม…' : pick ? 'สุ่มใหม่' : 'กดสุ่มเลข'}
+        style={{ background: '#2a2a2a', color: '#fff', border: '1.5px solid #d4b572', opacity: rolling || (mode === 'pos' && !S) ? 0.7 : 1 }}>
+        🎲 {rolling ? 'กำลังสุ่ม…' : mode === 'pos' && !S ? (sErr || 'กำลังโหลดสถิติ…') : pick ? 'สุ่มใหม่' : 'กดสุ่มเลข'}
       </button>
       {pick && (
         <button onClick={() => onCheck(pick)} data-testid="us-roll-check"
           className="w-full mt-2 py-2.5 rounded-2xl border-2 font-bold font-display text-base active:scale-95"
           style={{ borderColor: '#d4b572', color: '#8a6d36', background: '#fff' }}>🎟 ตรวจชุดนี้กับผลย้อนหลัง ↓</button>
       )}
-      <UsNote>ลูกขาว 5 ลูก (1–{wMax}) + {G.ball} 1 ลูก (1–{bMax}) · สุ่มด้วยเครื่อง ไม่ได้เพิ่มโอกาสถูก</UsNote>
+      {mode === 'pos' && S && (
+        <div className="mt-3" data-testid="us-pos-table">
+          <div className="text-sm font-display font-semibold mb-1.5" style={{ color: '#6b6357' }}>เลขออกบ่อยแต่ละตำแหน่ง ({US_POS_TOP} อันดับ · ครั้ง)</div>
+          <div className="grid grid-cols-6 gap-1">
+            {['ตน. 1', 'ตน. 2', 'ตน. 3', 'ตน. 4', 'ตน. 5', game === 'powerball' ? 'PB' : 'MB'].map((h, i) => (
+              <div key={h} className="text-center font-display font-bold" style={{ fontSize: 12, color: i === 5 ? G.color : '#8a6d36' }}>{h}</div>
+            ))}
+            {Array.from({ length: US_POS_TOP }).map((_, r) => [0, 1, 2, 3, 4, 5].map(i => {
+              const x = i < 5 ? S.pos[i][r] : ballTop[r];
+              if (!x) return <div key={i + '-' + r}/>;
+              const on = pick && !rolling && (i < 5 ? pick.white[i] === x[0] : pick.ball === x[0]);
+              return <React.Fragment key={i + '-' + r}>{cell(x[0], x[1], on, i === 5)}</React.Fragment>;
+            }))}
+          </div>
+          <UsNote>ตำแหน่ง = ลูกขาวเรียงจากน้อยไปมาก · สถิติ {fmt(S.draws)} งวด ตั้งแต่ {formatDrawDateShort(S.since)} · ช่องเขียว = เลขที่สุ่มได้</UsNote>
+        </div>
+      )}
+      <UsNote>ลูกขาว 5 ลูก (1–{wMax}) + {G.ball} 1 ลูก (1–{bMax}) · เลือกเลขจากสถิติไม่ได้เพิ่มโอกาสถูก ทุกชุดมีโอกาสเท่ากัน</UsNote>
     </div>
   );
 }
