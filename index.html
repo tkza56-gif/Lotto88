@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.14 · 30 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-14
+const APP_VERSION = 'v4.15 · 31 ต.ค. 69';   // ตรงกับ sw.js CACHE royal888-v4-15
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -2545,7 +2545,7 @@ function App() {
           incomingShare={shareText} onShareTaken={() => { setShareText(''); try { sessionStorage.removeItem(SHARE_KEY); } catch (e) {} }}/>}
         {tab === 'risk' && <RiskTab lottery={currentLottery} drawDate={config.drawDate} bets={currentBets} allBets={bets} setBets={setBets} isSeller={isSeller} caps={caps} setCaps={setCaps} rates={rates} cuts={cuts} setCuts={setCuts} forwards={forwards} setForwards={setForwards} forwardSettings={forwardSettings} setForwardSettings={setForwardSettings}/>}
         {tab === 'pick' && <PickTab lottery={currentLottery} draws={draws}
-          onSendToJot={(numbers, pos) => { setJotPrefill({ numbers, pos, at: Date.now() }); setTab('jot'); window.scrollTo({ top: 0 }); }}/>}
+          onSendToJot={(numbers, pos, lid) => { if (lid) switchLottery(lid); setJotPrefill({ numbers, pos, at: Date.now() }); setTab('jot'); window.scrollTo({ top: 0 }); }}/>}
         {tab === 'result' && <ResultTab lottery={currentLottery} drawDate={config.drawDate} draws={draws} setDraws={setDraws} currentDraw={currentDraw}
           autoState={autoState} onSync={async () => {
             // กดดึงเอง → บอกผลให้รู้ว่าทำงานแล้ว (เดิมกดแล้วเงียบ ไม่รู้ว่าอัปเดตหรือยัง)
@@ -6276,7 +6276,12 @@ function FrequencyView({ draws, lottery, onSendToJot, onTool }) {
 // โหมด 'hot' = แต่ละหลัก (ร้อย/สิบ/หน่วย) สุ่มจาก 5 ตัวเลขที่ออกบ่อยสุดในหลักนั้น ถ่วงน้ำหนักตามจำนวนครั้ง · นับจาก 100 งวดล่าสุด
 const ROLL_WINDOW = 100, ROLL_TOP = 5;
 const DIGIT_NAMES = { 3: ['หลักร้อย', 'หลักสิบ', 'หลักหน่วย'], 2: ['หลักสิบ', 'หลักหน่วย'] };
-function QuickRoll3({ lottery, draws, onSendToJot }) {
+const ROLL_LOTTERIES = ['gov', 'lao', 'hanoi', 'hanoi_sp', 'hanoi_vip'];
+function QuickRoll3({ lottery: current, draws, onSendToJot }) {
+  // เลือกหวยในการ์ดได้เอง (เริ่มจากหวยที่เลือกอยู่ด้านบน · เปลี่ยนด้านบนแล้วการ์ดเปลี่ยนตาม)
+  const [lid, setLid] = useState(ROLL_LOTTERIES.includes(current.id) ? current.id : 'gov');
+  useEffect(() => { if (ROLL_LOTTERIES.includes(current.id)) setLid(current.id); }, [current.id]);
+  const lottery = ALL_LOTTERIES.find(l => l.id === lid);
   const [pos, setPos] = useState('3');
   const [mode, setMode] = useState('hot');
   const P = PICK_POS.find(p => p.id === pos);
@@ -6325,6 +6330,15 @@ function QuickRoll3({ lottery, draws, onSendToJot }) {
           <i className="block w-1.5 h-1.5 rotate-45" style={{ background: '#d4b572' }}/>
           <i className="block h-px w-14" style={{ background: 'linear-gradient(270deg, transparent, #d4b572)' }}/>
         </div>
+        <div className="flex flex-wrap justify-center gap-1.5 mb-2.5" data-testid="roll-lotteries">
+          {ROLL_LOTTERIES.map(id => (
+            <button key={id} onClick={() => setLid(id)} disabled={rolling} data-testid={'roll-lot-' + id}
+              className="px-3 py-1.5 rounded-full text-sm font-display font-bold border-2 active:scale-95"
+              style={lid === id ? { background: '#2a2a2a', color: '#f5e8c8', borderColor: '#2a2a2a' } : { background: '#fff', color: '#2a2a2a', borderColor: '#dccfa6' }}>
+              {ALL_LOTTERIES.find(l => l.id === id).name}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-1.5 mb-2">
           {[PICK_POS[2], PICK_POS[1], PICK_POS[0]].map(p => (
             <button key={p.id} onClick={() => setPos(p.id)} disabled={rolling} data-testid={'roll-pos-' + p.id}
@@ -6353,10 +6367,10 @@ function QuickRoll3({ lottery, draws, onSendToJot }) {
           🎲 {rolling ? 'กำลังสุ่ม…' : (result ? 'สุ่มใหม่' : 'กดสุ่มเลข')}
         </button>
         {result && onSendToJot && (
-          <button onClick={() => onSendToJot([result], pos)} data-testid="roll3-send"
+          <button onClick={() => onSendToJot([result], pos, lid)} data-testid="roll3-send"
             className="w-full mt-2.5 py-3 rounded-2xl border-2 font-bold font-display text-lg active:scale-95"
             style={{ borderColor: '#d4b572', color: '#8a6d36', background: '#fff' }}>
-            จดเลข {result} ({P.label}) →
+            จดเลข {result} ({P.label}) · {lottery.name} →
           </button>
         )}
         {history.length > 1 && (
