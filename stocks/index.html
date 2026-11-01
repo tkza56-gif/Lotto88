@@ -132,7 +132,12 @@ const TAG_TH = {
   space: 'อวกาศ/ดาวเทียม', ai_chips: 'AI/ชิป', legal: 'คดี/หน่วยงานกำกับ',
   bank: 'ธนาคาร/สินเชื่อ', health: 'ยา/สุขภาพ (FDA)', crypto: 'คริปโต/บิตคอยน์', consumer: 'การบริโภค/ค้าปลีก', auto: 'รถยนต์/EV',
 };
-const SECTORS = ['ตลาดรวม', 'เทคโนโลยี', 'การเงิน', 'สุขภาพ', 'สินค้าอุปโภค', 'พลังงาน', 'กลาโหม', 'อวกาศ', 'สายการบิน', 'ยานยนต์', 'อุตสาหกรรม', 'คริปโต', 'ทองคำ'];
+const SECTORS = ['ตลาดรวม', 'เทคโนโลยี', 'การเงิน', 'สุขภาพ', 'สินค้าอุปโภค', 'พลังงาน', 'กลาโหม', 'อวกาศ', 'สายการบิน', 'ยานยนต์', 'อุตสาหกรรม',
+  'สาธารณูปโภค', 'อสังหาริมทรัพย์', 'คริปโต', 'ทองคำ', 'พันธบัตร', 'ต่างประเทศ'];
+// ETF ตัวแทนกลุ่ม (สหรัฐ) — ภาพรวมรายกลุ่มใช้ตัวนี้แทนค่าเฉลี่ยหุ้นไม่กี่ตัว
+const SECTOR_ETF = { 'ตลาดรวม': 'SPY', 'เทคโนโลยี': 'XLK', 'การเงิน': 'XLF', 'สุขภาพ': 'XLV', 'สินค้าอุปโภค': 'XLY', 'พลังงาน': 'XLE', 'กลาโหม': 'ITA',
+  'สายการบิน': 'JETS', 'อุตสาหกรรม': 'XLI', 'สาธารณูปโภค': 'XLU', 'อสังหาริมทรัพย์': 'VNQ', 'คริปโต': 'IBIT', 'ทองคำ': 'GLD', 'พันธบัตร': 'TLT', 'ต่างประเทศ': 'VXUS' };
+const etfBadge = '<span class="pill" style="font-size:11px;padding:1px 6px">ETF</span>';
 // กลุ่มเหตุการณ์ใหญ่ (ตรงกับ stk_event_tag ในฐานข้อมูล)
 const EV_GROUPS = [['mideast', '🇮🇷 อิหร่าน/ตะวันออกกลาง', /อิหร่าน|ตะวันออกกลาง/], ['tariffs', '🧾 ภาษีนำเข้า/การค้า', /การค้า/], ['ai', '🤖 AI/ชิป', /AI|ชิป/],
   ['bank', '🏦 ธนาคาร/การเงิน', /ธนาคาร|การเงิน/], ['pandemic', '🦠 โรคระบาด', /โรคระบาด/], ['war', '⚔️ สงครามอื่น', /สงคราม/]];
@@ -245,7 +250,7 @@ async function loadDaily(sym, n) {
   return asc;
 }
 async function loadBase() {
-  const [syms, quotes] = await Promise.all([api('stk_symbols?select=symbol,name,sector,market&active=eq.true&order=symbol'), api('stk_quote?select=*')]);
+  const [syms, quotes] = await Promise.all([api('stk_symbols?select=symbol,name,sector,market,kind&active=eq.true&order=symbol'), api('stk_quote?select=*')]);
   S.symbols = syms; S.quotes = Object.fromEntries(quotes.map(q => [q.symbol, q]));
   const t = quotes.map(q => q.updated_at).sort().pop();
   document.getElementById('upd').textContent = t ? 'อัปเดต ' + ago(t) : '';
@@ -261,13 +266,14 @@ function spark(rows) {
 async function renderList() {
   S.scan = S.scan || {};
   const groups = {};
-  S.symbols.forEach(s => (groups[(s.market === 'TH' ? '🇹🇭 ไทย · ' : '🇺🇸 สหรัฐ · ') + (s.sector || 'เพิ่มเอง')] ??= []).push(s));
-  const rank = (k) => (k.startsWith('🇹🇭') ? 100 : 0) + ((i => i < 0 ? 50 : i)(SECTORS.indexOf(k.split(' · ')[1])));
+  S.symbols.forEach(s => (groups[(s.kind === 'etf' ? '📦 ETF · ' + (s.market === 'TH' ? 'ไทย' : s.sector || 'อื่นๆ') : (s.market === 'TH' ? '🇹🇭 ไทย · ' : '🇺🇸 สหรัฐ · ') + (s.sector || 'เพิ่มเอง'))] ??= []).push(s));
+  // ลำดับ: หุ้นสหรัฐ → ETF → หุ้นไทย
+  const rank = (k) => (k.startsWith('📦') ? 100 : k.startsWith('🇹🇭') ? 200 : 0) + ((i => i < 0 ? 50 : i)(SECTORS.indexOf(k.split(' · ')[1])));
   const order = Object.keys(groups).sort((a, b) => rank(a) - rank(b));
   $main.innerHTML = overviewCard() + `<div class="card"><h2>หุ้นที่ติดตาม</h2><div class="sub">แตะที่หุ้นเพื่อดูแนวโน้ม โซนราคา ข่าว และผลกระทบที่บอทเรียนมา · ราคาจาก Yahoo Finance (อาจช้า ~15 นาที)</div>
     ${order.map(g => `<div class="sec">${esc(g)}</div>` + groups[g].map(s => {
       const q = S.quotes[s.symbol], ch = q && q.prev_close ? pct(q.price, q.prev_close) : null;
-      return `<div class="stock" data-sym="${esc(s.symbol)}"><div class="grow"><div class="sym">${esc(s.symbol)} <span data-badge="${esc(s.symbol)}"></span></div><div class="nm">${esc(s.name || '')}</div></div>
+      return `<div class="stock" data-sym="${esc(s.symbol)}"><div class="grow"><div class="sym">${esc(s.symbol)} ${s.kind === 'etf' ? etfBadge : ''} <span data-badge="${esc(s.symbol)}"></span></div><div class="nm">${esc(s.name || '')}</div></div>
         <span data-spark="${esc(s.symbol)}"></span>
         <div class="price num"><b>${q ? cur(s.symbol) + fmt(q.price) : '–'}</b><span class="${cls(ch)}">${ch == null ? 'รอข้อมูล' : sgn(ch)}</span></div></div>`;
     }).join('')).join('')}
@@ -306,19 +312,26 @@ async function renderList() {
 }
 // ===== 📊 ภาพรวมวันนี้: กลุ่มไหนขึ้น/ลง · ขยับแรงสุด · ตัวที่อยู่ในโซนซื้อ · บอทสรุปข่าวรายกลุ่ม =====
 function overviewCard() {
+  // กลุ่มสหรัฐ: ใช้ ETF ตัวแทนกลุ่มถ้ามี · ไม่มีก็เฉลี่ยหุ้นในกลุ่ม · กลุ่มไทย: เฉลี่ยหุ้นในกลุ่ม
+  const chg = (sym) => { const q = S.quotes[sym]; return q && q.prev_close ? pct(q.price, q.prev_close) : null; };
   const by = {};
-  S.symbols.forEach(s => { const q = S.quotes[s.symbol]; if (!q || !q.prev_close) return; const k = (s.market === 'TH' ? '🇹🇭 ' : '🇺🇸 ') + (s.sector || 'อื่นๆ'); (by[k] ??= []).push(pct(q.price, q.prev_close)); });
-  const sec = Object.entries(by).map(([k, v]) => [k, v.reduce((a, b) => a + b, 0) / v.length, v.length]).sort((a, b) => b[1] - a[1]);
+  S.symbols.filter(s => s.kind !== 'etf').forEach(s => { const v = chg(s.symbol); if (v == null) return; (by[(s.market === 'TH' ? '🇹🇭 ' : '🇺🇸 ') + (s.sector || 'อื่นๆ')] ??= []).push(v); });
+  const sec = [...new Set([...Object.keys(by), ...Object.keys(SECTOR_ETF).map(k => '🇺🇸 ' + k)])].map(k => {
+    const name = k.split(' ').slice(1).join(' ');   // ตัดธงออก (ธงยาว 4 ตัวอักษรใน JS ใช้ slice ตามความยาวไม่ได้)
+    const etf = k.startsWith('🇺🇸') && SECTOR_ETF[name], ev = etf ? chg(etf) : null;
+    if (ev != null) return [k + ' (' + etf + ')', ev];
+    const v = by[k]; return v ? [k, v.reduce((a, b) => a + b, 0) / v.length] : null;
+  }).filter(Boolean).sort((a, b) => b[1] - a[1]);
   const mx = Math.max(0.5, ...sec.map(x => Math.abs(x[1])));
-  const mv = S.symbols.map(s => { const q = S.quotes[s.symbol]; return q && q.prev_close ? [s.symbol, pct(q.price, q.prev_close)] : null; }).filter(Boolean).sort((a, b) => b[1] - a[1]);
+  const mv = S.symbols.filter(s => s.kind !== 'etf').map(s => { const v = chg(s.symbol); return v == null ? null : [s.symbol, v]; }).filter(Boolean).sort((a, b) => b[1] - a[1]);
   const chip = ([sym, v]) => `<button class="chip" data-go="${esc(sym)}">${esc(sym)} <span class="${cls(v)}">${sgn(v)}</span></button>`;
   return `<div class="card"><h2>📊 ภาพรวมวันนี้</h2>
-    <div class="sec" style="margin-top:4px">เปลี่ยนแปลงเฉลี่ยรายกลุ่ม</div>
-    ${sec.map(([k, v, n]) => `<div class="row" style="gap:8px;padding:2px 0"><span style="width:120px;font-size:13px;flex-shrink:0">${esc(k)}</span>
+    <div class="sec" style="margin-top:4px">เปลี่ยนแปลงรายกลุ่มวันนี้ (วงเล็บ = ใช้ ETF ตัวแทนกลุ่ม)</div>
+    ${sec.map(([k, v]) => `<div class="row" style="gap:8px;padding:2px 0"><span style="width:150px;font-size:13px;flex-shrink:0">${esc(k)}</span>
       <span class="grow" style="position:relative;height:10px;background:var(--soft);border-radius:6px"><i style="position:absolute;top:0;bottom:0;${v >= 0 ? 'left:50%' : 'right:50%'};width:${Math.abs(v) / mx * 50}%;background:var(${v >= 0 ? '--up' : '--down'});border-radius:6px"></i></span>
       <span class="num ${cls(v)}" style="width:58px;text-align:right;font-size:13px;font-weight:600">${sgn(v)}</span></div>`).join('')}
-    <div class="sec">ขึ้นแรงสุด</div><div class="chips">${mv.slice(0, 5).map(chip).join('')}</div>
-    <div class="sec">ลงแรงสุด</div><div class="chips">${mv.slice(-5).reverse().map(chip).join('')}</div>
+    <div class="sec">หุ้นขึ้นแรงสุด</div><div class="chips">${mv.slice(0, 5).map(chip).join('')}</div>
+    <div class="sec">หุ้นลงแรงสุด</div><div class="chips">${mv.slice(-5).reverse().map(chip).join('')}</div>
     <div id="scan"></div><div id="ovNews"></div></div>`;
 }
 function renderScan() {
@@ -366,12 +379,12 @@ function rsiSvg(R, n) {
 }
 async function renderStock() {
   const sym = S.sel, meta = S.symbols.find(s => s.symbol === sym) || { symbol: sym };
-  $main.innerHTML = `<div class="card"><input id="q" class="grow" style="width:100%;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:9px 12px" placeholder="🔎 ค้นหาหุ้น เช่น NVDA, apple, ธนาคาร" aria-label="ค้นหาหุ้น" value="${esc(S.q || '')}">
+  $main.innerHTML = `<div class="card"><input id="q" class="grow" style="width:100%;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:9px 12px" placeholder="🔎 ค้นหา เช่น NVDA, apple, ธนาคาร, etf" aria-label="ค้นหาหุ้น" value="${esc(S.q || '')}">
     <div class="chips" id="pick" style="margin-top:8px"></div></div><div class="card empty">⏳ กำลังโหลด ${esc(sym)}…</div>`;
   const drawPick = () => {
     const t = (S.q || '').trim().toLowerCase(), cur = S.symbols.find(x => x.symbol === sym) || {};
-    const list = t ? S.symbols.filter(x => (x.symbol + ' ' + (x.name || '') + ' ' + (x.sector || '')).toLowerCase().includes(t)) : S.symbols.filter(x => x.sector === cur.sector && x.market === cur.market);
-    document.getElementById('pick').innerHTML = (t ? '' : `<span class="nm" style="width:100%">กลุ่มเดียวกัน: ${esc(cur.sector || '')}</span>`) +
+    const list = t ? S.symbols.filter(x => (x.symbol + ' ' + (x.name || '') + ' ' + (x.sector || '') + ' ' + (x.kind || '')).toLowerCase().includes(t)) : S.symbols.filter(x => x.sector === cur.sector && x.market === cur.market && (x.kind === 'etf') === (cur.kind === 'etf'));
+    document.getElementById('pick').innerHTML = (t ? '' : `<span class="nm" style="width:100%">${cur.kind === 'etf' ? 'ETF ' : ''}กลุ่มเดียวกัน: ${esc(cur.sector || '')}</span>`) +
       list.slice(0, 24).map(x => `<button class="chip" data-s="${esc(x.symbol)}" aria-pressed="${x.symbol === sym}">${esc(x.symbol)}</button>`).join('') || '<span class="nm">ไม่พบ</span>';
     $main.querySelectorAll('#pick .chip').forEach(b => b.onclick = () => { S.sel = b.dataset.s; S.q = ''; renderStock(); });
   };
@@ -386,7 +399,7 @@ async function renderStock() {
   const zoneTxt = A.inZone ? '✅ ราคาปัจจุบันอยู่ในโซนนี้แล้ว' : A.p > A.buy[1] ? `ราคาปัจจุบันสูงกว่าโซน ${fmt(pct(A.p, A.buy[1]), 1)}%` : 'ราคาต่ำกว่าโซนแล้ว (หลุดแนวรับ) ควรรอให้ตั้งหลักก่อน';
   $main.lastElementChild.outerHTML = `
   <div class="card">
-    <div class="row"><div class="grow"><div class="sym" style="font-size:20px">${esc(sym)}</div><div class="nm">${esc(meta.name || '')}${meta.sector ? ' · ' + esc(meta.sector) : ''}</div></div>
+    <div class="row"><div class="grow"><div class="sym" style="font-size:20px">${esc(sym)}</div><div class="nm">${esc(meta.name || '')}${meta.sector ? ' · ' + esc(meta.sector) : ''}${meta.kind === 'etf' ? ' · ETF' : ''}</div></div>
       <div class="price num"><div class="big">${C}${fmt(A.p)}</div><span class="${cls(ch)}">${ch == null ? '' : sgn(ch) + ' วันนี้'}</span></div></div>
     <div class="chips" style="margin-top:10px" id="rng">${[[63, '3 เดือน'], [126, '6 เดือน'], [250, '1 ปี'], [1260, '5 ปี']].map(([v, l]) => `<button class="chip" data-r="${v}" aria-pressed="${S.range === v}">${l}</button>`).join('')}</div>
     <div class="legend"><span><i style="background:var(--s-price)"></i>ราคา</span><span><i style="background:var(--s-20)"></i>เฉลี่ย 20 วัน</span><span><i style="background:var(--s-50)"></i>50 วัน</span><span><i style="background:var(--s-200)"></i>200 วัน</span><span><i style="background:var(--zone);height:8px"></i>โซนเข้าซื้อ</span></div>
