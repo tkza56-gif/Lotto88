@@ -480,7 +480,7 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.16 · 1 พ.ย. 69';   // ตรงกับ sw.js CACHE royal888-v4-16
+const APP_VERSION = 'v4.17 · 1 พ.ย. 69';   // ตรงกับ sw.js CACHE royal888-v4-17
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -4844,6 +4844,7 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
 
   return (
     <div className="space-y-4 slide-in">
+      <DoubleRiskCard lottery={lottery} bets={bets} rates={rates}/>
       {/* Summary */}
       <div className="glass-strong rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
@@ -5130,6 +5131,50 @@ function RiskTab({ lottery, drawDate, bets, allBets, setBets, isSeller, caps, se
             onClose={() => setManageCombo(null)}/>
         </BottomSheet>
       )}
+    </div>
+  );
+}
+
+// ===== ⚠️ เตือนผู้ขาย: เลขเบิ้ล/หาม (3 ตัว มีตัวเลขซ้ำ 2 ตัว) ออกบ่อยกว่าหวยสุ่มจริง =====
+// หวยสุ่มจริงออกเบิ้ล/หาม 27% (270 จาก 1,000 เลข) · แสดงเฉพาะเมื่อผลย้อนหลังของหวยนี้สูงกว่าอย่างมีนัย (z ≥ 2) และงวดนี้มีโพยเลขเบิ้ล/หาม
+const isDouble3 = (n) => /^\d{3}$/.test(n) && new Set(n).size === 2;
+function DoubleRiskCard({ lottery, bets, rates }) {
+  const H = useResultHistory(lottery, []);
+  const st = useMemo(() => {
+    const v = H.rows.map(r => r[1]).filter(x => x && x.length === 3);
+    const n = v.length, k = v.filter(isDouble3).length;
+    return { n, rate: n ? k / n : 0, z: n ? (k / n - 0.27) / Math.sqrt(0.27 * 0.73 / n) : 0 };
+  }, [H.rows]);
+  const d = useMemo(() => {
+    const three = bets.filter(b => b.type === '3บน' || b.type === '3ตัว');
+    const tot = three.reduce((s, b) => s + (parseFloat(b.amount) || 0), 0);
+    const map = {};
+    three.filter(b => isDouble3(b.number)).forEach(b => {
+      const m = map[b.number] || (map[b.number] = { n: b.number, amt: 0, pay: 0 });
+      const a = parseFloat(b.amount) || 0;
+      m.amt += a; m.pay += a * ((rates && rates[b.type]) || b.rate || 800);
+    });
+    const list = Object.values(map).sort((x, y) => y.pay - x.pay);
+    return { tot, amt: list.reduce((s, x) => s + x.amt, 0), list };
+  }, [bets, rates]);
+  if (st.n < 100 || st.z < 2 || d.amt <= 0) return null;
+  return (
+    <div className="rounded-2xl p-3.5 border-2" data-testid="double-risk" style={{ background: '#fff6e5', borderColor: '#f3cf8e' }}>
+      <div className="font-display text-lg font-bold" style={{ color: '#92400e' }}>⚠️ เลขเบิ้ล/หาม ออกบ่อยกว่าปกติ</div>
+      <div className="text-base font-display mt-1" style={{ color: '#2a2a2a' }}>
+        {lottery.name} ออก 3 ตัวแบบเบิ้ล/หาม <b className="font-numeric">{(st.rate * 100).toFixed(1)}%</b> ของงวด (หวยสุ่มจริง 27%) จาก {fmt(st.n)} งวด
+      </div>
+      <div className="text-base font-display mt-1" style={{ color: '#2a2a2a' }}>
+        งวดนี้รับเลขเบิ้ล/หาม <b className="font-numeric">฿{fmt(d.amt)}</b>{d.tot > 0 ? ` (${Math.round(d.amt / d.tot * 100)}% ของยอด 3 ตัว)` : ''}
+      </div>
+      <div className="flex flex-wrap gap-1.5 mt-2">
+        {d.list.slice(0, 6).map(x => (
+          <span key={x.n} className="rounded-lg border px-2 py-1 text-sm font-display bg-white" style={{ borderColor: '#f3cf8e' }}>
+            <b className="font-numeric text-base">{x.n}</b> ฿{fmt(x.amt)} · จ่าย ฿{fmt(x.pay)}
+          </span>
+        ))}
+      </div>
+      <div className="text-sm font-display mt-2" style={{ color: '#92400e' }}>ลูกค้าที่แทงเลขกลุ่มนี้ได้เปรียบเล็กน้อย · พิจารณาอั้นจ่ายครึ่ง หรือส่งต่อเจ้ามือใหญ่ ในส่วนด้านล่าง</div>
     </div>
   );
 }
@@ -6158,18 +6203,19 @@ function computePickStats(rows, pos) {
 
 function PickTab({ lottery, draws, onSendToJot }) {
   const [subTab, setSubTab] = useState('freq');
-  const seg = [{ id: 'freq', label: '📊 สถิติ' }, { id: 'random', label: '🎲 สุ่ม' }, { id: 'tools', label: '🧰 เครื่องมือ' }];
+  const seg = [{ id: 'freq', label: '📊 สถิติ' }, { id: 'random', label: '🎲 สุ่ม' }, { id: 'lab', label: '🧪 ทดลอง' }, { id: 'tools', label: '🧰 เครื่องมือ' }];
   return (
     <div className="space-y-3 slide-in">
-      <div className="grid grid-cols-3 gap-1 rounded-xl p-1" style={{ background: '#efe8d6' }}>
+      <div className="grid grid-cols-4 gap-1 rounded-xl p-1" style={{ background: '#efe8d6' }}>
         {seg.map(t => (
           <button key={t.id} onClick={() => setSubTab(t.id)} data-testid={'pick-' + t.id}
-            className="py-2.5 rounded-lg text-base font-display font-bold"
+            className="py-2.5 rounded-lg text-sm font-display font-bold whitespace-nowrap"
             style={subTab === t.id ? { background: '#fff', color: '#2a2a2a', boxShadow: '0 2px 6px rgba(184,150,90,.18)' } : { color: '#6b6357' }}>{t.label}</button>
         ))}
       </div>
       {subTab === 'freq' && <FrequencyView draws={draws} lottery={lottery} onSendToJot={onSendToJot} onTool={setSubTab}/>}
       {subTab === 'random' && <><QuickRoll3 lottery={lottery} draws={draws} onSendToJot={onSendToJot}/><RandomGen/></>}
+      {subTab === 'lab' && <StrategyLab lottery={lottery} draws={draws}/>}
       {subTab === 'tools' && <ToolsView/>}
     </div>
   );
@@ -6468,7 +6514,7 @@ function RollLog({ lottery, rows, tick }) {
         {list.slice(0, 15).map(({ e, date, act, hits, exact, toad }) => (
           <div key={e.at} className="flex items-center justify-between gap-2 py-1.5 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }}>
             <span className="leading-tight min-w-0">
-              <span className="block text-sm font-display" style={{ color: '#9a8f78' }}>{label(e.pos)}{e.mode === 'hot' ? ' · 🔥' : ' · 🎲'} · สุ่ม {formatDrawDateShort(new Date(e.at - new Date(e.at).getTimezoneOffset() * 6e4).toISOString().slice(0, 10))}</span>
+              <span className="block text-sm font-display" style={{ color: '#9a8f78' }}>{label(e.pos)}{e.mode === 'hot' ? ' · 🔥' : e.mode && e.mode.startsWith('lab:') ? ' · 🧪 ' + ((LAB_STRATS.find(x => 'lab:' + x.id === e.mode) || {}).name || '') : ' · 🎲'} · สุ่ม {formatDrawDateShort(new Date(e.at - new Date(e.at).getTimezoneOffset() * 6e4).toISOString().slice(0, 10))}</span>
               <span className="font-numeric font-bold text-xl tracking-wider">
                 {e.num.split('').map((d, i) => <span key={i} style={hits && hits[i] ? { color: '#16a34a' } : undefined}>{d}</span>)}
               </span>
@@ -6531,6 +6577,131 @@ function RollBacktest({ lottery }) {
         </div>
         <div className="rounded-xl px-3 py-2 mt-2.5 text-sm font-display" style={{ background: '#f5f1e8', color: '#6b6357' }}>
           ตัวเลขทั้งสองฝั่งใกล้กัน = เลขออกบ่อยไม่ได้ทำให้ถูกบ่อยขึ้น · หวยออกแบบให้ทุกเลขมีโอกาสเท่ากันทุกงวด
+        </div>
+      </>)}
+    </div>
+  );
+}
+
+// ===== 🧪 ห้องทดลองสูตร: ทดสอบทุกสูตรย้อนหลังกับผลจริง + ออกเลขงวดหน้า (บันทึกเข้า 🎯 เทียบผลจริง) =====
+// ทุกงวดเป้าหมาย ใช้เฉพาะผลก่อนหน้างวดนั้น · สุ่มมั่ว = เส้นฐาน (หลักละ 10%)
+const LAB_TARGETS = 300, LAB_WIN = 100;
+const kindOf = (v) => { const n = new Set(v).size; return n === v.length ? 'u' : 'd'; };   // ไม่ซ้ำ / มีเลขซ้ำ
+const modeOf = (arr) => { const c = {}; let best = null; arr.forEach(x => { c[x] = (c[x] || 0) + 1; if (best === null || c[x] > c[best]) best = x; }); return best; };
+const LAB_STRATS = [
+  { id: 'hot',   icon: '🔥', name: 'ออกบ่อยรายหลัก',      desc: 'แต่ละหลักใช้ตัวเลขที่ออกบ่อยสุดใน 100 งวด',
+    pick: (h, L) => Array.from({ length: L }, (_, i) => modeOf(h.slice(-LAB_WIN).map(v => v[i]))).join('') },
+  { id: 'cold',  icon: '❄️', name: 'ไม่ออกนานรายหลัก',    desc: 'แต่ละหลักใช้ตัวเลขที่ไม่ออกนานที่สุด',
+    pick: (h, L) => Array.from({ length: L }, (_, i) => { let best = '0', gap = -1; for (let d = 0; d < 10; d++) { let g = 0; for (let j = h.length - 1; j >= 0 && h[j][i] !== String(d); j--) g++; if (g > gap) { gap = g; best = String(d); } } return best; }).join('') },
+  { id: 'same',  icon: '🔁', name: 'ตามงวดก่อน',          desc: 'ใช้เลขเดียวกับงวดก่อน', pick: (h) => h[h.length - 1] },
+  { id: 'rev',   icon: '↔️', name: 'กลับเลขงวดก่อน',       desc: 'กลับหลักเลขงวดก่อน เช่น 25 → 52', pick: (h) => h[h.length - 1].split('').reverse().join('') },
+  { id: 'plus',  icon: '➕', name: 'บวก 1 ทุกหลัก',        desc: 'เลขงวดก่อน บวก 1 ทุกหลัก เช่น 25 → 36', pick: (h) => h[h.length - 1].split('').map(d => String((+d + 1) % 10)).join('') },
+  { id: 'follow', icon: '🔗', name: 'เลขตามเลข',           desc: 'งวดก่อนออก X → เลขที่เคยออกตามหลัง X บ่อยสุด',
+    pick: (h) => { const x = h[h.length - 1], f = []; for (let j = 0; j < h.length - 2; j++) if (h[j] === x) f.push(h[j + 1]); return f.length ? modeOf(f.reverse()) : null; } },
+  { id: 'kind',  icon: '🎭', name: 'ตามแบบเบิ้ล/หาม',      desc: 'งวดก่อนเบิ้ล/หาม → เลขเบิ้ล/หามที่ออกบ่อยสุด · ไม่ซ้ำ → เลขไม่ซ้ำที่ออกบ่อยสุด',
+    pick: (h) => { const k = kindOf(h[h.length - 1]); return modeOf(h.slice(-LAB_WIN).filter(v => kindOf(v) === k).reverse()); } },
+  { id: 'bot',   icon: '🤖', name: 'บอทเรียนลำดับเลข',      desc: 'เรียนจากผลทั้งหมดก่อนงวดนั้น: แต่ละหลัก หลังออกตัว a งวดหน้ามักออกตัวไหน (Markov)',
+    pick: (h, L) => Array.from({ length: L }, (_, i) => { const a = h[h.length - 1][i], f = []; for (let j = 0; j < h.length - 1; j++) if (h[j][i] === a) f.push(h[j + 1][i]); return f.length ? modeOf(f.reverse()) : a; }).join('') },
+];
+
+function StrategyLab({ lottery: current, draws }) {
+  const [lid, setLid] = useState(ROLL_LOTTERIES.includes(current.id) ? current.id : 'gov');
+  useEffect(() => { if (ROLL_LOTTERIES.includes(current.id)) setLid(current.id); }, [current.id]);
+  const lottery = ALL_LOTTERIES.find(l => l.id === lid);
+  const [pos, setPos] = useState('2ล่าง');
+  const [saved, setSaved] = useState({});
+  const P = PICK_POS.find(p => p.id === pos);
+  const H = useResultHistory(lottery, draws);
+  const seq = useMemo(() => H.rows.map(r => r[P.col]).filter(v => v && v.length === P.len).reverse(), [H.rows, pos]);   // เก่า → ใหม่
+  const res = useMemo(() => {
+    if (seq.length < LAB_WIN + 20) return null;
+    const start = Math.max(LAB_WIN, seq.length - LAB_TARGETS), L = P.len;
+    const rows = LAB_STRATS.map(st => {
+      let tried = 0, dig = 0, exact = 0;
+      for (let t = start; t < seq.length; t++) {
+        const g = st.pick(seq.slice(0, t), L);
+        if (!g) continue;
+        tried++; exact += g === seq[t];
+        for (let i = 0; i < L; i++) dig += g[i] === seq[t][i];
+      }
+      return { ...st, tried, digit: tried ? dig / (tried * L) : 0, exact, expExact: tried / Math.pow(10, L), next: st.pick(seq, L) };
+    }).sort((a, b) => b.digit - a.digit);
+    // ช่วงบังเอิญ: z = 2.73 (เทียบ 8 สูตรพร้อมกัน) · แต่ละสูตรใช้จำนวนงวดที่ทายได้จริงของตัวเอง
+    const n = seq.length - start, z = 2.73, bandOf = (k) => z * Math.sqrt(0.09 / (Math.max(k, 1) * L));
+    rows.forEach(r => { r.band = bandOf(r.tried); });
+    return { rows, n, band: bandOf(n) };
+  }, [seq]);
+  useEffect(() => setSaved({}), [lid, pos]);
+  const save = (st) => { saveRoll({ at: Date.now(), lid, pos, num: st.next, mode: 'lab:' + st.id }); setSaved(m => ({ ...m, [st.id]: true })); };
+  const card = 'bg-white rounded-2xl border p-3.5';
+  return (
+    <div className="space-y-3">
+      <div className={card} style={{ borderColor: '#e8dfc8' }}>
+        <b className="font-display text-lg block">🧪 ห้องทดลองสูตร</b>
+        <div className="text-sm font-display mb-2.5" style={{ color: '#6b6357' }}>ทดสอบทุกสูตรกับผลจริงย้อนหลัง · แต่ละงวดใช้แค่ข้อมูลก่อนหน้า เหมือนใช้งานจริง</div>
+        <div className="flex flex-wrap gap-1.5 mb-2" data-testid="lab-lotteries">
+          {ROLL_LOTTERIES.map(id => (
+            <button key={id} onClick={() => setLid(id)} data-testid={'lab-lot-' + id}
+              className="px-3 py-1.5 rounded-full text-sm font-display font-bold border-2 active:scale-95"
+              style={lid === id ? { background: '#2a2a2a', color: '#f5e8c8', borderColor: '#2a2a2a' } : { background: '#fff', color: '#2a2a2a', borderColor: '#dccfa6' }}>
+              {ALL_LOTTERIES.find(l => l.id === id).name}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1.5">
+          {[PICK_POS[2], PICK_POS[1], PICK_POS[0]].map(p => (
+            <button key={p.id} onClick={() => setPos(p.id)} data-testid={'lab-pos-' + p.id}
+              className="flex-1 py-1.5 rounded-full border-2 font-display font-bold text-base"
+              style={pos === p.id ? { background: p.len === 3 ? GRP.g3.solid : GRP.g2.solid, borderColor: 'transparent', color: '#fff' }
+                : { background: '#fff', borderColor: p.len === 3 ? GRP.g3.bd : GRP.g2.bd, color: p.len === 3 ? GRP.g3.fg : GRP.g2.fg }}>{p.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {!res ? (
+        <div className={card + ' text-center font-display'} style={{ borderColor: '#e8dfc8', color: '#6b6357' }}>{H.loading ? '⏳ กำลังโหลดผลย้อนหลัง…' : 'ผลย้อนหลังยังไม่พอทดสอบ (ต้องมีอย่างน้อย 120 งวด)'}</div>
+      ) : (<>
+        <div className={card} style={{ borderColor: '#e8dfc8' }} data-testid="lab-table">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <b className="font-display text-lg">🏆 ตารางคะแนน</b>
+            <span className="text-sm font-display" style={{ color: '#6b6357' }}>{lottery.name} · {P.label} · {fmt(res.n)} งวด</span>
+          </div>
+          <div className="text-sm font-display mb-2" style={{ color: '#6b6357' }}>
+            สุ่มมั่วตรงรายหลัก 10% · เทียบ 8 สูตรพร้อมกัน ถ้าบังเอิญล้วนๆ สูตรใดสูตรหนึ่งก็อยู่ได้ระหว่าง <b className="font-numeric">{((0.1 - res.band) * 100).toFixed(1)}–{((0.1 + res.band) * 100).toFixed(1)}%</b>
+          </div>
+          {res.rows.map((st, i) => {
+            const pct = st.digit * 100, out = Math.abs(st.digit - 0.1) > st.band;
+            return (
+              <div key={st.id} className="py-2 border-b border-dotted last:border-0" style={{ borderColor: '#eee4cc' }} data-testid={'lab-row-' + st.id}>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 text-sm font-display flex-shrink-0" style={{ color: '#9a8f78' }}>{i + 1}</span>
+                  <span className="flex-1 min-w-0 font-display font-bold text-base">{st.icon} {st.name}</span>
+                  <span className="font-numeric font-bold text-lg flex-shrink-0">{pct.toFixed(1)}%</span>
+                </div>
+                <div className="ml-7 mt-1 h-2 rounded-full relative" style={{ background: '#f3eee2' }}>
+                  <i className="absolute top-0 bottom-0 rounded-full" style={{ left: Math.max(0, (0.1 - st.band) * 500) + '%', width: Math.min(100, st.band * 1000) + '%', background: '#e8dfc8' }}/>
+                  <i className="absolute top-0 bottom-0 w-px" style={{ left: '50%', background: '#9a8f78' }}/>
+                  <i className="absolute -top-0.5 w-3 h-3 rounded-full" style={{ left: `calc(${Math.min(100, pct * 5)}% - 6px)`, background: out ? '#b45309' : '#8a6d36', border: '2px solid #fff' }}/>
+                </div>
+                <div className="ml-7 mt-1 flex items-center justify-between gap-2 text-sm font-display" style={{ color: '#6b6357' }}>
+                  <span>ตรงทั้งชุด <b className="font-numeric" style={{ color: '#2a2a2a' }}>{st.exact}</b> ครั้ง (มั่ว ~{st.expExact.toFixed(1)}){st.tried < res.n ? ` · ทายได้ ${st.tried} งวด` : ''}{out ? ' · นอกช่วงบังเอิญ' : ''}</span>
+                  {st.next && (
+                    <button onClick={() => save(st)} disabled={saved[st.id]} data-testid={'lab-save-' + st.id}
+                      className="rounded-full border px-2.5 py-0.5 font-bold flex-shrink-0 active:scale-95"
+                      style={saved[st.id] ? { background: '#eaf7ef', borderColor: '#bfe5cc', color: '#15803d' } : { background: '#fff', borderColor: '#d4b572', color: '#8a6d36' }}>
+                      {saved[st.id] ? '✓ บันทึกแล้ว' : 'งวดหน้า ' + st.next + ' → 🎯'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <div className="text-sm font-display mt-2" style={{ color: '#9a8f78' }}>แถบเทา = ช่วงที่เกิดได้จากความบังเอิญ (สูตรที่ทายได้น้อยงวด แถบจะกว้างกว่า) · เส้นกลาง = 10% (สุ่มมั่ว) · ลำดับคะแนนสลับไปมาได้ตามข้อมูล ไม่ได้แปลว่าสูตรอันดับ 1 จะชนะงวดหน้า</div>
+        </div>
+        <div className={card} style={{ borderColor: '#e8dfc8' }}>
+          <b className="font-display text-base block mb-1">สูตรทำงานยังไง</b>
+          {LAB_STRATS.map(st => <div key={st.id} className="text-sm font-display py-0.5" style={{ color: '#6b6357' }}>{st.icon} <b style={{ color: '#2a2a2a' }}>{st.name}</b> — {st.desc}</div>)}
+          <div className="text-sm font-display mt-2" style={{ color: '#9a8f78' }}>กด "งวดหน้า … → 🎯" เพื่อบันทึกเลขของสูตรนั้น แล้วดูผลจริงได้ที่ 🎲 สุ่ม → 🎯 เลขที่สุ่ม เทียบผลจริง</div>
         </div>
       </>)}
     </div>
