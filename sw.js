@@ -1,5 +1,5 @@
-// Royal 888 Service Worker v4.17 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
-const CACHE = 'royal888-v4-17';
+// Royal 888 Service Worker v4.18 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
+const CACHE = 'royal888-v4-18';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const APP_SHELL = [
   './icon-512.png',
   './icon-maskable-512.png',
   './stats/',
+  './stocks/',
 ];
 
 const CDN_PATTERNS = [
