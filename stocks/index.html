@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>หุ้นสหรัฐ</title>
+<meta name="description" content="ติดตามหุ้นสหรัฐ แนวโน้ม โซนราคา ข่าวที่บอทคัดให้ และผลกระทบจากเหตุการณ์ในอดีต">
+<meta name="theme-color" content="#14213d">
+<link rel="preconnect" href="https://tlykaqoypstvdrlivwvu.supabase.co" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f6fa; --card:#fff; --ink:#1b2340; --ink2:#5b6478; --muted:#687185; --line:#e6e9f0; --soft:#eef1f6;
+  --acc:#14213d; --on-acc:#fff;
+  --up:#16834a; --up-bg:#e5f5ec; --down:#c62828; --down-bg:#fdecec; --warn:#a15c00; --warn-bg:#fdf1de; --info-bg:#eaf0fb;
+  --s-price:#1b2340; --s-20:#c26a00; --s-50:#1d5fd6; --s-200:#7a3fd1; --zone:rgba(22,131,74,.14);
+  --radius:18px; --shadow:0 1px 2px rgba(20,30,60,.06),0 6px 20px rgba(20,30,60,.06);
+  --font:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1422; --card:#182033; --ink:#eef1f8; --ink2:#b4bccd; --muted:#8d97ab; --line:#283149; --soft:#202a40;
+  --acc:#5a88f2; --on-acc:#0f1422;
+  --up:#4fd38a; --up-bg:#16352a; --down:#ff6b6b; --down-bg:#3a1c1f; --warn:#ffb648; --warn-bg:#3a2c12; --info-bg:#1c2a46;
+  --s-price:#eef1f8; --s-20:#f0a03c; --s-50:#6e9bff; --s-200:#b08cff; --zone:rgba(79,211,138,.16); --shadow:none;
+}}
+:root[data-theme="dark"]{
+  --bg:#0f1422; --card:#182033; --ink:#eef1f8; --ink2:#b4bccd; --muted:#8d97ab; --line:#283149; --soft:#202a40;
+  --acc:#5a88f2; --on-acc:#0f1422;
+  --up:#4fd38a; --up-bg:#16352a; --down:#ff6b6b; --down-bg:#3a1c1f; --warn:#ffb648; --warn-bg:#3a2c12; --info-bg:#1c2a46;
+  --s-price:#eef1f8; --s-20:#f0a03c; --s-50:#6e9bff; --s-200:#b08cff; --zone:rgba(79,211,138,.16); --shadow:none;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-text-size-adjust:100%}
+body{min-height:100vh}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+.wrap{max-width:560px;margin:0 auto;padding:12px 16px 90px}
+header{display:flex;align-items:center;gap:10px;padding:6px 0 10px}
+header h1{font-size:22px;margin:0;flex:1}
+.back{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);text-decoration:none;font-size:18px}
+.sub{color:var(--muted);font-size:13px}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--soft);padding:4px;border-radius:14px;position:sticky;top:0;z-index:5}
+.tabs button{border:0;background:transparent;padding:9px 2px;border-radius:10px;font-weight:700;font-size:14px;color:var(--ink2)}
+.tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-top:12px;box-shadow:var(--shadow)}
+.card h2{font-size:17px;margin:0 0 6px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.num{font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 9px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--soft);white-space:nowrap}
+.pill.up{background:var(--up-bg);border-color:transparent} .pill.down{background:var(--down-bg);border-color:transparent}
+.pill.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:14px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--acc);color:var(--on-acc);border-color:var(--acc)}
+.sec{font-size:13px;font-weight:700;color:var(--muted);margin:14px 2px 4px}
+.stock{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px dashed var(--line);cursor:pointer}
+.stock:last-child{border-bottom:0}
+.sym{font-weight:700;font-size:16px}
+.nm{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.price{text-align:right}
+.price b{display:block;font-size:16px}
+.price span{font-size:13px;font-weight:600}
+.spark{width:64px;height:26px;flex-shrink:0}
+.big{font-size:30px;font-weight:700;line-height:1.1}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.kv div{background:var(--soft);border-radius:12px;padding:8px 10px}
+.kv small{display:block;color:var(--muted);font-size:12px}
+.kv b{font-size:16px}
+.zone{border-radius:14px;padding:10px 12px;margin-top:8px;border:1px solid var(--line)}
+.zone .t{font-weight:700}
+.zone .r{color:var(--ink2);font-size:13px;margin-top:2px}
+.z-buy{background:var(--up-bg);border-color:transparent}
+.z-stop{background:var(--down-bg);border-color:transparent}
+.z-tgt{background:var(--info-bg);border-color:transparent}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--ink2);margin:6px 0 2px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.tip{min-height:20px;font-size:13px;color:var(--ink2)}
+svg text{font-family:var(--font)}
+.news{padding:10px 2px;border-bottom:1px dashed var(--line)}
+.news:last-child{border-bottom:0}
+.news a{text-decoration:none;font-weight:600;line-height:1.35;display:block}
+.news .meta{color:var(--muted);font-size:12px;margin-top:3px}
+.news .chips{margin-top:6px;gap:4px}
+.news .pill{font-size:12px;padding:2px 7px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:4px 4px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{padding:6px 4px;text-align:right;border-bottom:1px dashed var(--line)}
+tr:last-child td{border-bottom:0}
+.note{color:var(--muted);font-size:12.5px;line-height:1.5;margin-top:8px}
+.disc{background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:8px 10px;font-size:12.5px;margin-top:10px}
+.add{display:flex;gap:8px;margin-top:10px}
+.add input{flex:1;min-width:0;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:9px 12px;text-transform:uppercase}
+.btn{border:0;background:var(--acc);color:var(--on-acc);border-radius:12px;padding:9px 14px;font-weight:700}
+.empty{color:var(--muted);text-align:center;padding:24px 8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="back" href="../" title="กลับแอปหวย" aria-label="กลับแอปหวย">←</a>
+    <h1>📈 หุ้นสหรัฐ</h1>
+    <span class="sub" id="upd"></span>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="list" aria-selected="true">📋 รายการ</button>
+    <button role="tab" data-tab="stock" aria-selected="false">📈 หุ้น</button>
+    <button role="tab" data-tab="news" aria-selected="false">📰 ข่าว</button>
+    <button role="tab" data-tab="impact" aria-selected="false">🌍 ผลกระทบ</button>
+  </nav>
+  <main id="main"></main>
+</div>
+<script>
+// ===================== ข้อมูล (Supabase · อ่านอย่างเดียว) =====================
+// ราคา/ข่าวเก็บโดย Edge Function stk-crawl (บอทของเราเอง ไม่ใช้ AI ภายนอก) · pg_cron ทุก 15 นาที
+const REST = 'https://tlykaqoypstvdrlivwvu.supabase.co/rest/v1/';
+const KEY = 'sb_publishable_IAmYP1QeDb5otH0sjMZaMA_Bme1gxwG';
+async function api(path, opt = {}) {
+  const r = await fetch(REST + path, { ...opt, headers: { apikey: KEY, 'Content-Type': 'application/json', ...(opt.headers || {}) }, cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+const TAG_TH = {
+  mideast_war: 'สงครามตะวันออกกลาง/อิหร่าน', war_other: 'ความขัดแย้งอื่น', oil: 'น้ำมัน/OPEC', rates: 'ดอกเบี้ย/เงินเฟ้อ',
+  tariffs: 'ภาษีนำเข้า/การค้า', defense: 'งบ/สัญญากลาโหม', earnings: 'งบการเงิน', supply: 'หุ้นเพิ่ม/ปลดล็อก',
+  space: 'อวกาศ/ดาวเทียม', ai_chips: 'AI/ชิป', legal: 'คดี/หน่วยงานกำกับ',
+};
+const SECTORS = ['อวกาศ', 'พลังงาน', 'กลาโหม', 'สายการบิน', 'ทองคำ', 'ตลาดรวม', 'เทคโนโลยี'];
+// ข้อมูลเฉพาะหุ้น (ตรวจจากเอกสาร IPO ก่อนใช้จริง)
+const NOTES = {
+  SPCX: 'เข้าตลาด Nasdaq 12 มิ.ย. 2026 ราคา IPO $135 · ระยะห้ามขายของผู้ถือหุ้นเดิม (lock-up) ปกติราว 180 วัน ≈ ต้น–กลาง ธ.ค. 2026 ช่วงนั้นมักมีแรงขายเพิ่ม (ตรวจวันจริงจากเอกสาร IPO)',
+};
+const IPO = { SPCX: 135 };
+
+const S = { tab: 'list', symbols: [], quotes: {}, daily: {}, sel: 'SPCX', range: 250, news: null, newsFilter: 'all', events: null, learn: null, evSel: null };
+const $main = document.getElementById('main');
+const fmt = (n, d = 2) => n == null || isNaN(n) ? '–' : Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = (a, b) => (a / b - 1) * 100;
+const sgn = (v) => (v > 0 ? '+' : '') + fmt(v) + '%';
+const cls = (v) => v > 0 ? 'up' : v < 0 ? 'down' : '';
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const thDate = (iso) => { const d = new Date(iso + (iso.length === 10 ? 'T00:00:00' : '')); return d.getDate() + ' ' + TH_M[d.getMonth()] + ' ' + String((d.getFullYear() + 543) % 100); };
+const ago = (iso) => { const m = Math.round((Date.now() - new Date(iso)) / 6e4); return m < 60 ? m + ' นาทีที่แล้ว' : m < 1440 ? Math.round(m / 60) + ' ชม.ที่แล้ว' : Math.round(m / 1440) + ' วันที่แล้ว'; };
+
+// ===================== ตัวชี้วัด =====================
+const sma = (a, n) => a.map((_, i) => i + 1 < n ? null : a.slice(i + 1 - n, i + 1).reduce((s, x) => s + x, 0) / n);
+function rsi(c, n = 14) {
+  const out = Array(c.length).fill(null); let g = 0, l = 0;
+  for (let i = 1; i < c.length; i++) {
+    const ch = c[i] - c[i - 1], up = Math.max(ch, 0), dn = Math.max(-ch, 0);
+    if (i <= n) { g += up; l += dn; if (i === n) { g /= n; l /= n; out[i] = 100 - 100 / (1 + g / (l || 1e-9)); } }
+    else { g = (g * (n - 1) + up) / n; l = (l * (n - 1) + dn) / n; out[i] = 100 - 100 / (1 + g / (l || 1e-9)); }
+  }
+  return out;
+}
+function atr(rows, n = 14) {
+  const tr = rows.map((r, i) => i ? Math.max(r.h - r.l, Math.abs(r.h - rows[i - 1].c), Math.abs(r.l - rows[i - 1].c)) : r.h - r.l);
+  return tr.slice(-n).reduce((s, x) => s + x, 0) / Math.min(n, tr.length);
+}
+// แนวรับ/ต้าน = จุดต่ำ/สูงเฉพาะที่ (หน้าต่าง ±5 วัน) ใน 250 วันล่าสุด รวมระดับที่ห่างกันไม่เกิน 1.5%
+function levels(rows) {
+  const r = rows.slice(-250), k = 5, lows = [], highs = [];
+  for (let i = k; i < r.length - k; i++) {
+    const w = r.slice(i - k, i + k + 1);
+    if (r[i].l === Math.min(...w.map(x => x.l))) lows.push({ v: r[i].l, d: r[i].d });
+    if (r[i].h === Math.max(...w.map(x => x.h))) highs.push({ v: r[i].h, d: r[i].d });
+  }
+  const merge = (arr) => { const s = [...arr].sort((a, b) => a.v - b.v), out = [];
+    for (const x of s) { const last = out[out.length - 1]; if (last && x.v / last.v - 1 < 0.015) { last.v = (last.v * last.n + x.v) / (last.n + 1); last.n++; if (x.d > last.d) last.d = x.d; } else out.push({ ...x, n: 1 }); }
+    return out; };
+  return { sup: merge(lows), res: merge(highs) };
+}
+function analyze(rows, q) {
+  const c = rows.map(r => r.c), p = q?.price ?? c[c.length - 1];
+  const s20 = sma(c, 20), s50 = sma(c, 50), s200 = sma(c, 200), R = rsi(c);
+  const last = (a) => a[a.length - 1];
+  const m20 = last(s20), m50 = last(s50), m200 = last(s200), rs = last(R), a = atr(rows);
+  const slope50 = m50 != null && s50[s50.length - 21] != null ? pct(m50, s50[s50.length - 21]) : null;
+  let trend, tcls, why;
+  if (m200 != null) {
+    if (p > m50 && m50 > m200 && slope50 > 0) { trend = 'ขาขึ้น'; tcls = 'up'; why = 'ราคาอยู่เหนือเส้นเฉลี่ย 50 และ 200 วัน และเส้น 50 วันชันขึ้น'; }
+    else if (p < m50 && m50 < m200 && slope50 < 0) { trend = 'ขาลง'; tcls = 'down'; why = 'ราคาอยู่ใต้เส้นเฉลี่ย 50 และ 200 วัน และเส้น 50 วันชี้ลง'; }
+    else { trend = 'ไซด์เวย์/ผสม'; tcls = ''; why = 'สัญญาณจากเส้นเฉลี่ยยังขัดกัน'; }
+  } else if (m50 != null) {
+    trend = p > m50 && m20 > m50 ? 'ขาขึ้นระยะสั้น' : p < m50 && m20 < m50 ? 'ขาลงระยะสั้น' : 'ไซด์เวย์';
+    tcls = trend.startsWith('ขาขึ้น') ? 'up' : trend.startsWith('ขาลง') ? 'down' : '';
+    why = 'ข้อมูลยังไม่ถึง 200 วัน ใช้เส้นเฉลี่ย 20 และ 50 วันแทน';
+  } else { trend = 'ข้อมูลยังน้อย'; tcls = ''; why = 'มีราคาไม่ถึง 50 วัน'; }
+  const rsiTxt = rs == null ? '' : rs >= 70 ? 'ซื้อมากเกินไป (RSI ≥ 70) มักย่อตัว' : rs <= 30 ? 'ขายมากเกินไป (RSI ≤ 30) มักเด้ง' : 'ปกติ';
+  const L = levels(rows);
+  const sup = L.sup.filter(x => x.v < p && x.v > p * 0.75).sort((x, y) => y.v - x.v);
+  const res = L.res.filter(x => x.v > p * 1.005).sort((x, y) => x.v - y.v);
+  let buy, buyWhy;
+  if (sup.length) { buy = [sup[0].v, Math.min(sup[0].v + a, p)]; buyWhy = `แนวรับ $${fmt(sup[0].v)} (จุดต่ำล่าสุดแถวนี้ ${thDate(sup[0].d)}${sup[0].n > 1 ? ' · ราคาเด้งที่ระดับนี้ ' + sup[0].n + ' ครั้ง' : ''}) + ความผันผวน 1 ATR`; }
+  else if (m50 != null && m50 < p) { buy = [m50 - a / 2, m50 + a / 2]; buyWhy = 'รอบเส้นเฉลี่ย 50 วัน ± ครึ่ง ATR (ยังไม่มีแนวรับชัดใน 25% ใต้ราคา)'; }
+  else { buy = [p - 2 * a, p - a]; buyWhy = 'ยังไม่มีแนวรับชัด ใช้ราคาปัจจุบันลบ 1–2 ATR'; }
+  const stop = buy[0] - a;
+  const target = res.length ? res[0].v : q?.high52 > p ? q.high52 : null;
+  const mid = (buy[0] + buy[1]) / 2, rr = target ? (target - mid) / (mid - stop) : null;
+  return { p, s20, s50, s200, R, m20, m50, m200, rs, rsiTxt, a, trend, tcls, why, sup, res, buy, buyWhy, stop, target,
+    targetWhy: res.length ? `แนวต้าน (จุดสูงล่าสุดแถวนี้ ${thDate(res[0].d)})` : 'จุดสูงสุด 52 สัปดาห์', rr, inZone: p >= buy[0] && p <= buy[1] };
+}
+
+// ===================== โหลดข้อมูล =====================
+async function loadDaily(sym, n) {
+  const have = S.daily[sym];
+  if (have && have.length >= Math.min(n, have.full ? 0 : n)) return have;
+  const rows = [];
+  for (let off = 0; off < n; off += 1000) {
+    const page = await api(`stk_daily?select=d,o,h,l,c&symbol=eq.${encodeURIComponent(sym)}&order=d.desc&limit=${Math.min(1000, n - off)}&offset=${off}`);
+    rows.push(...page);
+    if (page.length < Math.min(1000, n - off)) { rows.full = true; break; }
+  }
+  const asc = rows.reverse(); asc.full = rows.full || false;
+  S.daily[sym] = asc;
+  return asc;
+}
+async function loadBase() {
+  const [syms, quotes] = await Promise.all([api('stk_symbols?select=symbol,name,sector&active=eq.true&order=symbol'), api('stk_quote?select=*')]);
+  S.symbols = syms; S.quotes = Object.fromEntries(quotes.map(q => [q.symbol, q]));
+  const t = quotes.map(q => q.updated_at).sort().pop();
+  document.getElementById('upd').textContent = t ? 'อัปเดต ' + ago(t) : '';
+}
+
+// ===================== วาด =====================
+function spark(rows) {
+  const c = rows.slice(-60).map(r => r.c); if (c.length < 2) return '';
+  const mn = Math.min(...c), mx = Math.max(...c), W = 64, H = 26;
+  const pts = c.map((v, i) => `${(i / (c.length - 1) * W).toFixed(1)},${(H - 2 - (v - mn) / (mx - mn || 1) * (H - 4)).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="var(${c[c.length - 1] >= c[0] ? '--up' : '--down'})" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+}
+async function renderList() {
+  const groups = {};
+  S.symbols.forEach(s => (groups[s.sector || 'อื่นๆ (เพิ่มเอง)'] ??= []).push(s));
+  const order = [...SECTORS, ...Object.keys(groups).filter(k => !SECTORS.includes(k))].filter(k => groups[k]);
+  $main.innerHTML = `<div class="card"><h2>หุ้นที่ติดตาม</h2><div class="sub">แตะที่หุ้นเพื่อดูแนวโน้ม โซนราคา และข่าว · ราคาจาก Yahoo Finance (อาจช้า ~15 นาที)</div>
+    ${order.map(g => `<div class="sec">${esc(g)}</div>` + groups[g].map(s => {
+      const q = S.quotes[s.symbol], ch = q && q.prev_close ? pct(q.price, q.prev_close) : null;
+      return `<div class="stock" data-sym="${esc(s.symbol)}"><div class="grow"><div class="sym">${esc(s.symbol)}</div><div class="nm">${esc(s.name || '')}</div></div>
+        <span data-spark="${esc(s.symbol)}"></span>
+        <div class="price num"><b>${q ? '$' + fmt(q.price) : '–'}</b><span class="${cls(ch)}">${ch == null ? 'รอข้อมูล' : sgn(ch)}</span></div></div>`;
+    }).join('')).join('')}
+    <div class="add"><input id="addSym" maxlength="10" placeholder="เพิ่มหุ้น เช่น AAPL" aria-label="ชื่อย่อหุ้น"><button class="btn" id="addBtn">เพิ่ม</button></div>
+    <div class="note" id="addMsg">บอทจะดึงราคาและข่าวของหุ้นที่เพิ่มให้ในรอบถัดไป (ภายใน ~15 นาที)</div></div>`;
+  $main.querySelectorAll('.stock').forEach(el => el.onclick = () => { S.sel = el.dataset.sym; go('stock'); });
+  document.getElementById('addBtn').onclick = async () => {
+    const v = document.getElementById('addSym').value.trim().toUpperCase(), msg = document.getElementById('addMsg');
+    if (!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(v)) { msg.textContent = 'ชื่อย่อไม่ถูกต้อง'; return; }
+    try {
+      const r = await api('rpc/stk_add_symbol', { method: 'POST', body: JSON.stringify({ p_symbol: v }) });
+      msg.textContent = r === 'added' ? `เพิ่ม ${v} แล้ว · ราคาและข่าวจะขึ้นภายใน ~15 นาที` : r === 'exists' ? `${v} อยู่ในรายการแล้ว` : r === 'full' ? 'รายการเต็ม (60 ตัว)' : 'ชื่อย่อไม่ถูกต้อง';
+      if (r === 'added') { await loadBase(); renderList(); }
+    } catch (e) { msg.textContent = 'เพิ่มไม่ได้ · ลองใหม่'; }
+  };
+  for (const s of S.symbols) loadDaily(s.symbol, 260).then(rows => { const el = $main.querySelector(`[data-spark="${s.symbol}"]`); if (el) el.innerHTML = spark(rows); }).catch(() => {});
+}
+
+function chartSvg(rows, A, n) {
+  const view = rows.slice(-n), off = rows.length - view.length, W = 340, H = 200, L = 40, R = 6, T = 8, B = 18;
+  const series = [['s200', '--s-200'], ['s50', '--s-50'], ['s20', '--s-20']];
+  const vals = view.map(r => r.c).concat(series.flatMap(([k]) => A[k].slice(off).filter(v => v != null)), A.buy, [A.stop]);
+  if (A.target) vals.push(A.target);
+  const mn = Math.min(...vals) * 0.99, mx = Math.max(...vals) * 1.01;
+  const x = (i) => L + i * (W - L - R) / Math.max(1, view.length - 1), y = (v) => T + (1 - (v - mn) / (mx - mn)) * (H - T - B);
+  const path = (arr) => { let d = '', on = false; arr.forEach((v, i) => { if (v == null) { on = false; return; } d += (on ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); on = true; }); return d; };
+  const ticks = [mn, (mn + mx) / 2, mx].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 4}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--muted)">${fmt(v, v >= 100 ? 0 : 1)}</text>`).join('');
+  const hline = (v, col, dash, lab) => v == null ? '' : `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(${col})" stroke-width="1" stroke-dasharray="${dash}"/><text x="${W - R - 2}" y="${y(v) - 3}" font-size="9" text-anchor="end" fill="var(${col})">${lab}</text>`;
+  return `<svg id="chart" viewBox="0 0 ${W} ${H}" style="width:100%;display:block;touch-action:pan-y" role="img" aria-label="กราฟราคา ${esc(S.sel)}">
+    ${ticks}
+    <rect x="${L}" width="${W - L - R}" y="${y(A.buy[1])}" height="${Math.max(2, y(A.buy[0]) - y(A.buy[1]))}" fill="var(--zone)"/>
+    ${hline(A.stop, '--down', '4 3', 'ตัดขาดทุน')}${hline(A.target, '--s-50', '4 3', 'เป้า')}${IPO[S.sel] ? hline(IPO[S.sel], '--muted', '2 3', 'IPO $' + IPO[S.sel]) : ''}
+    ${series.map(([k, col]) => `<path d="${path(A[k].slice(off))}" fill="none" stroke="var(${col})" stroke-width="1.3"/>`).join('')}
+    <path d="${path(view.map(r => r.c))}" fill="none" stroke="var(--s-price)" stroke-width="2" stroke-linejoin="round"/>
+    <g id="hov"></g>
+    <text x="${L}" y="${H - 4}" font-size="9" fill="var(--muted)">${thDate(view[0].d)}</text><text x="${W - R}" y="${H - 4}" font-size="9" text-anchor="end" fill="var(--muted)">${thDate(view[view.length - 1].d)}</text>
+  </svg>`;
+}
+function rsiSvg(R, n) {
+  const v = R.slice(-n), W = 340, H = 60, L = 40, R2 = 6;
+  const x = (i) => L + i * (W - L - R2) / Math.max(1, v.length - 1), y = (r) => 4 + (1 - r / 100) * (H - 8);
+  let d = '', on = false; v.forEach((r, i) => { if (r == null) { on = false; return; } d += (on ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(r).toFixed(1); on = true; });
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" role="img" aria-label="RSI">
+    <rect x="${L}" width="${W - L - R2}" y="${y(70)}" height="${y(30) - y(70)}" fill="var(--soft)"/>
+    ${[30, 70].map(t => `<text x="${L - 4}" y="${y(t) + 3}" font-size="9" text-anchor="end" fill="var(--muted)">${t}</text>`).join('')}
+    <path d="${d}" fill="none" stroke="var(--s-50)" stroke-width="1.5"/></svg>`;
+}
+async function renderStock() {
+  const sym = S.sel, meta = S.symbols.find(s => s.symbol === sym) || { symbol: sym };
+  $main.innerHTML = `<div class="card"><div class="chips" id="pick">${S.symbols.map(s => `<button class="chip" data-s="${esc(s.symbol)}" aria-pressed="${s.symbol === sym}">${esc(s.symbol)}</button>`).join('')}</div></div><div class="card empty">⏳ กำลังโหลด ${esc(sym)}…</div>`;
+  $main.querySelectorAll('#pick .chip').forEach(b => b.onclick = () => { S.sel = b.dataset.s; renderStock(); });
+  let rows; try { rows = await loadDaily(sym, 1300); } catch (e) { rows = []; }
+  if (S.sel !== sym) return;
+  const q = S.quotes[sym];
+  if (rows.length < 20) { $main.lastElementChild.innerHTML = 'ยังไม่มีข้อมูลราคาพอ · ถ้าเพิ่งเพิ่ม รอบอทดึงข้อมูล ~15 นาที'; return; }
+  const A = analyze(rows, q), ch = q?.prev_close ? pct(q.price, q.prev_close) : null;
+  const n = Math.min(S.range, rows.length);
+  const zoneTxt = A.inZone ? '✅ ราคาปัจจุบันอยู่ในโซนนี้แล้ว' : A.p > A.buy[1] ? `ราคาปัจจุบันสูงกว่าโซน ${fmt(pct(A.p, A.buy[1]), 1)}%` : 'ราคาต่ำกว่าโซนแล้ว (หลุดแนวรับ) ควรรอให้ตั้งหลักก่อน';
+  $main.lastElementChild.outerHTML = `
+  <div class="card">
+    <div class="row"><div class="grow"><div class="sym" style="font-size:20px">${esc(sym)}</div><div class="nm">${esc(meta.name || '')}${meta.sector ? ' · ' + esc(meta.sector) : ''}</div></div>
+      <div class="price num"><div class="big">$${fmt(A.p)}</div><span class="${cls(ch)}">${ch == null ? '' : sgn(ch) + ' วันนี้'}</span></div></div>
+    <div class="chips" style="margin-top:10px" id="rng">${[[63, '3 เดือน'], [126, '6 เดือน'], [250, '1 ปี'], [1260, '5 ปี']].map(([v, l]) => `<button class="chip" data-r="${v}" aria-pressed="${S.range === v}">${l}</button>`).join('')}</div>
+    <div class="legend"><span><i style="background:var(--s-price)"></i>ราคา</span><span><i style="background:var(--s-20)"></i>เฉลี่ย 20 วัน</span><span><i style="background:var(--s-50)"></i>50 วัน</span><span><i style="background:var(--s-200)"></i>200 วัน</span><span><i style="background:var(--zone);height:8px"></i>โซนเข้าซื้อ</span></div>
+    <div class="tip num" id="tip">แตะ/ลากบนกราฟเพื่อดูราคาแต่ละวัน</div>
+    ${chartSvg(rows, A, n)}
+    <div class="sub" style="margin-top:4px">RSI 14 วัน: <b class="num">${fmt(A.rs, 0)}</b> · ${A.rsiTxt}</div>
+    ${rsiSvg(A.R, n)}
+    <div class="kv num">
+      <div><small>แนวโน้ม</small><b class="${A.tcls}">${A.trend}</b></div>
+      <div><small>ความผันผวนต่อวัน (ATR)</small><b>$${fmt(A.a)} (${fmt(A.a / A.p * 100, 1)}%)</b></div>
+      <div><small>ต่ำสุด / สูงสุด 52 สัปดาห์</small><b>${q?.low52 ? '$' + fmt(q.low52, 0) : '–'} / ${q?.high52 ? '$' + fmt(q.high52, 0) : '–'}</b></div>
+      <div><small>เฉลี่ย 50 / 200 วัน</small><b>${A.m50 ? '$' + fmt(A.m50, 0) : '–'} / ${A.m200 ? '$' + fmt(A.m200, 0) : '–'}</b></div>
+    </div>
+    <div class="note">${A.why}</div>
+  </div>
+  <div class="card">
+    <h2>🎯 โซนราคา (จากกราฟ)</h2>
+    <div class="zone z-buy"><div class="t">🟢 โซนเข้าซื้อเมื่อย่อตัว: $${fmt(A.buy[0])} – $${fmt(A.buy[1])}</div><div class="r">${A.buyWhy}</div><div class="r"><b>${zoneTxt}</b></div></div>
+    <div class="zone z-stop"><div class="t">🔴 จุดตัดขาดทุนอ้างอิง: ต่ำกว่า $${fmt(A.stop)}</div><div class="r">ต่ำกว่าโซนเข้าซื้อ 1 ATR · ถ้าปิดต่ำกว่านี้ แนวรับมักใช้ไม่ได้แล้ว</div></div>
+    <div class="zone z-tgt"><div class="t">🎯 เป้าหมายแรก: ${A.target ? '$' + fmt(A.target) : '–'}</div><div class="r">${A.targetWhy}${A.rr ? ` · กำไรต่อความเสี่ยง ≈ <b>${fmt(A.rr, 1)} : 1</b>${A.rr < 1.5 ? ' (ต่ำ — อาจไม่คุ้ม)' : ''}` : ''}</div></div>
+    ${NOTES[sym] ? `<div class="zone" style="background:var(--info-bg);border-color:transparent"><div class="t">📌 เรื่องเฉพาะของ ${esc(sym)}</div><div class="r">${esc(NOTES[sym])}</div></div>` : ''}
+    <div class="disc">⚠️ คำนวณจากกราฟราคาในอดีตเท่านั้น ไม่ใช่คำแนะนำการลงทุน · ราคาอาจไม่เป็นไปตามโซน โดยเฉพาะช่วงมีข่าวแรง</div>
+  </div>
+  <div class="card"><h2>📰 ข่าวที่เกี่ยวข้อง</h2><div id="symNews" class="empty">⏳ กำลังโหลด…</div></div>`;
+  $main.querySelectorAll('#rng .chip').forEach(b => b.onclick = () => { S.range = +b.dataset.r; renderStock(); });
+  // แตะ/ลากดูราคา
+  const svg = document.getElementById('chart'), view = rows.slice(-n), off = rows.length - view.length;
+  const pick = (ev) => {
+    const r = svg.getBoundingClientRect(), px = ((ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left) * 340 / r.width;
+    const i = Math.max(0, Math.min(view.length - 1, Math.round((px - 40) / (294) * (view.length - 1))));
+    const v = view[i], s50 = A.s50[off + i], s200 = A.s200[off + i];
+    document.getElementById('tip').innerHTML = `${thDate(v.d)} · ปิด <b>$${fmt(v.c)}</b>${s50 ? ' · 50 วัน $' + fmt(s50) : ''}${s200 ? ' · 200 วัน $' + fmt(s200) : ''}`;
+    const X = 40 + i * 294 / Math.max(1, view.length - 1);
+    document.getElementById('hov').innerHTML = `<line x1="${X}" x2="${X}" y1="8" y2="182" stroke="var(--muted)" stroke-dasharray="2 3"/>`;
+  };
+  svg.addEventListener('pointerdown', pick); svg.addEventListener('pointermove', (e) => (e.buttons || e.pointerType === 'mouse') && pick(e));
+  // ข่าวของหุ้นนี้ + ข่าวโลกที่บอทบอกว่ากระทบกลุ่มของหุ้นนี้
+  try {
+    const own = await api(`stk_news?select=*&symbol=eq.${encodeURIComponent(sym)}&order=published_at.desc&limit=12`);
+    const sec = meta.sector ? await api(`stk_news?select=*&symbol=is.null&impacts=cs.${encodeURIComponent(JSON.stringify({ [meta.sector]: '+' }))}&order=published_at.desc&limit=4`)
+      .then(a => api(`stk_news?select=*&symbol=is.null&impacts=cs.${encodeURIComponent(JSON.stringify({ [meta.sector]: '-' }))}&order=published_at.desc&limit=4`).then(b => a.concat(b))) : [];
+    const all = own.concat(sec).sort((a, b) => b.published_at.localeCompare(a.published_at));
+    const el = document.getElementById('symNews');
+    if (el) { el.className = ''; el.innerHTML = all.length ? newsSummary(all, [sym, meta.sector]) + all.map(newsItem).join('') : '<div class="empty">ยังไม่มีข่าว</div>'; }
+  } catch (e) { const el = document.getElementById('symNews'); if (el) el.textContent = 'โหลดข่าวไม่ได้'; }
+}
+
+// ===================== ข่าว (บอทคัด) =====================
+function newsItem(n) {
+  const sc = n.score >= 0.2 ? '<span class="pill up">บวก</span>' : n.score <= -0.2 ? '<span class="pill down">ลบ</span>' : '<span class="pill">กลาง</span>';
+  const imp = Object.entries(n.impacts || {}).map(([k, d]) => `<span class="pill ${d === '+' ? 'up' : d === '-' ? 'down' : ''}">${esc(k)} ${d === '+' ? '⬆' : d === '-' ? '⬇' : '↕'}</span>`).join('');
+  const tags = (n.tags || []).map(t => `<span class="pill">${esc(TAG_TH[t] || t)}</span>`).join('');
+  return `<div class="news"><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>
+    <div class="meta">${n.symbol ? '<b>' + esc(n.symbol) + '</b> · ' : '🌍 ข่าวโลก · '}${esc(n.source || '')} · ${ago(n.published_at)}</div>
+    <div class="chips">${sc}${tags}${imp}</div></div>`;
+}
+// สรุปของบอท: นับข่าวบวก/ลบต่อกลุ่ม/หุ้น ในชุดข่าวที่แสดง
+function newsSummary(list, keys) {
+  const m = {};
+  list.forEach(n => Object.entries(n.impacts || {}).forEach(([k, d]) => { if (keys && !keys.includes(k)) return; (m[k] ??= { p: 0, n: 0 }); if (d === '+') m[k].p++; if (d === '-') m[k].n++; }));
+  const rows = Object.entries(m).filter(([, v]) => v.p + v.n > 0).sort((a, b) => (b[1].p + b[1].n) - (a[1].p + a[1].n));
+  if (!rows.length) return '';
+  return `<div class="zone" style="background:var(--soft);border-color:transparent;margin-bottom:6px"><div class="t">🤖 บอทสรุป (${list.length} ข่าว)</div>${rows.map(([k, v]) => {
+    const net = v.p - v.n, lab = net > 0 ? '<b class="up">เอียงบวก</b>' : net < 0 ? '<b class="down">เอียงลบ</b>' : '<b>ก้ำกึ่ง</b>';
+    return `<div class="r">${esc(k)}: ข่าวบวก ${v.p} · ลบ ${v.n} → ${lab}</div>`; }).join('')}</div>`;
+}
+async function renderNews() {
+  $main.innerHTML = `<div class="card"><h2>📰 ข่าวที่บอทคัดให้</h2><div class="sub">บอทอ่านพาดหัว (ภาษาอังกฤษ) แล้วติดป้ายหมวด ให้คะแนนบวก/ลบ และบอกกลุ่มหุ้นที่อาจกระทบ · ไม่ใช้ AI ภายนอก</div>
+    <div class="chips" style="margin-top:10px" id="nf">${[['all', 'ทั้งหมด'], ['macro', '🌍 ข่าวโลก'], ...SECTORS.map(s => [s, s])].map(([k, l]) => `<button class="chip" data-f="${esc(k)}" aria-pressed="${S.newsFilter === k}">${esc(l)}</button>`).join('')}</div></div>
+    <div class="card" id="nlist"><div class="empty">⏳ กำลังโหลด…</div></div>`;
+  $main.querySelectorAll('#nf .chip').forEach(b => b.onclick = () => { S.newsFilter = b.dataset.f; renderNews(); });
+  try {
+    if (!S.news) S.news = await api('stk_news?select=*&order=published_at.desc&limit=200');
+    const f = S.newsFilter, secOf = Object.fromEntries(S.symbols.map(s => [s.symbol, s.sector]));
+    const list = S.news.filter(n => f === 'all' ? true : f === 'macro' ? !n.symbol : (n.impacts && n.impacts[f]) || secOf[n.symbol] === f).slice(0, 60);
+    document.getElementById('nlist').innerHTML = list.length ? newsSummary(list.filter(n => Date.now() - new Date(n.published_at) < 864e5 * 2), f === 'all' || f === 'macro' ? SECTORS : [f]) + list.map(newsItem).join('')
+      : '<div class="empty">ยังไม่มีข่าวในหมวดนี้</div>';
+  } catch (e) { document.getElementById('nlist').innerHTML = '<div class="empty">โหลดข่าวไม่ได้ · ลองใหม่</div>'; }
+}
+
+// ===================== ผลกระทบ: เหตุการณ์ในอดีต + บอทเรียนจากข่าว =====================
+async function renderImpact() {
+  $main.innerHTML = `<div class="card"><h2>🌍 เหตุการณ์ในอดีต หุ้นขยับจริงเท่าไหร่</h2><div class="sub">ราคาปิดก่อนวันเหตุการณ์ → วันทำการที่ 1 / 5 / 20 หลังเหตุการณ์ (%) จากราคาจริง</div><div id="ev" class="empty">⏳ กำลังคำนวณ…</div></div>
+    <div class="card"><h2>🤖 บอทเรียนจากข่าว</h2><div class="sub">วันที่ข่าวหมวดนั้นพุ่งสูงผิดปกติ (GDELT) → วันทำการถัดไป หุ้นขยับต่างจากวันทั่วไปเท่าไหร่</div><div id="learn" class="empty">⏳ กำลังคำนวณ…</div></div>`;
+  try {
+    if (!S.events) S.events = await api('rpc/stk_event_impact', { method: 'POST', body: '{}' });
+    const evs = [...new Map(S.events.map(r => [r.id, r])).values()];
+    if (S.evSel == null) S.evSel = 'iran';
+    const isIran = (r) => /อิหร่าน/.test(r.kind);
+    const rowsFor = S.evSel === 'iran' ? null : S.events.filter(r => r.id === +S.evSel);
+    let table;
+    if (!rowsFor) {
+      const by = {};
+      S.events.filter(isIran).forEach(r => { const b = (by[r.symbol] ??= { r1: [], r5: [], r20: [] }); ['r1', 'r5', 'r20'].forEach(k => r[k] != null && b[k].push(+r[k])); });
+      const avg = (a) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+      const n = evs.filter(isIran).length;
+      table = `<div class="note">เฉลี่ย ${n} เหตุการณ์ที่เกี่ยวกับอิหร่าน · "ขึ้น" = จำนวนครั้งที่ 5 วันหลังเหตุการณ์ราคาสูงกว่าเดิม</div>
+        <table class="num"><thead><tr><th>หุ้น</th><th>1 วัน</th><th>5 วัน</th><th>20 วัน</th><th>ขึ้น</th></tr></thead><tbody>${Object.entries(by).sort((a, b) => (avg(b[1].r5) ?? -99) - (avg(a[1].r5) ?? -99)).map(([s, v]) => {
+          const a1 = avg(v.r1), a5 = avg(v.r5), a20 = avg(v.r20), up = v.r5.filter(x => x > 0).length;
+          return `<tr><td><b>${esc(s)}</b> <span class="nm">${esc((S.symbols.find(x => x.symbol === s) || {}).sector || '')}</span></td><td class="${cls(a1)}">${a1 == null ? '–' : sgn(a1)}</td><td class="${cls(a5)}">${a5 == null ? '–' : sgn(a5)}</td><td class="${cls(a20)}">${a20 == null ? '–' : sgn(a20)}</td><td>${up}/${v.r5.length}</td></tr>`;
+        }).join('')}</tbody></table>`;
+    } else {
+      table = `<table class="num"><thead><tr><th>หุ้น</th><th>1 วัน</th><th>5 วัน</th><th>20 วัน</th></tr></thead><tbody>${rowsFor.sort((a, b) => (b.r5 ?? -99) - (a.r5 ?? -99)).map(r =>
+        `<tr><td><b>${esc(r.symbol)}</b></td><td class="${cls(r.r1)}">${r.r1 == null ? '–' : sgn(+r.r1)}</td><td class="${cls(r.r5)}">${r.r5 == null ? '–' : sgn(+r.r5)}</td><td class="${cls(r.r20)}">${r.r20 == null ? '–' : sgn(+r.r20)}</td></tr>`).join('')}</tbody></table>`;
+    }
+    document.getElementById('ev').className = '';
+    document.getElementById('ev').innerHTML = `<div class="chips" style="margin:8px 0">${[['iran', '🇮🇷 สรุปเหตุการณ์อิหร่าน'], ...evs.map(e => [String(e.id), thDate(e.d) + ' ' + e.name])].map(([k, l]) =>
+      `<button class="chip" data-e="${esc(k)}" aria-pressed="${String(S.evSel) === k}" style="text-align:left">${esc(l)}</button>`).join('')}</div>${table}
+      <div class="note">SPCX เพิ่งเข้าตลาด มิ.ย. 2026 จึงไม่มีในเหตุการณ์เก่า · อดีตไม่รับประกันอนาคต แต่ละเหตุการณ์ตลาดตอบสนองต่างกัน (ขึ้นกับว่าตลาดคาดไว้ก่อนแค่ไหน)</div>`;
+    document.querySelectorAll('#ev .chip').forEach(b => b.onclick = () => { S.evSel = b.dataset.e; renderImpact(); });
+  } catch (e) { document.getElementById('ev').textContent = 'คำนวณไม่ได้ · ลองใหม่'; }
+  try {
+    if (!S.learn) S.learn = await api('rpc/stk_bot_learn', { method: 'POST', body: '{}' });
+    const L = S.learn, el = document.getElementById('learn'), by = {};
+    (L.rows || []).forEach(r => (by[r.tag] ??= []).push(r));
+    el.className = '';
+    el.innerHTML = !Object.keys(by).length ? '<div class="empty">ยังมีข้อมูลข่าวไม่พอ · บอทเก็บข่าวเพิ่มทุกวัน</div>' :
+      `<div class="note">ข้อมูลข่าว ${L.since ? thDate(L.since) + ' – ' + thDate(L.until) : ''} · "ต่างจากปกติ" = ผลตอบแทนวันถัดไปหลังวันข่าวพุ่ง ลบด้วยค่าเฉลี่ยทุกวัน</div>` +
+      Object.entries(by).map(([t, rs]) => `<div class="sec">${esc(TAG_TH[t] || t)} · ข่าวพุ่ง ${rs[0].n} วัน</div>
+        <table class="num"><tbody>${rs.sort((a, b) => b.excess - a.excess).map(r => `<tr><td><b>${esc(r.symbol)}</b></td><td class="${cls(r.excess)}">${sgn(+r.excess)} จากปกติ</td><td>ขึ้น ${r.up}%</td></tr>`).join('')}</tbody></table>`).join('') +
+      `<div class="disc">ตัวอย่างยังน้อย (ไม่กี่วันต่อหมวด) ตัวเลขแกว่งได้มาก · บอทเก็บข่าวและเรียนเพิ่มทุกวัน ยิ่งนานยิ่งน่าเชื่อถือ</div>`;
+  } catch (e) { document.getElementById('learn').textContent = 'คำนวณไม่ได้ · ลองใหม่'; }
+}
+
+// ===================== สลับแท็บ =====================
+function go(tab) {
+  S.tab = tab;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  window.scrollTo({ top: 0 });
+  ({ list: renderList, stock: renderStock, news: renderNews, impact: renderImpact })[tab]();
+}
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => go(b.dataset.tab));
+loadBase().then(() => go('list')).catch(() => { $main.innerHTML = '<div class="card empty">โหลดข้อมูลไม่ได้ · ตรวจอินเทอร์เน็ตแล้วลองใหม่</div>'; });
+</script>
+</body>
+</html>
