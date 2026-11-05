@@ -191,18 +191,55 @@ function atr(rows, n = 14) {
   const tr = rows.map((r, i) => i ? Math.max(r.h - r.l, Math.abs(r.h - rows[i - 1].c), Math.abs(r.l - rows[i - 1].c)) : r.h - r.l);
   return tr.slice(-n).reduce((s, x) => s + x, 0) / Math.min(n, tr.length);
 }
-// แนวรับ/ต้าน = จุดต่ำ/สูงเฉพาะที่ (หน้าต่าง ±5 วัน) ใน 250 วันล่าสุด รวมระดับที่ห่างกันไม่เกิน 1.5%
+// แนวรับ/ต้าน = จุดต่ำ/สูงเฉพาะที่ (หน้าต่าง ±5 วัน) ใน 250 วันล่าสุด รวมระดับที่ห่างกันไม่เกิน 1.5% · เก็บทุกจุดแตะ (pts) ไว้ประเมินคุณภาพ
 function levels(rows) {
-  const r = rows.slice(-250), k = 5, lows = [], highs = [];
+  const off = Math.max(0, rows.length - 250), r = rows.slice(off), k = 5, lows = [], highs = [];
   for (let i = k; i < r.length - k; i++) {
     const w = r.slice(i - k, i + k + 1);
-    if (r[i].l === Math.min(...w.map(x => x.l))) lows.push({ v: r[i].l, d: r[i].d });
-    if (r[i].h === Math.max(...w.map(x => x.h))) highs.push({ v: r[i].h, d: r[i].d });
+    if (r[i].l === Math.min(...w.map(x => x.l))) lows.push({ v: r[i].l, d: r[i].d, i: off + i });
+    if (r[i].h === Math.max(...w.map(x => x.h))) highs.push({ v: r[i].h, d: r[i].d, i: off + i });
   }
   const merge = (arr) => { const s = [...arr].sort((a, b) => a.v - b.v), out = [];
-    for (const x of s) { const last = out[out.length - 1]; if (last && x.v / last.v - 1 < 0.015) { last.v = (last.v * last.n + x.v) / (last.n + 1); last.n++; if (x.d > last.d) last.d = x.d; } else out.push({ ...x, n: 1 }); }
+    for (const x of s) { const last = out[out.length - 1]; if (last && x.v / last.v - 1 < 0.015) { last.v = (last.v * last.n + x.v) / (last.n + 1); last.n++; last.pts.push(x); if (x.d > last.d) last.d = x.d; } else out.push({ v: x.v, d: x.d, n: 1, pts: [x] }); }
+    out.forEach(o => o.pts.sort((a, b) => a.i - b.i));
     return out; };
   return { sup: merge(lows), res: merge(highs) };
+}
+// คุณภาพแนวรับ (แนวรับ = กองคำสั่งซื้อ ไม่ใช่พื้นปูน แตะแต่ละครั้งแรงซื้อถูกใช้ไป)
+//  ก. จำนวนครั้งแตะ: 1–2 ครั้ง ปกติ · 3 ครั้ง เริ่มอ่อน · ≥ 4 ครั้ง อ่อน
+//  ข. แรงเด้ง: วัดจากราคาสูงสุดใน 10 วันหลังแตะ หารด้วย ATR · ≥ 2 ATR = เด้งแรง · < 1 ATR = เด้งเบา · เด้งเบาลงทุกครั้ง = แรงซื้อหมด
+//  ค. จุดสูงต่ำลง: ยอดก่อนแตะครั้งแรก / ระหว่างแตะ / หลังแตะครั้งล่าสุด ต่ำลงต่อเนื่อง ≥ 3 ยอด = สามเหลี่ยมขาลง (ฝั่งขายกดหนักขึ้น)
+//  เพิ่ม: เคยเป็นแนวต้านแล้วราคาทะลุขึ้นมา (แนวต้านกลายเป็นแนวรับ) = แข็งขึ้น · ราคากำลังลงมาแตะซ้ำอีกครั้ง = นับเป็นครั้งถัดไป
+function supQuality(rows, lv, a, resAll, p) {
+  if (!lv || !a) return null;
+  const pts = lv.pts.filter(t => t.i < rows.length), n = pts.length, HI = (i, j) => { let m = -Infinity, at = -1; for (let x = Math.max(0, i); x <= Math.min(rows.length - 1, j); x++) if (rows[x].h > m) { m = rows[x].h; at = x; } return { v: m, i: at }; }, H = (i, j) => HI(i, j).v;
+  const bounces = pts.map(t => { const end = Math.min(rows.length - 1, t.i + 10); return end - t.i < 5 ? null : (H(t.i + 1, end) - t.v) / a; });
+  const done = bounces.filter(b => b != null), lastB = done[done.length - 1];
+  const fading = done.length >= 2 && done.every((b, j) => j === 0 || b < done[j - 1]);
+  const pk = [HI(pts[0].i - 20, pts[0].i - 1)];
+  for (let j = 0; j < n - 1; j++) pk.push(HI(pts[j].i + 1, pts[j + 1].i - 1));
+  if (rows.length - 1 - pts[n - 1].i >= 5) pk.push(HI(pts[n - 1].i + 1, rows.length - 1));
+  const peaks = pk.filter(x => x.i >= 0);
+  let lh = 0; for (let j = peaks.length - 1; j > 0 && peaks[j].v < peaks[j - 1].v - a * 0.25; j--) lh++;
+  const flip = (resAll || []).some(r => Math.abs(r.v / lv.v - 1) < 0.015 && r.pts.filter(t => t.i < pts[0].i).length >= 2);
+  const near = p != null && p - lv.v < a, next = n + (near ? 1 : 0);
+  let score = 0; const why = [];
+  if (n >= 4) { score -= 2; why.push(`⚠️ แตะมาแล้ว ${n} ครั้ง แรงซื้อถูกใช้ไปมาก${n >= 6 ? ' (มากเกินจะเชื่อได้)' : ''}`); }
+  else if (n === 3) { score -= 1; why.push(`⚠️ แตะมาแล้ว 3 ครั้ง แรงซื้อเริ่มน้อยลง`); }
+  else why.push(n === 1 ? 'แตะมาแล้ว 1 ครั้ง (ยังสด)' : 'แตะมาแล้ว 2 ครั้ง (ยืนยันแล้ว)');
+  if (lastB != null) {
+    if (lastB >= 2) { score += 1; why.push(`ครั้งล่าสุดเด้งแรง ✓ ${fmt(lastB, 1)} ATR`); }
+    else if (lastB < 1) { score -= 1; why.push(`ครั้งล่าสุดเด้งเบา ✗ ${fmt(lastB, 1)} ATR`); }
+    else why.push(`ครั้งล่าสุดเด้ง ${fmt(lastB, 1)} ATR`);
+  }
+  if (fading) { score -= 1; why.push('เด้งเบาลงทุกครั้ง'); }
+  if (lh >= 2) { score -= 2; why.push(`จุดสูงต่ำลง ${lh + 1} ยอดติด (สามเหลี่ยมขาลง: ฝั่งขายกดหนักขึ้นเรื่อย ๆ)`); }
+  if (flip) { score += 1; why.push('เคยเป็นแนวต้าน แล้วราคาทะลุขึ้นมา (แนวต้านกลายเป็นแนวรับ)'); }
+  if (near && n >= 2) why.push(`ตอนนี้กำลังลงมาแตะเป็นครั้งที่ ${next}`);
+  let grade = score >= 0 ? 'strong' : score >= -2 ? 'weak' : 'bad';
+  if (n >= 6) grade = 'bad'; else if (n >= 4 && grade === 'strong') grade = 'weak';   // แตะบ่อยมาก ต่อให้เด้งแรงก็ไม่นับว่าแข็ง
+  return { lv, pts, n, next, bounces, lastB, fading, peaks, lh, flip, near, score, grade, why,
+    label: { strong: '🟢 แนวรับแข็ง', weak: '🟡 แนวรับเริ่มอ่อน', bad: '🔴 แนวรับอ่อน เสี่ยงหลุด' }[grade] };
 }
 function analyze(rows, q, C = '$') {
   const c = rows.map(r => r.c), p = q?.price ?? c[c.length - 1];
@@ -225,14 +262,15 @@ function analyze(rows, q, C = '$') {
   const sup = L.sup.filter(x => x.v < p && x.v > p * 0.75).sort((x, y) => y.v - x.v);
   const res = L.res.filter(x => x.v > p * 1.005).sort((x, y) => x.v - y.v);
   let buy, buyWhy;
-  if (sup.length) { buy = [sup[0].v, Math.min(sup[0].v + a, p)]; buyWhy = `แนวรับ ${C}${fmt(sup[0].v)} (จุดต่ำล่าสุดแถวนี้ ${thDate(sup[0].d)}${sup[0].n > 1 ? ' · ราคาเด้งที่ระดับนี้ ' + sup[0].n + ' ครั้ง' : ''}) + ความผันผวน 1 ATR`; }
+  const Q = sup.length ? supQuality(rows, sup[0], a, L.res, p) : null;
+  if (sup.length) { buy = [sup[0].v, Math.min(sup[0].v + a, p)]; buyWhy = `แนวรับ ${C}${fmt(sup[0].v)} (จุดต่ำล่าสุดแถวนี้ ${thDate(sup[0].d)}) + ความผันผวน 1 ATR${Q.grade === 'bad' && sup[1] ? ` · แนวรับนี้อ่อน ถ้าหลุด แนวรับถัดไป ${C}${fmt(sup[1].v)}` : ''}`; }
   else if (m50 != null && m50 < p) { buy = [m50 - a / 2, m50 + a / 2]; buyWhy = 'รอบเส้นเฉลี่ย 50 วัน ± ครึ่ง ATR (ยังไม่มีแนวรับชัดใน 25% ใต้ราคา)'; }
   else { buy = [p - 2 * a, p - a]; buyWhy = 'ยังไม่มีแนวรับชัด ใช้ราคาปัจจุบันลบ 1–2 ATR'; }
   const stop = buy[0] - a;
   const target = res.length ? res[0].v : q?.high52 > p ? q.high52 : null;
   const mid = (buy[0] + buy[1]) / 2, rr = target ? (target - mid) / (mid - stop) : null;
   return { p, s20, s50, s200, R, m20, m50, m200, rs, rsiTxt, a, trend, tcls, why, sup, res, buy, buyWhy, stop, target,
-    targetWhy: res.length ? `แนวต้าน (จุดสูงล่าสุดแถวนี้ ${thDate(res[0].d)})` : 'จุดสูงสุด 52 สัปดาห์', rr, inZone: p >= buy[0] && p <= buy[1] };
+    targetWhy: res.length ? `แนวต้าน (จุดสูงล่าสุดแถวนี้ ${thDate(res[0].d)})` : 'จุดสูงสุด 52 สัปดาห์', rr, Q, inZone: p >= buy[0] && p <= buy[1] };
 }
 
 // ===================== โหลดข้อมูล =====================
@@ -300,15 +338,20 @@ async function renderList() {
       const rows = await loadDaily(s.symbol, 260);
       const el = $main.querySelector(`[data-spark="${CSS.escape(s.symbol)}"]`); if (el) el.innerHTML = spark(rows);
       if (rows.length >= 30) {
-        const A = analyze(rows, S.quotes[s.symbol]); S.scan[s.symbol] = { trend: A.tcls, inZone: A.inZone, rsi: A.rs };
+        const A = analyze(rows, S.quotes[s.symbol]); S.scan[s.symbol] = { trend: A.tcls, inZone: A.inZone, rsi: A.rs, sq: A.Q?.grade };
         const b = $main.querySelector(`[data-badge="${CSS.escape(s.symbol)}"]`);
         const goodZone = A.inZone && A.tcls !== 'down' && (A.rs ?? 50) < 60;
-        if (b) b.innerHTML = (A.tcls ? `<span class="pill ${A.tcls}" style="font-size:11px;padding:1px 6px">${A.tcls === 'up' ? 'ขาขึ้น' : 'ขาลง'}</span> ` : '') + (goodZone ? '<span class="pill up" style="font-size:11px;padding:1px 6px">🟢 ใกล้แนวรับ</span>' : '');
+        if (b) b.innerHTML = (A.tcls ? `<span class="pill ${A.tcls}" style="font-size:11px;padding:1px 6px">${A.tcls === 'up' ? 'ขาขึ้น' : 'ขาลง'}</span> ` : '') + (goodZone ? zoneBadge(A.Q?.grade) : '');
         renderScan();
       }
     } catch (e) {}
   } };
   await Promise.all(Array.from({ length: 6 }, worker));
+}
+// ป้ายใกล้แนวรับ แยกตามคุณภาพแนวรับ (ไม่มีข้อมูลคุณภาพ = ใช้ป้ายเขียวแบบเดิม)
+function zoneBadge(g) {
+  const [c, t] = g === 'bad' ? ['down', '🔴 ใกล้แนวรับอ่อน'] : g === 'weak' ? ['warn', '🟡 ใกล้แนวรับ (เริ่มอ่อน)'] : ['up', '🟢 ใกล้แนวรับ'];
+  return `<span class="pill ${c}" style="font-size:11px;padding:1px 6px">${t}</span>`;
 }
 // ===== 📊 ภาพรวมวันนี้: กลุ่มไหนขึ้น/ลง · ขยับแรงสุด · ตัวที่อยู่ในโซนซื้อ · บอทสรุปข่าวรายกลุ่ม =====
 function overviewCard() {
@@ -338,10 +381,12 @@ function renderScan() {
   const el = document.getElementById('scan'); if (!el) return;
   const v = Object.entries(S.scan), up = v.filter(([, x]) => x.trend === 'up').length, dn = v.filter(([, x]) => x.trend === 'down').length;
   // โซนซื้อในภาพรวม: ย่อมาใกล้แนวรับ + ไม่ใช่ขาลง + ยังไม่ร้อนแรง (RSI < 60)
-  const zone = v.filter(([, x]) => x.inZone && x.trend !== 'down' && (x.rsi ?? 50) < 60).map(([k]) => k), hot = v.filter(([, x]) => x.rsi >= 70).map(([k]) => k), cold = v.filter(([, x]) => x.rsi != null && x.rsi <= 30).map(([k]) => k);
-  const list = (a, c) => a.length ? `<div class="chips">${a.map(k => `<button class="chip" data-go="${esc(k)}">${esc(k)}</button>`).join('')}</div>` : `<div class="nm">${c}</div>`;
+  const nearSup = v.filter(([, x]) => x.inZone && x.trend !== 'down' && (x.rsi ?? 50) < 60), zone = nearSup.filter(([, x]) => x.sq !== 'bad').map(([k, x]) => [k, x.sq]), risky = nearSup.filter(([, x]) => x.sq === 'bad').map(([k]) => k), hot = v.filter(([, x]) => x.rsi >= 70).map(([k]) => k), cold = v.filter(([, x]) => x.rsi != null && x.rsi <= 30).map(([k]) => k);
+  const list = (a, c) => a.length ? `<div class="chips">${a.map(k => { const [sym, g] = Array.isArray(k) ? k : [k]; return `<button class="chip" data-go="${esc(sym)}">${g === 'weak' ? '🟡 ' : ''}${esc(sym)}</button>`; }).join('')}</div>` : `<div class="nm">${c}</div>`;
   el.innerHTML = `<div class="sec">แนวโน้ม (วิเคราะห์แล้ว ${v.length}/${S.symbols.length} ตัว)</div><div class="row" style="gap:6px"><span class="pill up">ขาขึ้น ${up}</span><span class="pill down">ขาลง ${dn}</span><span class="pill">ไซด์เวย์/อื่นๆ ${v.length - up - dn}</span></div>
     <div class="sec">🟢 ย่อมาใกล้แนวรับ (ไม่ใช่ขาลง · RSI &lt; 60)</div>${list(zone, 'ยังไม่มี')}
+    ${zone.some(([, g]) => g === 'weak') ? '<div class="nm">🟡 = แนวรับเริ่มอ่อน (แตะบ่อย/เด้งเบา) ระวังมากขึ้น</div>' : ''}
+    ${risky.length ? `<div class="sec">🔴 ใกล้แนวรับแต่แนวรับอ่อน เสี่ยงหลุด</div>${list(risky, '')}` : ''}
     <div class="sec">🔥 RSI ≥ 70 (ร้อนแรง มักย่อตัว)</div>${list(hot, 'ไม่มี')}
     <div class="sec">❄️ RSI ≤ 30 (ขายมากเกิน มักเด้ง)</div>${list(cold, 'ไม่มี')}`;
   bindGo(el);
@@ -364,9 +409,21 @@ function chartSvg(rows, A, n) {
     ${hline(A.stop, '--down', '4 3', 'ตัดขาดทุน')}${hline(A.target, '--s-50', '4 3', 'เป้า')}${IPO[S.sel] ? hline(IPO[S.sel], '--muted', '2 3', 'IPO ' + cur(S.sel) + IPO[S.sel]) : ''}
     ${series.map(([k, col]) => `<path d="${path(A[k].slice(off))}" fill="none" stroke="var(${col})" stroke-width="1.3"/>`).join('')}
     <path d="${path(view.map(r => r.c))}" fill="none" stroke="var(--s-price)" stroke-width="2" stroke-linejoin="round"/>
+    ${supOverlay(A.Q, off, view.length, x, y, L, W - R)}
     <g id="hov"></g>
     <text x="${L}" y="${H - 4}" font-size="9" fill="var(--muted)">${thDate(view[0].d)}</text><text x="${W - R}" y="${H - 4}" font-size="9" text-anchor="end" fill="var(--muted)">${thDate(view[view.length - 1].d)}</text>
   </svg>`;
+}
+// แนวรับ + จุดแตะที่ 1, 2, 3… (แบบในคลิป) + เส้นจุดสูงต่ำลงถ้ามี
+function supOverlay(Q, off, len, x, y, X0, X1) {
+  if (!Q) return '';
+  const col = Q.grade === 'bad' ? '--down' : Q.grade === 'weak' ? '--warn' : '--up', inV = (i) => i >= off && i < off + len;
+  let g = `<line x1="${X0}" x2="${X1}" y1="${y(Q.lv.v)}" y2="${y(Q.lv.v)}" stroke="var(${col})" stroke-width="1.4" opacity=".85"/><text x="${X0 + 3}" y="${y(Q.lv.v) + 11}" font-size="9" fill="var(${col})">แนวรับ</text>`;
+  if (Q.lh >= 2) { const pk = Q.peaks.slice(-(Q.lh + 1)).filter(p => inV(p.i));
+    if (pk.length >= 2) g += `<polyline points="${pk.map(p => x(p.i - off).toFixed(1) + ',' + y(p.v).toFixed(1)).join(' ')}" fill="none" stroke="var(--down)" stroke-width="1.2" stroke-dasharray="4 3"/>`; }
+  Q.pts.forEach((t, k) => { if (!inV(t.i)) return; const cx = x(t.i - off), cy = y(t.v) + 8;
+    g += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="var(--card)" stroke="var(${col})" stroke-width="1.3"/><text x="${cx.toFixed(1)}" y="${(cy + 3).toFixed(1)}" font-size="8" font-weight="700" text-anchor="middle" fill="var(${col})">${k + 1}</text>`; });
+  return g;
 }
 function rsiSvg(R, n) {
   const v = R.slice(-n), W = 340, H = 60, L = 40, R2 = 6;
@@ -376,6 +433,13 @@ function rsiSvg(R, n) {
     <rect x="${L}" width="${W - L - R2}" y="${y(70)}" height="${y(30) - y(70)}" fill="var(--soft)"/>
     ${[30, 70].map(t => `<text x="${L - 4}" y="${y(t) + 3}" font-size="9" text-anchor="end" fill="var(--muted)">${t}</text>`).join('')}
     <path d="${d}" fill="none" stroke="var(--s-50)" stroke-width="1.5"/></svg>`;
+}
+function supCard(Q, C) {
+  if (!Q) return '';
+  const bars = Q.bounces.map((b, k) => `<div class="row" style="gap:6px;padding:1px 0;font-size:12px"><span style="width:64px;white-space:nowrap">แตะครั้งที่ ${k + 1}</span><span class="grow" style="height:8px;background:var(--soft);border-radius:5px;position:relative">${b == null ? '' : `<i style="position:absolute;left:0;top:0;bottom:0;width:${Math.min(100, b / 5 * 100)}%;background:var(${b >= 2 ? '--up' : b < 1 ? '--down' : '--warn'});border-radius:5px"></i>`}</span><span class="num" style="width:84px;text-align:right;white-space:nowrap">${b == null ? 'รอดูผล' : 'เด้ง ' + fmt(b, 1) + ' ATR'}</span></div>`).join('');
+  return `<div class="zone" style="border-color:var(${Q.grade === 'bad' ? '--down' : Q.grade === 'weak' ? '--warn' : '--up'})"><div class="t">🧱 คุณภาพแนวรับ ${C}${fmt(Q.lv.v)}: ${Q.label}</div>
+    ${Q.why.map(w => `<div class="r">• ${w}</div>`).join('')}<div style="margin-top:6px">${bars}</div>
+    <div class="r" style="margin-top:4px">แนวรับไม่ใช่พื้นปูน แต่คือกองคำสั่งซื้อ แตะแต่ละครั้งแรงซื้อถูกใช้ไป · ดูว่าเด้งแรงหรือเบา มากกว่านับว่าแตะกี่ครั้ง · เด้งแรง ≥ 2 ATR · เด้งเบา &lt; 1 ATR (ราคาสูงสุดใน 10 วันหลังแตะ)</div></div>`;
 }
 async function renderStock() {
   const sym = S.sel, meta = S.symbols.find(s => s.symbol === sym) || { symbol: sym };
@@ -417,7 +481,8 @@ async function renderStock() {
   </div>
   <div class="card">
     <h2>🎯 โซนราคา (จากกราฟ)</h2>
-    <div class="zone z-buy"><div class="t">🟢 โซนเข้าซื้อเมื่อย่อตัว: ${C}${fmt(A.buy[0])} – ${C}${fmt(A.buy[1])}</div><div class="r">${A.buyWhy}</div><div class="r"><b>${zoneTxt}</b></div></div>
+    <div class="zone z-buy"><div class="t">${A.Q?.grade === 'bad' ? '🟠 โซนเข้าซื้อ (ระวัง แนวรับอ่อน)' : '🟢 โซนเข้าซื้อเมื่อย่อตัว'}: ${C}${fmt(A.buy[0])} – ${C}${fmt(A.buy[1])}</div><div class="r">${A.buyWhy}</div><div class="r"><b>${zoneTxt}</b></div></div>
+    ${supCard(A.Q, C)}
     <div class="zone z-stop"><div class="t">🔴 จุดตัดขาดทุนอ้างอิง: ต่ำกว่า ${C}${fmt(A.stop)}</div><div class="r">ต่ำกว่าโซนเข้าซื้อ 1 ATR · ถ้าปิดต่ำกว่านี้ แนวรับมักใช้ไม่ได้แล้ว</div></div>
     <div class="zone z-tgt"><div class="t">🎯 เป้าหมายแรก: ${A.target ? C + fmt(A.target) : '–'}</div><div class="r">${A.targetWhy}${A.rr ? ` · กำไรต่อความเสี่ยง ≈ <b>${fmt(A.rr, 1)} : 1</b>${A.rr < 1.5 ? ' (ต่ำ — อาจไม่คุ้ม)' : ''}` : ''}</div></div>
     ${NOTES[sym] ? `<div class="zone" style="background:var(--info-bg);border-color:transparent"><div class="t">📌 เรื่องเฉพาะของ ${esc(sym)}</div><div class="r">${esc(NOTES[sym])}</div></div>` : ''}
