@@ -43,8 +43,8 @@ header{display:flex;align-items:center;gap:10px;padding:6px 0 10px}
 header h1{font-size:22px;margin:0;flex:1}
 .back{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);text-decoration:none;font-size:18px}
 .sub{color:var(--muted);font-size:13px}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--soft);padding:4px;border-radius:14px;position:sticky;top:0;z-index:5}
-.tabs button{border:0;background:transparent;padding:9px 2px;border-radius:10px;font-weight:700;font-size:14px;color:var(--ink2)}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--soft);padding:4px;border-radius:14px;position:sticky;top:0;z-index:5}
+.tabs button{border:0;background:transparent;padding:9px 2px;border-radius:10px;font-weight:700;font-size:13px;white-space:nowrap;color:var(--ink2)}
 .tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-top:12px;box-shadow:var(--shadow)}
 .card h2{font-size:17px;margin:0 0 6px}
@@ -94,6 +94,12 @@ th:first-child,td:first-child{text-align:left}
 td{padding:6px 4px;text-align:right;border-bottom:1px dashed var(--line)}
 tr:last-child td{border-bottom:0}
 .note{color:var(--muted);font-size:12.5px;line-height:1.5;margin-top:8px}
+.gtiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9.5rem),1fr));gap:8px;margin-top:10px}
+.gtile{background:var(--soft);border-radius:12px;padding:10px}
+.gtile .v{font-size:20px;font-weight:700;margin-top:2px}
+.gwrap{max-height:420px;overflow:auto;margin-top:6px}
+.gwrap th{position:sticky;top:0;background:var(--card)}
+tr.gpk td{color:var(--warn);font-weight:700}
 .disc{background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:8px 10px;font-size:12.5px;margin-top:10px}
 .add{display:flex;gap:8px;margin-top:10px}
 .add input{flex:1;min-width:0;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:9px 12px;text-transform:uppercase}
@@ -113,6 +119,7 @@ tr:last-child td{border-bottom:0}
     <button role="tab" data-tab="stock" aria-selected="false">📈 หุ้น</button>
     <button role="tab" data-tab="news" aria-selected="false">📰 ข่าว</button>
     <button role="tab" data-tab="impact" aria-selected="false">🌍 ผลกระทบ</button>
+    <button role="tab" data-tab="gold" aria-selected="false">🥇 ทอง</button>
   </nav>
   <main id="main"></main>
 </div>
@@ -625,12 +632,77 @@ async function renderImpact() {
   } catch (e) { document.getElementById('learn').textContent = 'คำนวณไม่ได้ · ลองใหม่'; }
 }
 
+
+// ===================== 🥇 ราคาทองสูงสุดรายเดือน (stocks/gold.json อัปเดตทุกวันโดย GitHub Actions) =====================
+const TH_MON = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const thMon = (m) => TH_MON[+m.slice(5, 7) - 1] + ' ' + String((+m.slice(0, 4) + 543) % 100).padStart(2, '0');
+async function loadGold() {
+  if (!S.gold) { const r = await fetch('./gold.json', { cache: 'no-cache' }); if (!r.ok) throw new Error('gold'); S.gold = await r.json(); }
+  return S.gold;
+}
+const GCH = { W: 360, H: 200, L: 32, R: 8, T: 12, B: 20 };
+function goldChart(rows, k) {
+  const { W, H, L, R, T, B } = GCH, v = rows.map(r => r[k]), mx = Math.max(...v) * 1.06;
+  const x = (i) => L + i * (W - L - R) / (rows.length - 1), y = (n) => T + (1 - n / mx) * (H - T - B);
+  const step = mx > 20000 ? 20000 : mx > 2000 ? 1000 : 500, ticks = [];
+  for (let t = 0; t <= mx; t += step) ticks.push(t);
+  const pk = v.indexOf(Math.max(...v)), line = v.map((n, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(n).toFixed(1)}`).join('');
+  const yrs = rows.map((r, i) => [r[0], i]).filter(([m]) => m.endsWith('-01'));
+  return `<svg id="gch" viewBox="0 0 ${W} ${H}" style="width:100%;display:block;touch-action:pan-y" role="img" aria-label="กราฟราคาทองสูงสุดรายเดือน">
+    ${ticks.map(t => `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${t >= 1000 ? (t / 1000) + 'k' : t}</text>`).join('')}
+    ${yrs.filter((_, j) => j % 2 === 0).map(([m, i]) => `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--muted)">${+m.slice(0, 4) + 543}</text>`).join('')}
+    <path d="${line}L${x(rows.length - 1)},${y(0)}L${x(0)},${y(0)}Z" fill="var(--s-20)" opacity=".12"/>
+    <path d="${line}" fill="none" stroke="var(--s-20)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(pk)}" cy="${y(v[pk])}" r="3.5" fill="var(--down)" stroke="var(--card)" stroke-width="2"/>
+    <g id="ghov"></g></svg>`;
+}
+async function renderGold() {
+  $main.innerHTML = `<div class="card"><h2>🥇 ราคาทองสูงสุดรายเดือน</h2><div class="sub">ค่าสูงสุดของแต่ละเดือน ย้อนหลัง 10 ปี</div><div id="gold" class="empty">⏳ กำลังโหลด…</div></div>`;
+  let G;
+  try { G = await loadGold(); } catch (e) { document.getElementById('gold').textContent = 'โหลดราคาทองไม่ได้ · ลองใหม่'; return; }
+  if (S.tab !== 'gold') return;
+  const rows = G.rows, k = S.goldUnit === 'usd' ? 1 : 2, unit = k === 1 ? 'USD/ออนซ์' : 'บาท';
+  const pkRow = rows.reduce((a, b) => b[2] > a[2] ? b : a), pkUsd = rows.reduce((a, b) => b[1] > a[1] ? b : a), last = rows[rows.length - 1];
+  const fromPk = (last[2] / pkRow[2] - 1) * 100;
+  const byYear = {};
+  rows.forEach(r => { const yy = r[0].slice(0, 4); if (!byYear[yy] || r[2] > byYear[yy][2]) byYear[yy] = r; });
+  const el = document.getElementById('gold');
+  el.className = '';
+  el.innerHTML = `<div class="gtiles num">
+      <div class="gtile"><div class="sub">ทองไทย สูงสุด 10 ปี</div><div class="v">${fmt(pkRow[2], 0)}</div><div class="sub">บาท · ${thMon(pkRow[0])}</div></div>
+      <div class="gtile"><div class="sub">สูงสุดเดือนล่าสุด</div><div class="v">${fmt(last[2], 0)}</div><div class="sub">บาท · ${thMon(last[0])}</div></div>
+      <div class="gtile"><div class="sub">ห่างจากจุดสูงสุด</div><div class="v ${fromPk < 0 ? 'down' : 'up'}">${fromPk > 0 ? '+' : ''}${fmt(fromPk, 1)}%</div><div class="sub">เดือนล่าสุดเทียบ ${thMon(pkRow[0])}</div></div>
+      <div class="gtile"><div class="sub">ทองโลก สูงสุด 10 ปี</div><div class="v">${fmt(pkUsd[1], 0)}</div><div class="sub">USD/ออนซ์ · ${thMon(pkUsd[0])}</div></div>
+    </div>
+    <div class="chips" style="margin-top:12px" id="gunit"><button class="chip" data-u="thb" aria-pressed="${k === 2}">ทองไทย (บาท)</button><button class="chip" data-u="usd" aria-pressed="${k === 1}">ทองโลก (USD)</button></div>
+    <div style="margin-top:8px">${goldChart(rows, k)}</div>
+    <div class="tip num" id="gtip">แตะ/ลากบนกราฟเพื่อดูแต่ละเดือน · จุดแดง = เดือนที่สูงสุด</div>`;
+  $main.insertAdjacentHTML('beforeend', `
+    <div class="card"><h2>📅 สูงสุดของแต่ละปี</h2><div class="sub">เดือนที่ทองไทยขึ้นไปสูงสุดในปีนั้น</div>
+      <table class="num" style="margin-top:6px"><thead><tr><th>ปี</th><th>เดือน</th><th>ทองไทย (บาท)</th><th>ทองโลก (USD)</th></tr></thead><tbody>${Object.keys(byYear).sort().reverse().map(yy => { const r = byYear[yy]; return `<tr><td><b>${+yy + 543}</b></td><td>${thMon(r[0])}</td><td>${fmt(r[2], 0)}</td><td>${fmt(r[1], 0)}</td></tr>`; }).join('')}</tbody></table></div>
+    <div class="card"><h2>🗓️ ทุกเดือน</h2><div class="sub">เรียงจากเดือนล่าสุด · แถวสีส้ม = สูงสุดตลอด 10 ปี</div>
+      <div class="gwrap"><table class="num"><thead><tr><th>เดือน</th><th>ทองไทย (บาท)</th><th>ทองโลก (USD)</th></tr></thead><tbody>${rows.slice().reverse().map(r => `<tr class="${r === pkRow ? 'gpk' : ''}"><td>${thMon(r[0])}</td><td>${fmt(r[2], 0)}</td><td>${fmt(r[1], 0)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="note">ทองไทย = ทองคำแท่ง 96.5% บาทละ <b>โดยประมาณ</b> คำนวณจากราคาทองโลกสูงสุดรายวัน × ค่าเงินบาทวันนั้น × 0.473 (ทอง 1 บาท = 15.244 กรัม) อาจต่างจากราคาสมาคมค้าทองคำราว 1–2% · ข้อมูลถึง ${esc(thDate(G.last_day))} · อัปเดตอัตโนมัติทุกวัน 17:23 น.</div>
+      <div class="disc">ราคาสูงสุดในอดีตไม่ได้บอกว่าราคาจะขึ้นหรือลงต่อ</div></div>`);
+  document.querySelectorAll('#gunit .chip').forEach(b => b.onclick = () => { S.goldUnit = b.dataset.u; renderGold(); });
+  const svg = document.getElementById('gch'), hov = document.getElementById('ghov'), tip = document.getElementById('gtip');
+  const { W, L, R, T, H, B } = GCH;
+  const pick = (ev) => {
+    const rc = svg.getBoundingClientRect(), px = (ev.clientX - rc.left) / rc.width * W;
+    const i = Math.max(0, Math.min(rows.length - 1, Math.round((px - L) / (W - L - R) * (rows.length - 1)))), r = rows[i];
+    const xx = L + i * (W - L - R) / (rows.length - 1);
+    hov.innerHTML = `<line x1="${xx}" x2="${xx}" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+    tip.textContent = `${thMon(r[0])} · สูงสุด ${fmt(r[k], 0)} ${unit}${k === 2 ? ' · ทองโลก ' + fmt(r[1], 0) + ' USD' : ' · ทองไทย ' + fmt(r[2], 0) + ' บาท'}`;
+  };
+  svg.addEventListener('pointermove', pick); svg.addEventListener('pointerdown', pick);
+}
+
 // ===================== สลับแท็บ =====================
 function go(tab) {
   S.tab = tab;
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   window.scrollTo({ top: 0 });
-  ({ list: renderList, stock: renderStock, news: renderNews, impact: renderImpact })[tab]();
+  ({ list: renderList, stock: renderStock, news: renderNews, impact: renderImpact, gold: renderGold })[tab]();
 }
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => go(b.dataset.tab));
 loadBase().then(() => go('list')).catch(() => { $main.innerHTML = '<div class="card empty">โหลดข้อมูลไม่ได้ · ตรวจอินเทอร์เน็ตแล้วลองใหม่</div>'; });
