@@ -1,5 +1,5 @@
-// Royal 888 Service Worker v4.23 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
-const CACHE = 'royal888-v4-23';
+// Royal 888 Service Worker v4.24 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
+const CACHE = 'royal888-v4-24';
 const APP_SHELL = [
   './',
   './index.html',
@@ -50,7 +50,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   const isCDN = CDN_PATTERNS.some(p => p.test(req.url));
   const isApp = url.origin === self.location.origin;
-  const isIcon = /icon.*\.png$/i.test(url.pathname) || url.pathname.endsWith('manifest.json') || url.pathname.endsWith('/gold.json');   // + ราคาทอง: เน็ตก่อน
+  const isIcon = /icon.*\.png$/i.test(url.pathname) || url.pathname.endsWith('manifest.json') || /\/gold(_daily)?\.json$/.test(url.pathname);   // + ราคาทอง: เน็ตก่อน
 
   // เปิดจากการแชร์ (./index.html?text=…) — ไม่แคชตาม query (กันแคชบวม) · ออฟไลน์ใช้หน้าแอปที่แคชไว้
   if (isApp && req.mode === 'navigate' && url.search) {

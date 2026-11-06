@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ราคาทองสูงสุดรายเดือน → stocks/gold.json (รันทุกวันโดย GitHub Actions)
+"""ราคาทองสูงสุดรายเดือน → stocks/gold.json · รายวัน → stocks/gold_daily.json (รันทุกวันโดย GitHub Actions)
 
 ทองโลก = ราคาสูงสุดรายวันของ GC=F (USD/ออนซ์) จาก Yahoo Finance
 ทองไทย = ทองคำแท่ง 96.5% บาทละ โดยประมาณ = ทองโลก × USD/THB วันเดียวกัน × 0.47295
@@ -9,6 +9,7 @@ import json, sys, urllib.request
 from datetime import datetime, timezone, timedelta
 
 OUT = 'stocks/gold.json'
+OUT_DAILY = 'stocks/gold_daily.json'
 K = 15.244 / 31.1035 * 0.965
 NY, BKK = timedelta(hours=-5), timedelta(hours=7)   # ใช้แยกวันของตลาด (คลาดเคลื่อนช่วงเปลี่ยนเวลาฤดูร้อนได้เล็กน้อย ไม่กระทบค่าสูงสุดรายเดือน)
 
@@ -25,12 +26,14 @@ def day(ts, off):
 
 
 def main():
-    gt, gh, _ = chart('GC=F')
+    gt, gh, gc = chart('GC=F')
     ft, _, fc = chart('THB=X')
-    gold = {}
-    for t, h in zip(gt, gh):
+    gold, close = {}, {}
+    for t, h, c in zip(gt, gh, gc):
         if h is not None:
             d = day(t, NY); gold[d] = max(gold.get(d, 0), h)
+            if c is not None:
+                close[d] = c
     fx = {}
     for t, c in zip(ft, fc):
         if c is not None:
@@ -47,7 +50,13 @@ def main():
            'source': 'Yahoo Finance GC=F, THB=X · ทองไทยโดยประมาณ = ทองโลก × USD/THB × 0.47295', 'rows': rows}
     with open(OUT, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, separators=(',', ':'))
-    print(f'{len(rows)} เดือน · ล่าสุด {rows[-1]}')
+    # รายวัน: [วันที่, ทองโลกสูงสุด, ทองโลกปิด, ทองไทยสูงสุดโดยประมาณ] → stocks/gold_daily.json
+    first = months[0] + '-01'
+    daily = [[d, round(gold[d], 1), round(close[d], 1) if d in close else None, int(round(gold[d] * fx[d] * K, -1)) if d in fx else None]
+             for d in sorted(gold) if d >= first]
+    with open(OUT_DAILY, 'w', encoding='utf-8') as f:
+        json.dump({'updated': out['updated'], 'rows': daily}, f, ensure_ascii=False, separators=(',', ':'))
+    print(f'{len(rows)} เดือน · ล่าสุด {rows[-1]} · รายวัน {len(daily)} วัน')
 
 
 if __name__ == '__main__':

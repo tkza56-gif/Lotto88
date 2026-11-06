@@ -678,13 +678,16 @@ async function renderGold() {
     <div style="margin-top:8px">${goldChart(rows, k)}</div>
     <div class="tip num" id="gtip">แตะ/ลากบนกราฟเพื่อดูแต่ละเดือน · จุดแดง = เดือนที่สูงสุด</div>`;
   $main.insertAdjacentHTML('beforeend', `
+    <div class="card" id="gday"><h2>📆 ย้อนหลังรายวัน</h2><div class="sub">เลือกเดือนเพื่อดูราคาทุกวันทำการ · แถวสีส้ม = วันที่สูงสุดของเดือน</div><div id="gdayBody" class="empty">⏳ กำลังโหลด…</div></div>
     <div class="card"><h2>📅 สูงสุดของแต่ละปี</h2><div class="sub">เดือนที่ทองไทยขึ้นไปสูงสุดในปีนั้น</div>
       <table class="num" style="margin-top:6px"><thead><tr><th>ปี</th><th>เดือน</th><th>ทองไทย (บาท)</th><th>ทองโลก (USD)</th></tr></thead><tbody>${Object.keys(byYear).sort().reverse().map(yy => { const r = byYear[yy]; return `<tr><td><b>${+yy + 543}</b></td><td>${thMon(r[0])}</td><td>${fmt(r[2], 0)}</td><td>${fmt(r[1], 0)}</td></tr>`; }).join('')}</tbody></table></div>
     <div class="card"><h2>🗓️ ทุกเดือน</h2><div class="sub">เรียงจากเดือนล่าสุด · แถวสีส้ม = สูงสุดตลอด 10 ปี</div>
-      <div class="gwrap"><table class="num"><thead><tr><th>เดือน</th><th>ทองไทย (บาท)</th><th>ทองโลก (USD)</th></tr></thead><tbody>${rows.slice().reverse().map(r => `<tr class="${r === pkRow ? 'gpk' : ''}"><td>${thMon(r[0])}</td><td>${fmt(r[2], 0)}</td><td>${fmt(r[1], 0)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="gwrap"><table class="num"><thead><tr><th>เดือน (แตะดูรายวัน)</th><th>ทองไทย (บาท)</th><th>ทองโลก (USD)</th></tr></thead><tbody>${rows.slice().reverse().map(r => `<tr class="${r === pkRow ? 'gpk' : ''}"><td><button class="chip" data-gm="${r[0]}" style="padding:2px 9px">${thMon(r[0])}</button></td><td>${fmt(r[2], 0)}</td><td>${fmt(r[1], 0)}</td></tr>`).join('')}</tbody></table></div>
       <div class="note">ทองไทย = ทองคำแท่ง 96.5% บาทละ <b>โดยประมาณ</b> คำนวณจากราคาทองโลกสูงสุดรายวัน × ค่าเงินบาทวันนั้น × 0.473 (ทอง 1 บาท = 15.244 กรัม) อาจต่างจากราคาสมาคมค้าทองคำราว 1–2% · ข้อมูลถึง ${esc(thDate(G.last_day))} · อัปเดตอัตโนมัติทุกวัน 17:23 น.</div>
       <div class="disc">ราคาสูงสุดในอดีตไม่ได้บอกว่าราคาจะขึ้นหรือลงต่อ</div></div>`);
   document.querySelectorAll('#gunit .chip').forEach(b => b.onclick = () => { S.goldUnit = b.dataset.u; renderGold(); });
+  document.querySelectorAll('[data-gm]').forEach(b => b.onclick = () => { S.goldDay = b.dataset.gm; renderGoldDay(); document.getElementById('gday').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  renderGoldDay();
   const svg = document.getElementById('gch'), hov = document.getElementById('ghov'), tip = document.getElementById('gtip');
   const { W, L, R, T, H, B } = GCH;
   const pick = (ev) => {
@@ -695,6 +698,37 @@ async function renderGold() {
     tip.textContent = `${thMon(r[0])} · สูงสุด ${fmt(r[k], 0)} ${unit}${k === 2 ? ' · ทองโลก ' + fmt(r[1], 0) + ' USD' : ' · ทองไทย ' + fmt(r[2], 0) + ' บาท'}`;
   };
   svg.addEventListener('pointermove', pick); svg.addEventListener('pointerdown', pick);
+}
+
+const TH_WD = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+async function loadGoldDaily() {
+  if (!S.goldDaily) { const r = await fetch('./gold_daily.json', { cache: 'no-cache' }); if (!r.ok) throw new Error('gold_daily'); S.goldDaily = await r.json(); }
+  return S.goldDaily;
+}
+async function renderGoldDay() {
+  const el = document.getElementById('gdayBody');
+  if (!el) return;
+  let D;
+  try { D = await loadGoldDaily(); } catch (e) { el.className = 'empty'; el.textContent = 'ยังไม่มีข้อมูลรายวัน · บอทจะดึงให้ในรอบอัปเดตถัดไป (ทุกวัน 17:23 น.)'; return; }
+  const all = D.rows, months = [...new Set(all.map(r => r[0].slice(0, 7)))].sort().reverse();
+  if (!months.includes(S.goldDay)) S.goldDay = months[0];
+  const mi = months.indexOf(S.goldDay), rows = all.filter(r => r[0].startsWith(S.goldDay));
+  const prevClose = (d) => { const i = all.findIndex(r => r[0] === d); for (let j = i - 1; j >= 0; j--) if (all[j][2] != null) return all[j][2]; return null; };
+  const top = rows.reduce((a, b) => ((b[3] ?? -1) > (a[3] ?? -1) || ((b[3] ?? -1) === (a[3] ?? -1) && b[1] > a[1]) ? b : a), rows[0]);
+  const wd = (d) => TH_WD[new Date(d + 'T00:00:00Z').getUTCDay()];
+  el.className = '';
+  el.innerHTML = `<div class="row" style="gap:6px;margin-top:8px;flex-wrap:nowrap">
+      <button class="chip" id="gdPrev" ${mi >= months.length - 1 ? 'disabled' : ''} aria-label="เดือนก่อน">◀</button>
+      <select id="gdSel" class="grow" aria-label="เลือกเดือน" style="min-width:0;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:7px 10px;font:inherit">${months.map(m => `<option value="${m}" ${m === S.goldDay ? 'selected' : ''}>${thMon(m)}</option>`).join('')}</select>
+      <button class="chip" id="gdNext" ${mi <= 0 ? 'disabled' : ''} aria-label="เดือนถัดไป">▶</button></div>
+    <div class="gwrap"><table class="num"><thead><tr><th>วันที่</th><th>ทองไทย สูงสุด (บาท)</th><th>ทองโลก สูงสุด</th><th>ทองโลก ปิด</th><th>เทียบวันก่อน</th></tr></thead><tbody>${rows.slice().reverse().map(r => {
+      const pc = prevClose(r[0]), ch = r[2] != null && pc ? (r[2] / pc - 1) * 100 : null;
+      return `<tr class="${r === top ? 'gpk' : ''}"><td style="white-space:nowrap">${wd(r[0])} ${+r[0].slice(8)}</td><td>${r[3] == null ? '–' : fmt(r[3], 0)}</td><td>${fmt(r[1], 1)}</td><td>${r[2] == null ? '–' : fmt(r[2], 1)}</td><td class="${ch == null ? '' : ch >= 0 ? 'up' : 'down'}">${ch == null ? '–' : (ch > 0 ? '+' : '') + fmt(ch, 2) + '%'}</td></tr>`;
+    }).join('')}</tbody></table></div>
+    <div class="note">ทองโลกเป็น USD/ออนซ์ · วันที่ตามตลาดนิวยอร์ก · "–" = วันนั้นไม่มีค่าเงินบาทหรือราคาปิด · ทองไทยเป็นค่าประมาณ (ทองโลก × USD/THB × 0.473)</div>`;
+  document.getElementById('gdSel').onchange = (e) => { S.goldDay = e.target.value; renderGoldDay(); };
+  document.getElementById('gdPrev').onclick = () => { S.goldDay = months[mi + 1]; renderGoldDay(); };
+  document.getElementById('gdNext').onclick = () => { S.goldDay = months[mi - 1]; renderGoldDay(); };
 }
 
 // ===================== สลับแท็บ =====================
