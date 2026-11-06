@@ -38,10 +38,19 @@ def main():
     for t, c in zip(ft, fc):
         if c is not None:
             fx[day(t, BKK)] = c
+    # วันที่ค่าเงินไม่ตรงกับวันตลาดทอง (เวลาต่างประเทศ/วันหยุด) → ใช้ค่าเงินล่าสุดภายใน 4 วันก่อนหน้า
+    from datetime import date
+    def rate(d):
+        x = date.fromisoformat(d)
+        for k in range(5):
+            v = fx.get((x - timedelta(days=k)).isoformat())
+            if v: return v
+        return None
+    fx_at = {d: rate(d) for d in gold}
     mon = {}
     for d, h in gold.items():
         m = d[:7]; u, b = mon.get(m, (0, 0))
-        mon[m] = (max(u, h), max(b, h * fx[d] * K) if d in fx else b)
+        mon[m] = (max(u, h), max(b, h * fx_at[d] * K) if fx_at[d] else b)
     months = sorted(mon)[1:]   # เดือนแรกมีข้อมูลไม่ครบเดือน ตัดทิ้ง
     rows = [[m, round(mon[m][0]), int(round(mon[m][1], -1))] for m in months if mon[m][1]]
     if len(rows) < 100:
@@ -52,7 +61,7 @@ def main():
         json.dump(out, f, ensure_ascii=False, separators=(',', ':'))
     # รายวัน: [วันที่, ทองโลกสูงสุด, ทองโลกปิด, ทองไทยสูงสุดโดยประมาณ] → stocks/gold_daily.json
     first = months[0] + '-01'
-    daily = [[d, round(gold[d], 1), round(close[d], 1) if d in close else None, int(round(gold[d] * fx[d] * K, -1)) if d in fx else None]
+    daily = [[d, round(gold[d], 1), round(close[d], 1) if d in close else None, int(round(gold[d] * fx_at[d] * K, -1)) if fx_at[d] else None]
              for d in sorted(gold) if d >= first]
     with open(OUT_DAILY, 'w', encoding='utf-8') as f:
         json.dump({'updated': out['updated'], 'rows': daily}, f, ensure_ascii=False, separators=(',', ':'))
