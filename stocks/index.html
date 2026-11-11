@@ -280,13 +280,148 @@ function analyze(rows, q, C = '$') {
     targetWhy: res.length ? `แนวต้าน (จุดสูงล่าสุดแถวนี้ ${thDate(res[0].d)})` : 'จุดสูงสุด 52 สัปดาห์', rr, Q, inZone: p >= buy[0] && p <= buy[1] };
 }
 
+// ===================== 🧭 แผนเทรด: ดูแนวโน้มก่อน แล้วค่อยหาจุดเข้า-ออก =====================
+// ลำดับคิด 1) แนวโน้มหลัก (50/200 วัน) 2) แนวโน้มระยะสั้น (5/10/20 วัน) 3) ความเร็ว/ระยะที่ลงหรือขึ้น 4) RSI 5) ปริมาณซื้อขาย
+// 6) สัญญาณกลับตัว → ตัดสินสภาพตอนนี้ → แผนรอยืนยัน · แผนแบ่งไม้ · ถ้าถือหุ้นอยู่ · สิ่งที่ต้องดูต่อ
+function tradePlan(rows, A, q, C = '$') {
+  const C_ = (v) => v == null || isNaN(v) ? '–' : C + fmt(v);
+  const n = rows.length, c = rows.map(r => r.c), p = A.p, a = A.a, R = A.R, rs = A.rs, last = rows[n - 1], prev = rows[n - 2];
+  const s5 = sma(c, 5), s10 = sma(c, 10), m5 = s5[n - 1], m10 = s10[n - 1], m20 = A.m20, m50 = A.m50;
+  const rAt = (i) => R[i] ?? 50;
+  // ปริมาณ: เทียบ 20 วันก่อนหน้า 3 วันล่าสุด
+  const vb = rows.slice(Math.max(0, n - 23), n - 3).map(r => r.v).filter(v => v > 0), vAvg = vb.length ? vb.reduce((s, x) => s + x, 0) / vb.length : null;
+  const vr = (r) => vAvg && r.v ? r.v / vAvg : null;
+  const recent = rows.slice(-3).map((r, j) => ({ r, i: n - 3 + j, x: vr(r), down: r.c < (rows[n - 4 + j]?.c ?? r.o) }));
+  const heavySell = recent.filter(t => t.x >= 2 && t.down), heavyBuy = recent.filter(t => t.x >= 2 && !t.down);
+  // ระยะที่ลงจากจุดสูง 60 วัน / ขึ้นจากจุดต่ำ 60 วัน
+  let hiI = n - 1, loI = n - 1;
+  for (let i = Math.max(0, n - 60); i < n; i++) { if (rows[i].h >= rows[hiI].h) hiI = i; if (rows[i].l <= rows[loI].l) loI = i; }
+  const hi = rows[hiI].h, dd = (p / hi - 1) * 100, ddDays = n - 1 - hiI, ddAtr = (hi - p) / a;
+  const lo = rows[loI].l, up = (p / lo - 1) * 100;
+  let below5 = 0; for (let i = n - 1; i >= 0 && s5[i] != null && c[i] < s5[i]; i--) below5++;
+  const bear = m5 < m10 && m10 < m20 && p < m10, bull = m5 > m10 && m10 > m20 && p > m10;
+  // สัญญาณกลับตัว (ดูแท่งล่าสุด)
+  const body = Math.abs(last.c - last.o), rng = last.h - last.l, lowWick = Math.min(last.o, last.c) - last.l;
+  const sig = [];
+  if (rs >= 30 && Math.min(rAt(n - 2), rAt(n - 3), rAt(n - 4)) < 30 && rs > rAt(n - 2)) sig.push('RSI ฟื้นกลับขึ้นเหนือ 30');
+  if (s5[n - 2] != null && c[n - 1] > m5 && c[n - 2] < s5[n - 2]) sig.push('ปิดกลับขึ้นเหนือเส้นเฉลี่ย 5 วัน');
+  if (rng > 0.8 * a && lowWick >= 2 * body && (last.c - last.l) / rng >= 0.6) sig.push('แท่งค้อน (ไส้ล่างยาว แรงซื้อดันกลับ)');
+  if (last.c > last.o && prev.c < prev.o && last.c >= prev.o && last.o <= prev.c) sig.push('แท่งเขียวกลืนแท่งแดงวันก่อน');
+  if (last.c > prev.h) sig.push('ปิดเหนือราคาสูงสุดของวันก่อน');
+  let i1 = -1, i2 = -1;
+  for (let i = Math.max(0, n - 30); i < n - 5; i++) if (i1 < 0 || rows[i].l < rows[i1].l) i1 = i;
+  for (let i = n - 5; i < n; i++) if (i2 < 0 || rows[i].l < rows[i2].l) i2 = i;
+  if (i1 >= 0 && rows[i2].l < rows[i1].l && rAt(i2) > rAt(i1) + 3 && rAt(i1) < 40) sig.push('ราคาทำจุดต่ำใหม่ แต่ RSI ไม่ทำต่ำใหม่ (แรงขายเริ่มอ่อน)');
+  // สภาพตอนนี้
+  const prior20Hi = Math.max(...rows.slice(Math.max(0, n - 21), n - 1).map(r => r.h));
+  const breakout = last.c > prior20Hi && (vr(last) ?? 0) >= 1.5;
+  const knife = bear && dd <= -12 && ddDays <= 30;
+  let st;
+  if (knife && sig.length < 2) st = { k: 'knife', t: '📉 กำลังร่วงแรง ยังไม่ควรรับ (มีดตก)', c: 'down', s: `ราคาลง ${fmt(-dd, 1)}% จากจุดสูง ${C_(hi)} ใน ${ddDays} วันทำการ เส้นเฉลี่ย 5 < 10 < 20 วันเรียงตัวขาลง${rs < 30 ? ' · RSI ต่ำมาก มีโอกาสเด้งสั้น แต่ยังไม่มีสัญญาณกลับตัว' : ''} · ให้รอดูทิศทางก่อน` };
+  else if ((bear || A.tcls === 'down' || rs < 35) && sig.length >= 2) st = { k: 'turn', t: '🟢 สัญญาณกลับตัวเริ่มมา (ยังต้องยืนยัน)', c: 'up', s: `เจอ ${sig.length} สัญญาณกลับตัว แต่แนวโน้มระยะสั้นยังเป็นขาลง เข้าได้ทีละน้อยและวางจุดตัดขาดทุนชัด` };
+  else if (breakout) st = { k: 'breakout', t: '🚀 ทะลุแนวต้านพร้อมปริมาณหนา', c: 'up', s: `ปิดเหนือราคาสูงสุด 20 วัน (${C_(prior20Hi)}) ด้วยปริมาณ ${fmt(vr(last), 1)} เท่าของปกติ · ถ้าย่อกลับมาแล้วยืนเหนือ ${C_(prior20Hi)} ได้ คือจุดเข้าที่ดีกว่าไล่ซื้อ` };
+  else if (A.tcls === 'up' && !bear && A.sup[0] && p - A.sup[0].v < 1.5 * a) st = { k: 'dip', t: '✅ ขาขึ้น ย่อมาใกล้แนวรับ = จังหวะสะสม', c: 'up', s: `แนวโน้มหลักยังขึ้น และราคาอยู่ห่างแนวรับ ${C_(A.sup[0].v)} ไม่ถึง 1.5 ATR` };
+  else if (A.tcls === 'up' && bull) st = { k: 'uptrend', t: '📈 ขาขึ้นแข็งแรง ไม่ไล่ราคา รอย่อ', c: 'up', s: `เส้นเฉลี่ยเรียงตัวขาขึ้น${rs >= 70 ? ' · RSI สูงเกิน 70 มักพักตัวก่อน' : ''} · รอย่อแถวเส้นเฉลี่ย 10–20 วัน (${C_(m10)}–${C_(m20)})` };
+  else if (A.tcls === 'down' && m50 && p < m50) st = { k: 'down', t: '⛔ ขาลง เด้งขึ้นมามักโดนขาย', c: 'down', s: `ราคาอยู่ใต้เส้นเฉลี่ย 50 วัน (${C_(m50)}) ในขาลงหลัก · ยังไม่ใช่จังหวะซื้อสะสม` };
+  else st = { k: 'range', t: '⏳ ไซด์เวย์ รอให้เลือกทาง', c: '', s: 'สัญญาณยังขัดกัน ซื้อใกล้แนวรับ ขายใกล้แนวต้าน หรือรอให้ทะลุออกทางใดทางหนึ่ง' };
+  // แนวต้าน/เป้าหมาย: รวมเส้นเฉลี่ย + แนวต้านจากกราฟ + จุดสูง 60 วัน ตัดระดับที่ใกล้กันเกิน 1.5%
+  const tg = [[m10, 'เส้นเฉลี่ย 10 วัน'], [m20, 'เส้นเฉลี่ย 20 วัน'], [m50, 'เส้นเฉลี่ย 50 วัน'], ...A.res.slice(0, 4).map(x => [x.v, `แนวต้านเดิม (จุดสูง ${thDate(x.d)})`]), [hi, 'จุดสูงสุด 60 วัน']]
+    .filter(([v]) => v != null).sort((x, y) => x[0] - y[0]);
+  const lo20 = Math.min(...rows.slice(Math.max(0, n - 21), n - 1).map(r => r.l));
+  if (['breakout', 'uptrend', 'range'].includes(st.k)) tg.push([Math.max(prior20Hi, hi) + (prior20Hi - lo20), 'เป้าวัดจากความกว้างกรอบ 20 วัน (กว้างเท่าไหร่ มักวิ่งต่อได้ราวนั้น)']), tg.sort((x, y) => x[0] - y[0]);
+  const targetsAbove = (from) => { const out = []; for (const t of tg) if (t[0] > from + a && !out.some(o => Math.abs(o[0] / t[0] - 1) < 0.015)) out.push(t); return out.slice(0, 3); };
+  // แผน ก. รอยืนยัน
+  const low5 = Math.min(...rows.slice(-5).map(r => r.l));
+  const broke = st.k === 'range' && p > prior20Hi;   // ทะลุกรอบแล้วแต่ปริมาณยังไม่ยืนยัน → รอย่อทดสอบ
+  const confirm = st.k === 'breakout' || st.k === 'range' ? prior20Hi : st.k === 'uptrend' ? m10 : last.h;
+  const entryA = st.k === 'uptrend' || st.k === 'breakout' || broke ? confirm : Math.max(confirm, p);
+  const stopA = st.k === 'uptrend' ? Math.min(low5, m20) - 0.5 * a      // ขาขึ้น: ใต้เส้นเฉลี่ย 20 วัน/จุดต่ำ 5 วัน
+    : st.k === 'breakout' ? prior20Hi - 1.5 * a                          // เบรก: กลับลงมาใต้กรอบเดิมชัด ๆ = เบรกหลอก
+    : st.k === 'dip' ? Math.min(low5, A.sup[0].v) - 0.5 * a              // ย่อในขาขึ้น: ใต้แนวรับ
+    : broke ? prior20Hi - 1.5 * a
+    : st.k === 'range' ? Math.min(low5, m20 ?? low5) - 0.5 * a
+    : low5 - 0.25 * a;                                                   // มีดตก/กลับตัว/ขาลง: ใต้จุดต่ำล่าสุด
+  const tA = targetsAbove(entryA).map(([v, w]) => ({ v, w, pct: (v / entryA - 1) * 100, rr: (v - entryA) / (entryA - stopA) }));
+  const when = st.k === 'uptrend' ? `ย่อลงมาแถว ${C_(m10)} (เส้นเฉลี่ย 10 วัน) แล้วปิดกลับขึ้นเป็นแท่งเขียว`
+    : st.k === 'breakout' ? `ย่อกลับมาทดสอบ ${C_(prior20Hi)} แล้วยืนได้ (ไม่ปิดต่ำกว่า)`
+    : st.k === 'dip' ? `ปิดเป็นแท่งเขียวเหนือแนวรับ ${C_(A.sup[0].v)} หรือปิดเหนือ ${C_(last.h)}`
+    : broke ? `ทะลุกรอบ ${C_(prior20Hi)} แล้ว แต่ปริมาณยังไม่หนา (ยังไม่ยืนยัน) · รอย่อกลับมาทดสอบ ${C_(prior20Hi)} แล้วยืนได้ค่อยเข้า`
+    : st.k === 'range' ? `ทะลุกรอบขึ้น: ปิดเหนือ ${C_(prior20Hi)} (ราคาสูงสุด 20 วัน) ด้วยปริมาณมากกว่าปกติ · หรือซื้อใกล้แนวรับ ${A.sup[0] ? C_(A.sup[0].v) : C_(low5)} ตามแผน ข.`
+    : `ราคาหยุดทำจุดต่ำใหม่ แล้วปิดเหนือ ${C_(confirm)} (ราคาสูงสุดของวันล่าสุด)${rs < 30 ? ' พร้อม RSI กลับขึ้นเหนือ 30' : ''} · ยืนยันแรงขึ้นอีกขั้นถ้าปิดเหนือเส้นเฉลี่ย 5 วัน (${C_(m5)}) และไม่หลุด ${C_(low5)}`;
+  // แผน ข. แบ่งไม้ที่แนวรับ (เสี่ยงกว่า: รับของระหว่างลง)
+  const sups = A.sup.filter(s => s.v < p - 0.3 * a).slice(0, 2).map(s => ({ v: s.v, w: `แนวรับ (จุดต่ำ ${thDate(s.d)})` }));
+  if (q?.low52 && q.low52 < p && !sups.some(s => Math.abs(s.v / q.low52 - 1) < 0.02) && q.low52 > p * 0.7) sups.push({ v: q.low52, w: 'จุดต่ำสุด 52 สัปดาห์' });
+  if (sups.length < 2) {   // หาแนวรับลึกกว่าจากข้อมูลทั้งหมด (ย้อนได้ถึง 5 ปี): จุดต่ำเฉพาะที่ ±5 วัน ที่สูงที่สุดใต้ไม้แรกเกิน 0.5 ATR
+    const below = (sups[0]?.v ?? p) - 0.5 * a; let best = null;
+    for (let i = 5; i < n - 5; i++) { const l = rows[i].l; if (l < below && (!best || l > best.l) && rows.slice(i - 5, i + 6).every(r => r.l >= l)) best = { l, d: rows[i].d }; }
+    sups.push(best && best.l > p * 0.6 ? { v: best.l, w: `แนวรับเก่า (จุดต่ำ ${thDate(best.d)})` } : { v: (sups[0]?.v ?? p) - 2 * a, w: 'ไม่มีแนวรับเก่าใน 40% ใต้ราคา ใช้ 2 ATR ใต้ไม้แรก' });
+  }
+  sups.sort((x, y) => y.v - x.v); sups.length = Math.min(sups.length, 2);
+  const stopB = sups[sups.length - 1].v - a, avgB = sups[0].v * 0.4 + sups[1].v * 0.6;
+  const tB = targetsAbove(avgB).slice(0, 2).map(([v, w]) => ({ v, w, pct: (v / avgB - 1) * 100, rr: (v - avgB) / (avgB - stopB) }));
+  // ถ้าถือหุ้นอยู่
+  const holdStop = st.c === 'up' ? Math.max(stopA, (m20 ?? 0) - a) : Math.min(low5, sups[0].v) - 0.5 * a;
+  const holdTxt = st.k === 'knife' || st.k === 'down'
+    ? `ถ้าปิดต่ำกว่า ${C_(holdStop)} (ใต้แนวรับ/จุดต่ำล่าสุด) ควรลดหรือตัดขาดทุน · ถ้าเด้งขึ้นไปถึง ${C_(tA[0]?.v ?? m20)} โดยแนวโน้มยังเป็นขาลง เป็นจังหวะลดพอร์ต ไม่ใช่ไล่ซื้อเพิ่ม`
+    : `ถือต่อได้ตราบที่ไม่ปิดต่ำกว่า ${C_(holdStop)} · ขายทำกำไรบางส่วนที่ ${C_(tA[0]?.v ?? hi)}${tA[1] ? ' และ ' + C_(tA[1].v) : ''} แล้วเลื่อนจุดตัดขาดทุนขึ้นตามเส้นเฉลี่ย 20 วัน`;
+  // เช็กลิสต์
+  const ok = (b, w) => b ? '✅' : w ? '⚠️' : '❌';
+  const vx = recent.map(t => t.x).filter(Boolean), vMax = vx.length ? Math.max(...vx) : null;
+  const rrA = tA[0]?.rr;
+  const checks = [
+    [ok(A.tcls === 'up', A.tcls === ''), 'แนวโน้มหลัก', `${A.trend} · ${A.why}`],
+    [ok(bull, !bear), 'แนวโน้มระยะสั้น', `เส้นเฉลี่ย 5/10/20 วัน = ${C_(m5)} / ${C_(m10)} / ${C_(m20)}${bear ? ' เรียงขาลง' : bull ? ' เรียงขาขึ้น' : ' ยังพันกัน'}${below5 >= 3 ? ` · ปิดใต้เส้น 5 วันมา ${below5} วันติด` : ''}`],
+    [ok(dd > -8, dd > -15), 'ระยะที่ลงมา', `ต่ำกว่าจุดสูง 60 วัน ${fmt(-dd, 1)}% (${fmt(ddAtr, 1)} ATR) ใน ${ddDays} วัน${up > 15 ? ` · ขึ้นจากจุดต่ำ 60 วันมาแล้ว ${fmt(up, 1)}%` : ''}`],
+    [ok(rs >= 40 && rs <= 65, rs < 40 || rs > 65), 'RSI', rs < 30 ? `${fmt(rs, 0)} ขายมากเกิน · มักเด้งได้ แต่ในช่วงร่วงแรง RSI ต่ำได้อีกหลายวัน ใช้คู่กับสัญญาณกลับตัว` : rs > 70 ? `${fmt(rs, 0)} ซื้อมากเกิน · มักพักตัว ไม่ควรไล่ราคา` : `${fmt(rs, 0)} ${A.rsiTxt}`],
+    [ok(heavyBuy.length > 0 && !heavySell.length, !heavySell.length), 'ปริมาณซื้อขาย', vMax == null ? 'ไม่มีข้อมูลปริมาณ' : heavySell.length ? `วันลงมีปริมาณ ${heavySell.map(t => fmt(t.x, 1) + ' เท่า').join(', ')} ของปกติ = แรงขายหนัก · อาจเป็นจุดล้างพอร์ต (ขายทิ้งรอบสุดท้าย) ถ้าวันต่อ ๆ ไปปริมาณลดลงและราคาไม่ทำจุดต่ำใหม่` : heavyBuy.length ? `วันขึ้นมีปริมาณ ${fmt(heavyBuy[0].x, 1)} เท่าของปกติ = มีแรงซื้อจริง` : `ปริมาณปกติ (สูงสุด ${fmt(vMax, 1)} เท่าของค่าเฉลี่ย)`],
+    [ok(sig.length >= 2, sig.length === 1), 'สัญญาณกลับตัว/ยืนยัน', sig.length ? sig.join(' · ') : 'ยังไม่มี'],
+    [ok(rrA >= 2, rrA >= 1.5), 'กำไรต่อความเสี่ยง (แผนรอยืนยัน)', rrA == null ? 'ไม่มีเป้าหมายด้านบนที่ชัด' : `${fmt(rrA, 1)} : 1 ถึงเป้าแรก${rrA < 1.5 ? ' (ต่ำ ไม่คุ้มเสี่ยง)' : ''}`],
+  ];
+  const watch = [];
+  if (rs < 30) watch.push('RSI กลับขึ้นเหนือ 30');
+  if (bear) watch.push(`ราคาปิดเหนือเส้นเฉลี่ย 5 วัน (${C_(m5)}) ได้ 2 วันติด`);
+  if (heavySell.length) watch.push('ปริมาณวันลงลดลงเรื่อย ๆ (แรงขายเริ่มหมด)');
+  watch.push(`ไม่หลุดจุดต่ำล่าสุด ${C_(low5)} = เริ่มทำจุดต่ำที่สูงขึ้น`);
+  if (st.c === 'up') watch.push(`ไม่ปิดต่ำกว่าเส้นเฉลี่ย 20 วัน (${C_(m20)})`);
+  watch.push('วันประกาศงบ/ข่าวใหญ่ของบริษัท (ราคามักกระโดดข้ามแนวรับ-ต้าน)');
+  return { st, sig, checks, pass: checks.filter(x => x[0] === '✅').length, entryA, stopA, tA, when, sups, stopB, avgB, tB, holdTxt, holdStop, watch, low5 };
+}
+
+function planCard(P, C) {
+  const C_ = (v) => C + fmt(v);
+  const tl = (t, i) => `<div style="padding:5px 0;border-top:1px dashed var(--line)"><div class="row num" style="gap:8px"><b class="grow">เป้า ${i + 1}: ${C_(t.v)}</b><span class="up">+${fmt(t.pct, 1)}%</span><span class="${t.rr >= 2 ? 'up' : t.rr < 1.5 ? 'down' : ''}">กำไร:เสี่ยง ${fmt(t.rr, 1)}:1</span></div><div style="font-size:12.5px;color:var(--muted)">${esc(t.w)}</div></div>`;
+  const risk = (e, s) => fmt((e - s) / e * 100, 1);
+  return `<div class="card" id="plan">
+    <h2>🧭 แผนเทรด: ดูแนวโน้มก่อน แล้วค่อยหาจุดเข้า</h2>
+    <div class="zone ${P.st.c === 'up' ? 'z-buy' : P.st.c === 'down' ? 'z-stop' : ''}" style="margin-top:4px"><div class="t" style="font-size:17px">${P.st.t}</div><div class="r">${P.st.s}</div></div>
+    <div class="sub" style="margin-top:10px"><b>เช็กทีละขั้น</b> · ผ่าน ${P.pass}/${P.checks.length} ข้อ</div>
+    ${P.checks.map(([m, h, d], i) => `<div class="row" style="align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)"><span>${m}</span><div class="grow" style="font-size:13.5px"><b>${i + 1}. ${h}</b><div style="font-size:13px;color:var(--muted);white-space:normal">${d}</div></div></div>`).join('')}
+    <div class="zone z-buy"><div class="t">🛡️ แผน ก. รอยืนยันก่อนเข้า${P.st.c === 'down' ? ' (แนะนำสำหรับสถานการณ์นี้)' : ''}</div>
+      <div class="r"><b>เข้าเมื่อ:</b> ${P.when}</div>
+      <div class="r num"><b>ราคาเข้าอ้างอิง ${C_(P.entryA)}</b> · <b class="down">ตัดขาดทุนถ้าปิดต่ำกว่า ${C_(P.stopA)}</b> (เสี่ยง ${risk(P.entryA, P.stopA)}%)</div>
+      ${P.tA.length ? `<div style="margin-top:6px">${P.tA.map(tl).join('')}</div>
+      ${P.tA[0].rr < 1.5 ? '<div class="r"><b>ตอนนี้ยังไม่คุ้ม:</b> เป้าแรกใกล้เกินเทียบกับระยะตัดขาดทุน · รอให้ราคาสร้างฐานหรือทำจุดต่ำที่สูงขึ้นก่อน จุดตัดขาดทุนจะแคบลงและคุ้มขึ้น</div>' : ''}
+      <div class="r">ขายบางส่วนที่เป้าแรก แล้วเลื่อนจุดตัดขาดทุนขึ้นมาที่ราคาทุน</div>` : '<div class="r">ไม่มีแนวต้านด้านบนที่ชัด ใช้จุดตัดขาดทุนแบบเลื่อนตามเส้นเฉลี่ย 20 วันแทนการตั้งเป้า</div>'}
+    </div>
+    <div class="zone" style="background:var(--warn-bg);border-color:transparent"><div class="t">⚡ แผน ข. แบ่งไม้รับที่แนวรับ (เสี่ยงกว่า: ซื้อระหว่างที่ราคายังลง)</div>
+      <div class="r num">ไม้ 1 (40%) ที่ ${C_(P.sups[0].v)} <span style="color:var(--muted)">· ${esc(P.sups[0].w)}</span></div>
+      <div class="r num">ไม้ 2 (60%) ที่ ${C_(P.sups[1].v)} <span style="color:var(--muted)">· ${esc(P.sups[1].w)}</span></div>
+      <div class="r num">ทุนเฉลี่ย ≈ ${C_(P.avgB)} · <b class="down">ตัดขาดทุนถ้าปิดต่ำกว่า ${C_(P.stopB)}</b> (เสี่ยง ${risk(P.avgB, P.stopB)}%)${P.tB.length ? ` · เป้า ${P.tB.map(t => `${C_(t.v)} (${fmt(t.rr, 1)}:1)`).join(', ')}` : ''}</div>
+      <div class="r">${P.st.k === 'knife' || P.st.k === 'down' ? 'ช่วงร่วงแรง แนวรับมักถูกทะลุ ใช้เงินส่วนน้อย และอย่าเฉลี่ยเพิ่มเมื่อหลุดจุดตัดขาดทุน' : 'ใช้เมื่อเชื่อในแนวโน้มหลัก ราคาอาจไม่ลงมาถึงไม้ 2'}</div>
+    </div>
+    <div class="zone"><div class="t">💼 ถ้าถือหุ้นอยู่แล้ว</div><div class="r">${P.holdTxt}</div></div>
+    <div class="zone" style="background:var(--info-bg);border-color:transparent"><div class="t">👀 สิ่งที่ต้องดูต่อ</div>${P.watch.map(w => `<div class="r">• ${w}</div>`).join('')}</div>
+    <div class="note">ราคาเข้าคิดจากราคาปิดล่าสุดในฐานข้อมูล ไม่รวมราคาก่อนตลาดเปิด/หลังตลาดปิด · ตัดขาดทุนใช้ "ราคาปิด" ไม่ใช่ราคาระหว่างวัน · ขนาดไม้ควรให้ขาดทุนถึงจุดตัดแล้วเสียไม่เกิน 1–2% ของพอร์ต</div>
+  </div>`;
+}
+
 // ===================== โหลดข้อมูล =====================
 async function loadDaily(sym, n) {
   const have = S.daily[sym];
   if (have && have.length >= Math.min(n, have.full ? 0 : n)) return have;
   const rows = [];
   for (let off = 0; off < n; off += 1000) {
-    const page = await api(`stk_daily?select=d,o,h,l,c&symbol=eq.${encodeURIComponent(sym)}&order=d.desc&limit=${Math.min(1000, n - off)}&offset=${off}`);
+    const page = await api(`stk_daily?select=d,o,h,l,c,v&symbol=eq.${encodeURIComponent(sym)}&order=d.desc&limit=${Math.min(1000, n - off)}&offset=${off}`);
     rows.push(...page);
     if (page.length < Math.min(1000, n - off)) { rows.full = true; break; }
   }
@@ -465,7 +600,7 @@ async function renderStock() {
   if (S.sel !== sym) return;
   const q = S.quotes[sym];
   if (rows.length < 20) { $main.lastElementChild.innerHTML = 'ยังไม่มีข้อมูลราคาพอ · ถ้าเพิ่งเพิ่ม รอบอทดึงข้อมูล ~15 นาที'; return; }
-  const C = cur(sym), A = analyze(rows, q, C), ch = q?.prev_close ? pct(q.price, q.prev_close) : null;
+  const C = cur(sym), A = analyze(rows, q, C), P = tradePlan(rows, A, q, C), ch = q?.prev_close ? pct(q.price, q.prev_close) : null;
   const n = Math.min(S.range, rows.length);
   const zoneTxt = A.inZone ? '✅ ราคาปัจจุบันอยู่ในโซนนี้แล้ว' : A.p > A.buy[1] ? `ราคาปัจจุบันสูงกว่าโซน ${fmt(pct(A.p, A.buy[1]), 1)}%` : 'ราคาต่ำกว่าโซนแล้ว (หลุดแนวรับ) ควรรอให้ตั้งหลักก่อน';
   $main.lastElementChild.outerHTML = `
@@ -486,8 +621,10 @@ async function renderStock() {
     </div>
     <div class="note">${A.why}</div>
   </div>
+  ${planCard(P, C)}
   <div class="card">
     <h2>🎯 โซนราคา (จากกราฟ)</h2>
+    ${P.st.k === 'knife' || P.st.k === 'down' ? '<div class="disc" style="margin-top:0">โซนด้านล่างคือแนวรับใกล้สุดจากกราฟ ใช้ประกอบแผนด้านบน ไม่ใช่สัญญาณให้ซื้อทันที เพราะตอนนี้ยังเป็นขาลง</div>' : ''}
     <div class="zone z-buy"><div class="t">${A.Q?.grade === 'bad' ? '🟠 โซนเข้าซื้อ (ระวัง แนวรับอ่อน)' : '🟢 โซนเข้าซื้อเมื่อย่อตัว'}: ${C}${fmt(A.buy[0])} – ${C}${fmt(A.buy[1])}</div><div class="r">${A.buyWhy}</div><div class="r"><b>${zoneTxt}</b></div></div>
     ${supCard(A.Q, C)}
     <div class="zone z-stop"><div class="t">🔴 จุดตัดขาดทุนอ้างอิง: ต่ำกว่า ${C}${fmt(A.stop)}</div><div class="r">ต่ำกว่าโซนเข้าซื้อ 1 ATR · ถ้าปิดต่ำกว่านี้ แนวรับมักใช้ไม่ได้แล้ว</div></div>
