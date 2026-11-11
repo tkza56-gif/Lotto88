@@ -136,7 +136,7 @@ async function api(path, opt = {}) {
 const TAG_TH = {
   mideast_war: 'สงครามตะวันออกกลาง/อิหร่าน', war_other: 'ความขัดแย้งอื่น', oil: 'น้ำมัน/OPEC', rates: 'ดอกเบี้ย/เงินเฟ้อ',
   tariffs: 'ภาษีนำเข้า/การค้า', defense: 'งบ/สัญญากลาโหม', earnings: 'งบการเงิน', supply: 'หุ้นเพิ่ม/ปลดล็อก',
-  space: 'อวกาศ/ดาวเทียม', ai_chips: 'AI/ชิป', legal: 'คดี/หน่วยงานกำกับ',
+  space: 'อวกาศ/ดาวเทียม', ai_chips: 'AI/ชิป', legal: 'คดี/หน่วยงานกำกับ', leadership: 'ผู้บริหาร/CEO', scandal: 'เรื่องอื้อฉาว/ข้อกล่าวหา', china: 'จีน/ความมั่นคง/ส่งออกชิป',
   bank: 'ธนาคาร/สินเชื่อ', health: 'ยา/สุขภาพ (FDA)', crypto: 'คริปโต/บิตคอยน์', consumer: 'การบริโภค/ค้าปลีก', auto: 'รถยนต์/EV',
 };
 const SECTORS = ['ตลาดรวม', 'เทคโนโลยี', 'การเงิน', 'สุขภาพ', 'สินค้าอุปโภค', 'พลังงาน', 'กลาโหม', 'อวกาศ', 'สายการบิน', 'ยานยนต์', 'อุตสาหกรรม',
@@ -390,6 +390,49 @@ function tradePlan(rows, A, q, C = '$') {
   return { st, sig, checks, pass: checks.filter(x => x[0] === '✅').length, entryA, stopA, tA, when, sups, stopB, avgB, tB, holdTxt, holdStop, watch, low5 };
 }
 
+// 📰 ข่าวกับแผนเทรด: ข่าวตรง (ชื่อบริษัท/ผู้บริหารอยู่ในพาดหัว) · ข่าวทางอ้อม (~ ห่วงโซ่/คู่แข่ง/ETF) · ข่าวกลุ่ม
+const HOT_TAGS = { scandal: 'ข่าวเรื่องอื้อฉาว/ข้อกล่าวหามักทำให้ราคาแกว่งแรงเกินปกติ และกระโดดข้ามแนวรับ-ต้านได้ จนกว่าจะมีข้อสรุป (ผลสอบสวน ท่าทีบอร์ด)',
+  leadership: 'ข่าวผู้บริหาร/CEO (ลาออก ถูกสอบสวน ไม่มีผู้สืบทอด) ตลาดมักลดมูลค่าที่ให้กับบริษัทจนกว่าจะเห็นทางออกชัด',
+  legal: 'คดีหรือการสอบสวน มักยืดเยื้อ ราคาอาจกดดันเป็นระยะทุกครั้งที่มีข่าวใหม่',
+  china: 'ข่าวจีน/ส่งออกชิป/ความมั่นคง มักกระทบทั้งกลุ่มชิปและห่วงโซ่ ไม่ใช่แค่บริษัทเดียว',
+  earnings: 'ช่วงประกาศงบ ราคามักกระโดดแรง (gap) ข้ามจุดตัดขาดทุนได้', supply: 'มีหุ้นออกมาขายเพิ่ม (ปลดล็อก/เพิ่มทุน) มักกดราคาช่วงสั้น' };
+function newsRisk(list, sym, sector) {
+  const now = Date.now(), H = 72, recent = list.filter(n => now - new Date(n.published_at) < H * 36e5);
+  const win = recent.length >= 3 ? recent : list.filter(n => now - new Date(n.published_at) < 7 * 864e5), hrs = win === recent ? '3 วัน' : '7 วัน';
+  const c = { d: { p: 0, n: 0, x: [] }, i: { p: 0, n: 0, m: 0, x: [], via: {} }, s: { p: 0, n: 0 } }, tags = {}, itags = {};
+  for (const n of win) {
+    const im = n.impacts || {}, d = im[sym], i = im['~' + sym], g = sector && im[sector];
+    if (d) { if (d === '+') c.d.p++; if (d === '-') c.d.n++; c.d.x.push(n); (n.tags || []).forEach(t => { if (HOT_TAGS[t]) tags[t] = (tags[t] || 0) + 1; }); }
+    else if (i) { if (i === '+') c.i.p++; if (i === '-') c.i.n++; if (i === '±') c.i.m++; c.i.x.push(n); (n.tags || []).forEach(t => { if (HOT_TAGS[t]) itags[t] = (itags[t] || 0) + 1; }); Object.keys(im).filter(k => !k.startsWith('~') && /^[A-Z][A-Z0-9.]*$/.test(k) && k !== sym && (im[k] === '+' || im[k] === '-')).forEach(k => { c.i.via[k] = (c.i.via[k] || 0) + 1; }); }
+    else if (g) { if (g === '+') c.s.p++; if (g === '-') c.s.n++; }
+  }
+  const net = (c.d.p - c.d.n) + 0.5 * (c.i.p - c.i.n) + 0.25 * (c.s.p - c.s.n), heavyNeg = c.d.n >= 3 && c.d.n > 2 * c.d.p, heavyPos = c.d.p >= 3 && c.d.p > 2 * c.d.n;
+  const mark = heavyNeg || (c.i.n >= 3 && net < 0) ? '❌' : heavyPos && net > 0 ? '✅' : '⚠️';
+  const top = Object.entries(tags).sort((a, b) => b[1] - a[1]);
+  const via = Object.entries(c.i.via).sort((a, b) => b[1] - a[1]).map(([k]) => k).slice(0, 3);
+  const itop = Object.entries(itags).sort((a, b) => b[1] - a[1]);
+  return { mark, net, c, top, itop, via, hrs, n: win.length,
+    head: [...c.d.x, ...c.i.x].filter(n => (n.impacts[sym] || n.impacts['~' + sym]) !== '±').slice(0, 4) };
+}
+function fillPlanNews(sym, sector, list) {
+  const el = document.getElementById('planNews');
+  if (!el) return;
+  const R = newsRisk(list, sym, sector), c = R.c;
+  const lines = [];
+  lines.push(`ข่าวของ ${esc(sym)} โดยตรง (${R.hrs}): <b class="down">ลบ ${c.d.n}</b> · <b class="up">บวก ${c.d.p}</b>`);
+  if (c.i.p + c.i.n) lines.push(`ข่าวทางอ้อม${R.via.length ? ' ผ่าน ' + R.via.map(esc).join(', ') : ''}: <b class="down">ลบ ${c.i.n}</b> · <b class="up">บวก ${c.i.p}</b> <span style="color:var(--muted)">(อยู่ห่วงโซ่เดียวกัน/ETF ที่ถือหุ้นนั้นเยอะ มักขยับตามในระยะสั้น)</span>`);
+  if (c.i.m) lines.push(`ข่าวของคู่แข่ง${R.via.length ? ' (' + R.via.map(esc).join(', ') + ')' : ''} ${c.i.m} ข่าว ↕ <span style="color:var(--muted)">อาจได้ประโยชน์ (ลูกค้าย้ายมา) หรือร่วงตามความกังวลทั้งกลุ่ม ดูราคาจริงประกอบ</span>`);
+  if (R.itop.length && !R.top.length) lines.push(`ประเด็นที่ลากมา${R.via.length ? 'จาก ' + R.via.map(esc).join(', ') : ''}: ${R.itop.map(([t, k]) => `${esc(TAG_TH[t] || t)} (${k})`).join(' · ')}`);
+  if (sector && c.s.p + c.s.n) lines.push(`ข่าวกลุ่ม${esc(sector)}อื่น ๆ: ลบ ${c.s.n} · บวก ${c.s.p}`);
+  if (R.top.length) lines.push(`ประเด็นหลัก: ${R.top.map(([t, k]) => `${esc(TAG_TH[t] || t)} (${k})`).join(' · ')}`);
+  R.top.slice(0, 2).forEach(([t]) => lines.push(`• ${HOT_TAGS[t]}`));
+  const verdict = R.mark === '❌' ? '<b class="down">ข่าวลบยังไหลเข้ามา</b> · แนวรับทางเทคนิคเชื่อถือได้น้อยลงช่วงนี้ ถ้าจะเข้าให้ใช้แผน ก. และลดขนาดไม้ลงราวครึ่งหนึ่ง หรือรอให้ข่าวนิ่ง (ไม่มีข่าวลบใหม่ 2–3 วัน) ก่อน'
+    : R.mark === '✅' ? '<b class="up">ข่าวเอียงบวก</b> · หนุนแผนเข้าซื้อ แต่ระวังข่าวดีที่ราคาตอบรับไปแล้ว (ขึ้นแรงก่อนข่าว)'
+    : R.n ? 'ข่าวยังก้ำกึ่ง ไม่ได้เปลี่ยนแผนจากกราฟ · คอยดูข่าวใหม่' : 'ช่วงนี้ไม่มีข่าวที่พูดถึงหุ้นนี้โดยตรง แผนอิงกราฟเป็นหลัก';
+  el.innerHTML = `<div class="t">${R.mark} 8. ข่าวที่อาจกระทบราคา</div>${lines.map(l => `<div class="r">${l}</div>`).join('')}<div class="r">${verdict}</div>
+    ${R.head.length ? `<div class="r" style="margin-top:4px"><b>พาดหัวล่าสุด:</b></div>${R.head.map(n => `<div class="r" style="font-size:13px">${(n.impacts[sym] || n.impacts['~' + sym]) === '-' ? '🔻' : '🔺'} <a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a> <span style="color:var(--muted)">· ${ago(n.published_at)}${n.impacts[sym] ? '' : ' · ทางอ้อม'}</span></div>`).join('')}` : ''}
+    <div class="r" style="color:var(--muted);font-size:12.5px">บอทอ่านแค่พาดหัวภาษาอังกฤษ นับข่าวซ้ำจากหลายสำนักเป็นหลายข่าว · ใช้ดูว่าข่าวเอียงทางไหนและเรื่องอะไร ไม่ได้บอกว่าราคาจะไปเท่าไหร่</div>`;
+}
 function planCard(P, C) {
   const C_ = (v) => C + fmt(v);
   const tl = (t, i) => `<div style="padding:5px 0;border-top:1px dashed var(--line)"><div class="row num" style="gap:8px"><b class="grow">เป้า ${i + 1}: ${C_(t.v)}</b><span class="up">+${fmt(t.pct, 1)}%</span><span class="${t.rr >= 2 ? 'up' : t.rr < 1.5 ? 'down' : ''}">กำไร:เสี่ยง ${fmt(t.rr, 1)}:1</span></div><div style="font-size:12.5px;color:var(--muted)">${esc(t.w)}</div></div>`;
@@ -399,6 +442,7 @@ function planCard(P, C) {
     <div class="zone ${P.st.c === 'up' ? 'z-buy' : P.st.c === 'down' ? 'z-stop' : ''}" style="margin-top:4px"><div class="t" style="font-size:17px">${P.st.t}</div><div class="r">${P.st.s}</div></div>
     <div class="sub" style="margin-top:10px"><b>เช็กทีละขั้น</b> · ผ่าน ${P.pass}/${P.checks.length} ข้อ</div>
     ${P.checks.map(([m, h, d], i) => `<div class="row" style="align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)"><span>${m}</span><div class="grow" style="font-size:13.5px"><b>${i + 1}. ${h}</b><div style="font-size:13px;color:var(--muted);white-space:normal">${d}</div></div></div>`).join('')}
+    <div class="zone" id="planNews" style="background:var(--soft);border-color:transparent"><div class="t">📰 8. ข่าวที่อาจกระทบราคา</div><div class="r">⏳ กำลังอ่านข่าว…</div></div>
     <div class="zone z-buy"><div class="t">🛡️ แผน ก. รอยืนยันก่อนเข้า${P.st.c === 'down' ? ' (แนะนำสำหรับสถานการณ์นี้)' : ''}</div>
       <div class="r"><b>เข้าเมื่อ:</b> ${P.when}</div>
       <div class="r num"><b>ราคาเข้าอ้างอิง ${C_(P.entryA)}</b> · <b class="down">ตัดขาดทุนถ้าปิดต่ำกว่า ${C_(P.stopA)}</b> (เสี่ยง ${risk(P.entryA, P.stopA)}%)</div>
@@ -653,19 +697,23 @@ async function renderStock() {
   svg.addEventListener('pointerdown', pick); svg.addEventListener('pointermove', (e) => (e.buttons || e.pointerType === 'mouse') && pick(e));
   // ข่าวของหุ้นนี้ + ข่าวโลกที่บอทบอกว่ากระทบกลุ่มของหุ้นนี้
   try {
-    const own = await api(`stk_news?select=*&symbol=eq.${encodeURIComponent(sym)}&order=published_at.desc&limit=12`);
-    const sec = meta.sector ? await api(`stk_news?select=*&symbol=is.null&impacts=cs.${encodeURIComponent(JSON.stringify({ [meta.sector]: '+' }))}&order=published_at.desc&limit=4`)
-      .then(a => api(`stk_news?select=*&symbol=is.null&impacts=cs.${encodeURIComponent(JSON.stringify({ [meta.sector]: '-' }))}&order=published_at.desc&limit=4`).then(b => a.concat(b))) : [];
-    const all = own.concat(sec).sort((a, b) => b.published_at.localeCompare(a.published_at));
+    const since = new Date(Date.now() - 14 * 864e5).toISOString(), byImp = (k, d, lim) => api(`stk_news?select=*&impacts=cs.${encodeURIComponent(JSON.stringify({ [k]: d }))}&published_at=gte.${since}&order=published_at.desc&limit=${lim}`);
+    const [own, ...hits] = await Promise.all([api(`stk_news?select=*&symbol=eq.${encodeURIComponent(sym)}&order=published_at.desc&limit=12`),
+      ...['-', '+', '±'].flatMap(d => [byImp(sym, d, 25), byImp('~' + sym, d, 15)])]);
+    const seen = new Set(), news = [...hits.flat(), ...own].filter(n => !seen.has(n.id) && seen.add(n.id));
+    const sec = meta.sector ? (await Promise.all(['+', '-'].map(d => api(`stk_news?select=*&symbol=is.null&impacts=cs.${encodeURIComponent(JSON.stringify({ [meta.sector]: d }))}&published_at=gte.${since}&order=published_at.desc&limit=6`)))).flat() : [];
+    const all = news.concat(sec.filter(n => !seen.has(n.id) && seen.add(n.id))).sort((a, b) => b.published_at.localeCompare(a.published_at)).slice(0, 40);
+    if (S.sel !== sym) return;
+    fillPlanNews(sym, meta.sector, all);
     const el = document.getElementById('symNews');
-    if (el) { el.className = ''; el.innerHTML = all.length ? newsSummary(all, [sym, meta.sector]) + all.map(newsItem).join('') : '<div class="empty">ยังไม่มีข่าว</div>'; }
+    if (el) { el.className = ''; el.innerHTML = all.length ? newsSummary(all, [sym, '~' + sym, meta.sector]) + all.map(newsItem).join('') : '<div class="empty">ยังไม่มีข่าว</div>'; }
   } catch (e) { const el = document.getElementById('symNews'); if (el) el.textContent = 'โหลดข่าวไม่ได้'; }
 }
 
 // ===================== ข่าว (บอทคัด) =====================
 function newsItem(n) {
   const sc = n.score >= 0.2 ? '<span class="pill up">บวก</span>' : n.score <= -0.2 ? '<span class="pill down">ลบ</span>' : '<span class="pill">กลาง</span>';
-  const imp = Object.entries(n.impacts || {}).map(([k, d]) => `<span class="pill ${d === '+' ? 'up' : d === '-' ? 'down' : ''}">${esc(k)} ${d === '+' ? '⬆' : d === '-' ? '⬇' : '↕'}</span>`).join('');
+  const imp = Object.entries(n.impacts || {}).sort((a, b) => a[0].startsWith('~') - b[0].startsWith('~')).map(([k, d]) => `<span class="pill ${d === '+' ? 'up' : d === '-' ? 'down' : ''}"${k.startsWith('~') ? ' title="กระทบทางอ้อม (ห่วงโซ่/คู่แข่ง/ETF)" style="opacity:.8"' : ''}>${k.startsWith('~') ? '↪ ' + esc(k.slice(1)) : esc(k)} ${d === '+' ? '⬆' : d === '-' ? '⬇' : '↕'}</span>`).join('');
   const tags = (n.tags || []).map(t => `<span class="pill">${esc(TAG_TH[t] || t)}</span>`).join('');
   return `<div class="news"><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>
     <div class="meta">${[n.symbol ? '<b>' + esc(n.symbol) + '</b>' : '🌍 ข่าวโลก', n.source ? esc(n.source) : '', ago(n.published_at)].filter(Boolean).join(' · ')}</div>
@@ -679,7 +727,7 @@ function newsSummary(list, keys) {
   if (!rows.length) return '';
   return `<div class="zone" style="background:var(--soft);border-color:transparent;margin-bottom:6px"><div class="t">🤖 บอทสรุป (${list.length} ข่าว)</div>${rows.map(([k, v]) => {
     const net = v.p - v.n, lab = net > 0 ? '<b class="up">เอียงบวก</b>' : net < 0 ? '<b class="down">เอียงลบ</b>' : '<b>ก้ำกึ่ง</b>';
-    return `<div class="r">${esc(k)}: ข่าวบวก ${v.p} · ลบ ${v.n} → ${lab}</div>`; }).join('')}</div>`;
+    return `<div class="r">${k.startsWith('~') ? 'ทางอ้อม (ผ่านหุ้นที่เกี่ยวข้อง) ' + esc(k.slice(1)) : esc(k)}: ข่าวบวก ${v.p} · ลบ ${v.n} → ${lab}</div>`; }).join('')}</div>`;
 }
 async function renderNews() {
   $main.innerHTML = `<div class="card"><h2>📰 ข่าวที่บอทคัดให้</h2><div class="sub">บอทอ่านพาดหัว (ภาษาอังกฤษ) แล้วติดป้ายหมวด ให้คะแนนบวก/ลบ และบอกกลุ่มหุ้นที่อาจกระทบ · ไม่ใช้ AI ภายนอก</div>
