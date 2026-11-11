@@ -1,5 +1,5 @@
-// Royal 888 Service Worker v4.25 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
-const CACHE = 'royal888-v4-25';
+// Royal 888 Service Worker v4.26 — ผลออกอัตโนมัติ · วางจาก LINE · ส่งออกโพย
+const CACHE = 'royal888-v4-26';
 const APP_SHELL = [
   './',
   './index.html',

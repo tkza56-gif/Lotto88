@@ -283,8 +283,11 @@ function analyze(rows, q, C = '$') {
 // ===================== 🧭 แผนเทรด: ดูแนวโน้มก่อน แล้วค่อยหาจุดเข้า-ออก =====================
 // ลำดับคิด 1) แนวโน้มหลัก (50/200 วัน) 2) แนวโน้มระยะสั้น (5/10/20 วัน) 3) ความเร็ว/ระยะที่ลงหรือขึ้น 4) RSI 5) ปริมาณซื้อขาย
 // 6) สัญญาณกลับตัว → ตัดสินสภาพตอนนี้ → แผนรอยืนยัน · แผนแบ่งไม้ · ถ้าถือหุ้นอยู่ · สิ่งที่ต้องดูต่อ
+// ช่วงราคาหุ้นไทย (SET): ราคาเข้า/เป้า ปัดเป็นช่วงราคาที่ซื้อขายได้จริง · จุดตัดขาดทุนปัดลง (ให้อยู่ใต้ระดับ)
+const setTick = (v) => v < 2 ? 0.01 : v < 5 ? 0.02 : v < 10 ? 0.05 : v < 25 ? 0.1 : v < 100 ? 0.25 : v < 200 ? 0.5 : v < 400 ? 1 : 2;
 function tradePlan(rows, A, q, C = '$') {
   const C_ = (v) => v == null || isNaN(v) ? '–' : C + fmt(v);
+  const TH = C === '฿', tk = (v) => setTick(v), rp = (v) => !TH || v == null ? v : +(Math.round(v / tk(v)) * tk(v)).toFixed(2), fp = (v) => !TH || v == null ? v : +(Math.floor(v / tk(v) + 1e-9) * tk(v)).toFixed(2);
   const n = rows.length, c = rows.map(r => r.c), p = A.p, a = A.a, R = A.R, rs = A.rs, last = rows[n - 1], prev = rows[n - 2];
   const s5 = sma(c, 5), s10 = sma(c, 10), m5 = s5[n - 1], m10 = s10[n - 1], m20 = A.m20, m50 = A.m50;
   const rAt = (i) => R[i] ?? 50;
@@ -322,7 +325,7 @@ function tradePlan(rows, A, q, C = '$') {
   else if (breakout) st = { k: 'breakout', t: '🚀 ทะลุแนวต้านพร้อมปริมาณหนา', c: 'up', s: `ปิดเหนือราคาสูงสุด 20 วัน (${C_(prior20Hi)}) ด้วยปริมาณ ${fmt(vr(last), 1)} เท่าของปกติ · ถ้าย่อกลับมาแล้วยืนเหนือ ${C_(prior20Hi)} ได้ คือจุดเข้าที่ดีกว่าไล่ซื้อ` };
   else if (A.tcls === 'up' && !bear && A.sup[0] && p - A.sup[0].v < 1.5 * a) st = { k: 'dip', t: '✅ ขาขึ้น ย่อมาใกล้แนวรับ = จังหวะสะสม', c: 'up', s: `แนวโน้มหลักยังขึ้น และราคาอยู่ห่างแนวรับ ${C_(A.sup[0].v)} ไม่ถึง 1.5 ATR` };
   else if (A.tcls === 'up' && bull) st = { k: 'uptrend', t: '📈 ขาขึ้นแข็งแรง ไม่ไล่ราคา รอย่อ', c: 'up', s: `เส้นเฉลี่ยเรียงตัวขาขึ้น${rs >= 70 ? ' · RSI สูงเกิน 70 มักพักตัวก่อน' : ''} · รอย่อแถวเส้นเฉลี่ย 10–20 วัน (${C_(m10)}–${C_(m20)})` };
-  else if (A.tcls === 'down' && m50 && p < m50) st = { k: 'down', t: '⛔ ขาลง เด้งขึ้นมามักโดนขาย', c: 'down', s: `ราคาอยู่ใต้เส้นเฉลี่ย 50 วัน (${C_(m50)}) ในขาลงหลัก · ยังไม่ใช่จังหวะซื้อสะสม` };
+  else if (A.tcls === 'down' && m50 && p < m50) st = { k: 'down', t: '⛔ ขาลง เด้งขึ้นมามักโดนขาย', c: 'down', s: `ราคาอยู่ใต้เส้นเฉลี่ย 50 วัน (${C_(m50)}) แนวโน้มเป็น${A.trend} · ยังไม่ใช่จังหวะซื้อสะสม` };
   else st = { k: 'range', t: '⏳ ไซด์เวย์ รอให้เลือกทาง', c: '', s: 'สัญญาณยังขัดกัน ซื้อใกล้แนวรับ ขายใกล้แนวต้าน หรือรอให้ทะลุออกทางใดทางหนึ่ง' };
   // แนวต้าน/เป้าหมาย: รวมเส้นเฉลี่ย + แนวต้านจากกราฟ + จุดสูง 60 วัน ตัดระดับที่ใกล้กันเกิน 1.5%
   const tg = [[m10, 'เส้นเฉลี่ย 10 วัน'], [m20, 'เส้นเฉลี่ย 20 วัน'], [m50, 'เส้นเฉลี่ย 50 วัน'], ...A.res.slice(0, 4).map(x => [x.v, `แนวต้านเดิม (จุดสูง ${thDate(x.d)})`]), [hi, 'จุดสูงสุด 60 วัน']]
@@ -334,14 +337,14 @@ function tradePlan(rows, A, q, C = '$') {
   const low5 = Math.min(...rows.slice(-5).map(r => r.l));
   const broke = st.k === 'range' && p > prior20Hi;   // ทะลุกรอบแล้วแต่ปริมาณยังไม่ยืนยัน → รอย่อทดสอบ
   const confirm = st.k === 'breakout' || st.k === 'range' ? prior20Hi : st.k === 'uptrend' ? m10 : last.h;
-  const entryA = st.k === 'uptrend' || st.k === 'breakout' || broke ? confirm : Math.max(confirm, p);
-  const stopA = st.k === 'uptrend' ? Math.min(low5, m20) - 0.5 * a      // ขาขึ้น: ใต้เส้นเฉลี่ย 20 วัน/จุดต่ำ 5 วัน
+  const entryA = rp(st.k === 'uptrend' || st.k === 'breakout' || broke ? confirm : Math.max(confirm, p));
+  const stopA = fp(st.k === 'uptrend' ? Math.min(low5, m20) - 0.5 * a      // ขาขึ้น: ใต้เส้นเฉลี่ย 20 วัน/จุดต่ำ 5 วัน
     : st.k === 'breakout' ? prior20Hi - 1.5 * a                          // เบรก: กลับลงมาใต้กรอบเดิมชัด ๆ = เบรกหลอก
     : st.k === 'dip' ? Math.min(low5, A.sup[0].v) - 0.5 * a              // ย่อในขาขึ้น: ใต้แนวรับ
     : broke ? prior20Hi - 1.5 * a
     : st.k === 'range' ? Math.min(low5, m20 ?? low5) - 0.5 * a
-    : low5 - 0.25 * a;                                                   // มีดตก/กลับตัว/ขาลง: ใต้จุดต่ำล่าสุด
-  const tA = targetsAbove(entryA).map(([v, w]) => ({ v, w, pct: (v / entryA - 1) * 100, rr: (v - entryA) / (entryA - stopA) }));
+    : low5 - 0.25 * a);                                                  // มีดตก/กลับตัว/ขาลง: ใต้จุดต่ำล่าสุด
+  const tA = targetsAbove(entryA).map(([v0, w]) => { const v = rp(v0); return { v, w, pct: (v / entryA - 1) * 100, rr: (v - entryA) / (entryA - stopA) }; });
   const when = st.k === 'uptrend' ? `ย่อลงมาแถว ${C_(m10)} (เส้นเฉลี่ย 10 วัน) แล้วปิดกลับขึ้นเป็นแท่งเขียว`
     : st.k === 'breakout' ? `ย่อกลับมาทดสอบ ${C_(prior20Hi)} แล้วยืนได้ (ไม่ปิดต่ำกว่า)`
     : st.k === 'dip' ? `ปิดเป็นแท่งเขียวเหนือแนวรับ ${C_(A.sup[0].v)} หรือปิดเหนือ ${C_(last.h)}`
@@ -356,11 +359,11 @@ function tradePlan(rows, A, q, C = '$') {
     for (let i = 5; i < n - 5; i++) { const l = rows[i].l; if (l < below && (!best || l > best.l) && rows.slice(i - 5, i + 6).every(r => r.l >= l)) best = { l, d: rows[i].d }; }
     sups.push(best && best.l > p * 0.6 ? { v: best.l, w: `แนวรับเก่า (จุดต่ำ ${thDate(best.d)})` } : { v: (sups[0]?.v ?? p) - 2 * a, w: 'ไม่มีแนวรับเก่าใน 40% ใต้ราคา ใช้ 2 ATR ใต้ไม้แรก' });
   }
-  sups.sort((x, y) => y.v - x.v); sups.length = Math.min(sups.length, 2);
-  const stopB = sups[sups.length - 1].v - a, avgB = sups[0].v * 0.4 + sups[1].v * 0.6;
-  const tB = targetsAbove(avgB).slice(0, 2).map(([v, w]) => ({ v, w, pct: (v / avgB - 1) * 100, rr: (v - avgB) / (avgB - stopB) }));
+  sups.sort((x, y) => y.v - x.v); sups.length = Math.min(sups.length, 2); sups.forEach(x => { x.v = rp(x.v); });
+  const stopB = fp(sups[sups.length - 1].v - a), avgB = sups[0].v * 0.4 + sups[1].v * 0.6;
+  const tB = targetsAbove(avgB).slice(0, 2).map(([v0, w]) => { const v = rp(v0); return { v, w, pct: (v / avgB - 1) * 100, rr: (v - avgB) / (avgB - stopB) }; });
   // ถ้าถือหุ้นอยู่
-  const holdStop = st.c === 'up' ? Math.max(stopA, (m20 ?? 0) - a) : Math.min(low5, sups[0].v) - 0.5 * a;
+  const holdStop = fp(st.c === 'up' ? Math.max(stopA, (m20 ?? 0) - a) : Math.min(low5, sups[0].v) - 0.5 * a);
   const holdTxt = st.k === 'knife' || st.k === 'down'
     ? `ถ้าปิดต่ำกว่า ${C_(holdStop)} (ใต้แนวรับ/จุดต่ำล่าสุด) ควรลดหรือตัดขาดทุน · ถ้าเด้งขึ้นไปถึง ${C_(tA[0]?.v ?? m20)} โดยแนวโน้มยังเป็นขาลง เป็นจังหวะลดพอร์ต ไม่ใช่ไล่ซื้อเพิ่ม`
     : `ถือต่อได้ตราบที่ไม่ปิดต่ำกว่า ${C_(holdStop)} · ขายทำกำไรบางส่วนที่ ${C_(tA[0]?.v ?? hi)}${tA[1] ? ' และ ' + C_(tA[1].v) : ''} แล้วเลื่อนจุดตัดขาดทุนขึ้นตามเส้นเฉลี่ย 20 วัน`;
@@ -411,7 +414,7 @@ function planCard(P, C) {
     </div>
     <div class="zone"><div class="t">💼 ถ้าถือหุ้นอยู่แล้ว</div><div class="r">${P.holdTxt}</div></div>
     <div class="zone" style="background:var(--info-bg);border-color:transparent"><div class="t">👀 สิ่งที่ต้องดูต่อ</div>${P.watch.map(w => `<div class="r">• ${w}</div>`).join('')}</div>
-    <div class="note">ราคาเข้าคิดจากราคาปิดล่าสุดในฐานข้อมูล ไม่รวมราคาก่อนตลาดเปิด/หลังตลาดปิด · ตัดขาดทุนใช้ "ราคาปิด" ไม่ใช่ราคาระหว่างวัน · ขนาดไม้ควรให้ขาดทุนถึงจุดตัดแล้วเสียไม่เกิน 1–2% ของพอร์ต</div>
+    <div class="note">${C === '฿' ? 'หุ้นไทย: ราคาเข้า/เป้าปัดตามช่วงราคาของตลาดหลักทรัพย์ (เช่น ฿100–200 ขยับทีละ 0.50) · จุดตัดขาดทุนปัดลง · ' : ''}ราคาเข้าคิดจากราคาปิดล่าสุดในฐานข้อมูล ไม่รวมราคาก่อนตลาดเปิด/หลังตลาดปิด · ตัดขาดทุนใช้ "ราคาปิด" ไม่ใช่ราคาระหว่างวัน · ขนาดไม้ควรให้ขาดทุนถึงจุดตัดแล้วเสียไม่เกิน 1–2% ของพอร์ต</div>
   </div>`;
 }
 
