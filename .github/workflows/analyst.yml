@@ -1,0 +1,25 @@
+name: analyst-ratings
+on:
+  schedule:
+    - cron: '43 23 * * *'   # 06:43 เวลาไทย ทุกวัน (หลังตลาดสหรัฐปิด)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: data-commit
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/analyst.py
+      - name: commit
+        run: |
+          git add -N stocks/analyst.json 2>/dev/null || true
+          git diff --quiet stocks/analyst.json && exit 0
+          git config user.name "analyst-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stocks/analyst.json
+          git commit -m "analyst: อัปเดตบทวิเคราะห์จากสถาบัน"
+          git pull --rebase -q origin main
+          git push

@@ -433,6 +433,42 @@ function fillPlanNews(sym, sector, list) {
     ${R.head.length ? `<div class="r" style="margin-top:4px"><b>พาดหัวล่าสุด:</b></div>${R.head.map(n => `<div class="r" style="font-size:13px">${(n.impacts[sym] || n.impacts['~' + sym]) === '-' ? '🔻' : '🔺'} <a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a> <span style="color:var(--muted)">· ${ago(n.published_at)}${n.impacts[sym] ? '' : ' · ทางอ้อม'}</span></div>`).join('')}` : ''}
     <div class="r" style="color:var(--muted);font-size:12.5px">บอทอ่านแค่พาดหัวภาษาอังกฤษ นับข่าวซ้ำจากหลายสำนักเป็นหลายข่าว · ใช้ดูว่าข่าวเอียงทางไหนและเรื่องอะไร ไม่ได้บอกว่าราคาจะไปเท่าไหร่</div>`;
 }
+// 🏦 บทวิเคราะห์จากสถาบัน (stocks/analyst.json · GitHub Actions ดึงจาก Yahoo Finance ทุกวัน)
+const REC_TH = { strong_buy: 'ซื้อมาก', buy: 'ซื้อ', hold: 'ถือ', underperform: 'ต่ำกว่าตลาด', sell: 'ขาย', strong_sell: 'ขายมาก', none: '–' };
+const ACT_TH = { up: 'ปรับขึ้นคำแนะนำ', down: 'ปรับลดคำแนะนำ', init: 'เริ่มวิเคราะห์', main: 'คง', reit: 'คง' };
+const PT_TH = { Raises: 'ขึ้นเป้า', Lowers: 'ลดเป้า', Maintains: 'คงเป้า', Announces: 'ตั้งเป้า' };
+async function loadAnalyst() { if (!S.analyst) { const r = await fetch('./analyst.json', { cache: 'no-cache' }); if (!r.ok) throw new Error('analyst'); S.analyst = await r.json(); } return S.analyst; }
+async function fillPlanAnalyst(sym, p, C) {
+  const el = document.getElementById('planAnalyst');
+  if (!el) return;
+  let D;
+  try { D = await loadAnalyst(); } catch (e) { el.innerHTML = '<div class="t">🏦 9. บทวิเคราะห์จากสถาบัน</div><div class="r">ยังไม่มีข้อมูล · บอทจะดึงให้ทุกเช้า 06:43 น.</div>'; return; }
+  if (S.sel !== sym || !document.getElementById('planAnalyst')) return;
+  const A = D.data[sym], C_ = (v) => C + fmt(v);
+  if (!A) { el.innerHTML = '<div class="t">🏦 9. บทวิเคราะห์จากสถาบัน</div><div class="r">ไม่มีนักวิเคราะห์ติดตามหุ้นตัวนี้ (หรือเป็น ETF) · ใช้แผนจากกราฟและข่าวเป็นหลัก</div>'; return; }
+  const t0 = A.trend[0] || {}, t3 = A.trend[A.trend.length - 1] || {}, tot = (t) => (t.sb || 0) + (t.b || 0) + (t.h || 0) + (t.s || 0) + (t.ss || 0), buy = (t) => (t.sb || 0) + (t.b || 0);
+  const up = A.mean ? (A.mean / p - 1) * 100 : null;
+  const since30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10), a30 = A.acts.filter(x => x.d >= since30);
+  const cnt = (f) => a30.filter(f).length, lowers = cnt(x => x.ptAct === 'Lowers'), raises = cnt(x => x.ptAct === 'Raises'), ups = cnt(x => x.act === 'up'), downs = cnt(x => x.act === 'down');
+  const buyNow = tot(t0) ? buy(t0) / tot(t0) : null, buyThen = tot(t3) ? buy(t3) / tot(t3) : null;
+  const goodRec = ['strong_buy', 'buy'].includes(A.rec);
+  const mark = !goodRec || downs >= 2 ? '❌' : (lowers > raises || downs > ups) ? '⚠️' : up != null && up >= 15 ? '✅' : '⚠️';
+  const seg = [['sb', 'ซื้อมาก', 'var(--up)'], ['b', 'ซื้อ', 'color-mix(in srgb, var(--up) 60%, var(--card))'], ['h', 'ถือ', 'var(--muted)'], ['s', 'ขาย', 'color-mix(in srgb, var(--down) 60%, var(--card))'], ['ss', 'ขายมาก', 'var(--down)']];
+  const bar = tot(t0) ? `<div style="display:flex;height:10px;border-radius:6px;overflow:hidden;margin:6px 0 2px">${seg.map(([k, , col]) => t0[k] ? `<i style="flex:${t0[k]};background:${col}"></i>` : '').join('')}</div>
+    <div class="r num" style="font-size:12.5px;color:var(--muted)">${seg.filter(([k]) => t0[k]).map(([k, l]) => `${l} ${t0[k]}`).join(' · ')}</div>` : '';
+  const lines = [];
+  lines.push(`ฉันทามติ <b>${REC_TH[A.rec] || A.rec || '–'}</b>${A.recMean ? ` (คะแนน ${fmt(A.recMean, 2)} จาก 1 = ซื้อมาก ถึง 5 = ขาย)` : ''} · นักวิเคราะห์ ${A.n || tot(t0)} ราย`);
+  if (A.mean) lines.push(`ราคาเป้าหมายเฉลี่ย 12 เดือน <b>${C_(A.mean)}</b> <b class="${up >= 0 ? 'up' : 'down'}">(${up >= 0 ? '+' : ''}${fmt(up, 1)}% จากราคาตอนนี้)</b> · กลาง ${C_(A.median)} · ช่วง ${C_(A.lo)} – ${C_(A.hi)}`);
+  if (A.lo && p < A.lo) lines.push(`⚠️ ราคาตอนนี้ <b>ต่ำกว่าเป้าต่ำสุดของทุกสถาบัน</b> (${C_(A.lo)}) · ตลาดกำลังกังวลเรื่องที่นักวิเคราะห์ยังไม่ได้ใส่ในตัวเลข (เช่น ข่าวล่าสุด) หรือกำลังจะมีการลดเป้าตามมา`);
+  if (A.hi && p > A.hi) lines.push(`⚠️ ราคาตอนนี้ <b>สูงกว่าเป้าสูงสุดของทุกสถาบัน</b> (${C_(A.hi)}) · ราคาวิ่งนำพื้นฐานไปแล้ว`);
+  if (buyNow != null && buyThen != null) lines.push(`แนะนำซื้อ ${buy(t0)}/${tot(t0)} ราย (${fmt(buyNow * 100, 0)}%) · 3 เดือนก่อน ${buy(t3)}/${tot(t3)} (${fmt(buyThen * 100, 0)}%)${buyNow < buyThen - 0.05 ? ' <b class="down">← เริ่มถอย</b>' : buyNow > buyThen + 0.05 ? ' <b class="up">← มากขึ้น</b>' : ''}`);
+  if (a30.length) lines.push(`30 วันล่าสุด: ลดเป้า <b class="${lowers ? 'down' : ''}">${lowers}</b> · ขึ้นเป้า <b class="${raises ? 'up' : ''}">${raises}</b> · ปรับลดคำแนะนำ ${downs} · ปรับขึ้น ${ups}${lowers > raises ? ' → สถาบันกำลังลดเป้าตามราคา (มักเกิดหลังราคาลงไปแล้ว)' : raises > lowers ? ' → สถาบันกำลังขึ้นเป้า' : ''}`);
+  const recent = A.acts.slice(0, 5).map(x => `<div class="r num" style="font-size:13px">${thDate(x.d)} · <b>${esc(x.firm)}</b>: ${ACT_TH[x.act] || esc(x.act)} ${esc(x.to)}${x.act === 'up' || x.act === 'down' ? ` (จาก ${esc(x.from)})` : ''}${x.pt ? ` · ${PT_TH[x.ptAct] || esc(x.ptAct)} ${x.ptPrev && x.ptPrev !== x.pt ? C_(x.ptPrev) + ' → ' : ''}${C_(x.pt)}` : ''}</div>`).join('');
+  el.innerHTML = `<div class="t">${mark} 🏦 9. บทวิเคราะห์จากสถาบัน</div>${bar}${lines.map(l => `<div class="r">${l}</div>`).join('')}
+    ${recent ? `<div class="r" style="margin-top:4px"><b>ความเคลื่อนไหวล่าสุดรายสถาบัน:</b></div>${recent}` : ''}
+    <div class="r" style="margin-top:4px">${goodRec && up > 15 ? 'พื้นฐานในสายตาสถาบันยังดี แต่' : ''}นักวิเคราะห์มองมูลค่าระยะ 12 เดือน และมักปรับเป้าตามหลังราคา ส่วนแผนเทรดดูจังหวะระยะสั้น · ใช้ประกอบกัน: ถ้าสถาบันยังแนะนำซื้อแต่กราฟเป็นขาลง ให้รอสัญญาณกลับตัวตามแผน ก. ไม่ใช่รับของทันที</div>
+    <div class="r" style="color:var(--muted);font-size:12.5px">ที่มา: ${esc(D.source)} · อัปเดต ${ago(D.updated)} · ราคาเป้าหมายไม่ใช่ราคาที่จะเกิดจริง สถิติในอดีตชี้ว่าเป้าเฉลี่ยมักมองบวกเกินจริง</div>`;
+}
 function planCard(P, C) {
   const C_ = (v) => C + fmt(v);
   const tl = (t, i) => `<div style="padding:5px 0;border-top:1px dashed var(--line)"><div class="row num" style="gap:8px"><b class="grow">เป้า ${i + 1}: ${C_(t.v)}</b><span class="up">+${fmt(t.pct, 1)}%</span><span class="${t.rr >= 2 ? 'up' : t.rr < 1.5 ? 'down' : ''}">กำไร:เสี่ยง ${fmt(t.rr, 1)}:1</span></div><div style="font-size:12.5px;color:var(--muted)">${esc(t.w)}</div></div>`;
@@ -443,6 +479,7 @@ function planCard(P, C) {
     <div class="sub" style="margin-top:10px"><b>เช็กทีละขั้น</b> · ผ่าน ${P.pass}/${P.checks.length} ข้อ</div>
     ${P.checks.map(([m, h, d], i) => `<div class="row" style="align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)"><span>${m}</span><div class="grow" style="font-size:13.5px"><b>${i + 1}. ${h}</b><div style="font-size:13px;color:var(--muted);white-space:normal">${d}</div></div></div>`).join('')}
     <div class="zone" id="planNews" style="background:var(--soft);border-color:transparent"><div class="t">📰 8. ข่าวที่อาจกระทบราคา</div><div class="r">⏳ กำลังอ่านข่าว…</div></div>
+    <div class="zone" id="planAnalyst" style="background:var(--soft);border-color:transparent"><div class="t">🏦 9. บทวิเคราะห์จากสถาบัน</div><div class="r">⏳ กำลังโหลด…</div></div>
     <div class="zone z-buy"><div class="t">🛡️ แผน ก. รอยืนยันก่อนเข้า${P.st.c === 'down' ? ' (แนะนำสำหรับสถานการณ์นี้)' : ''}</div>
       <div class="r"><b>เข้าเมื่อ:</b> ${P.when}</div>
       <div class="r num"><b>ราคาเข้าอ้างอิง ${C_(P.entryA)}</b> · <b class="down">ตัดขาดทุนถ้าปิดต่ำกว่า ${C_(P.stopA)}</b> (เสี่ยง ${risk(P.entryA, P.stopA)}%)</div>
@@ -681,6 +718,7 @@ async function renderStock() {
   </div>
   <div class="card"><h2>🤖 บอทเรียน: ข่าวแบบไหนกระทบ ${esc(sym)}</h2><div class="sub">เทียบกับตลาด (${/\.BK$|^THD$/.test(sym) ? 'หุ้นไทยเทียบ THD' : 'หุ้นสหรัฐเทียบ SPY'}) ในวันทำการที่ 0–10 หลังวันข่าวพุ่ง/เหตุการณ์</div><div id="symStudy" class="empty">⏳ กำลังคำนวณ…</div></div>
   <div class="card"><h2>📰 ข่าวที่เกี่ยวข้อง</h2><div id="symNews" class="empty">⏳ กำลังโหลด…</div></div>`;
+  fillPlanAnalyst(sym, A.p, C);
   loadStudy().then(st => { const el = document.getElementById('symStudy'); if (el && S.sel === sym) { el.className = ''; el.innerHTML = studyForSymbol(st, sym); } })
     .catch(() => { const el = document.getElementById('symStudy'); if (el) el.textContent = 'คำนวณไม่ได้ · ลองใหม่'; });
   $main.querySelectorAll('#rng .chip').forEach(b => b.onclick = () => { S.range = +b.dataset.r; renderStock(); });
