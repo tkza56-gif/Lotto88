@@ -480,7 +480,9 @@ const STORAGE = { bets: 'lotto888-bets', draws: 'lotto888-draws', current: 'lott
 // ==================== AUTO RESULTS (Supabase "Royal 888" · อ่านอย่างเดียว) ====================
 // ผลถูกดึงเข้าตารางโดย Edge Function fetch-results (pg_cron ทุก 5 นาที 15:00–21:55 ดึงเฉพาะหวยที่ถึงเวลาและยังไม่มีผล + สำรองทุก 30 นาที)
 // คีย์นี้เป็น publishable key (สาธารณะ) — RLS เปิดให้อ่านได้อย่างเดียว เขียนไม่ได้
-const APP_VERSION = 'v4.29 · 12 พ.ย. 69';   // ตรงกับ sw.js CACHE royal888-v4-29
+// ปิดระบบรหัสผ่าน (PIN) ตามที่ผู้ใช้สั่ง · เปิดกลับได้โดยเปลี่ยนเป็น true (PIN เดิมที่ตั้งไว้ยังเก็บในเครื่อง ไม่ได้ลบ)
+const PIN_LOCK = false;
+const APP_VERSION = 'v4.30 · 24 พ.ย. 69';   // ตรงกับ sw.js CACHE royal888-v4-30
 
 // ===== รับข้อความที่แชร์มาจาก LINE (Android: manifest share_target → ./index.html?text=…) =====
 // เก็บไว้ใน sessionStorage ก่อน (ถ้าติดหน้าใส่ PIN อยู่ ข้อความไม่หาย) แล้วล้าง ?text ออกจาก URL กันรีเฟรชแล้วเด้งซ้ำ
@@ -2056,7 +2058,7 @@ function App() {
   // ล็อกตอนเปิดแอป/รีเฟรช: เฉพาะเมื่อไม่ได้ใช้งานนานเกินเวลาที่ตั้ง "ล็อกอัตโนมัติ" หรือกดล็อกเอง
   // (เดิมล็อกทุกครั้งที่รีเฟรช แม้เพิ่งใส่ PIN ไปไม่กี่วินาที)
   const [locked, setLocked] = useState(() => {
-    if (!auth?.pinHash) return false;
+    if (!PIN_LOCK || !auth?.pinHash) return false;
     const last = readActiveAt();
     if (!last) return true;                       // ไม่เคยปลดล็อก / กดล็อกเอง
     const mins = auth.autoLockMinutes ?? 30;
@@ -2108,7 +2110,7 @@ function App() {
 
   // Auto-lock timer
   useEffect(() => {
-    if (!auth?.pinHash || locked) return;
+    if (!PIN_LOCK || !auth?.pinHash || locked) return;
     // เดิม `|| 15` ทำให้ตัวเลือก "ปิดล็อกอัตโนมัติ" (0) กลายเป็น 15 นาที → ใช้ ?? แทน
     const minutes = auth.autoLockMinutes ?? 30;
     if (minutes === 0) return; // never
@@ -2388,7 +2390,7 @@ function App() {
   }, []);
 
   // Show login screen if locked or PIN not set up yet (but allow skip on setup)
-  if (locked || (auth?.pinHash === null && !auth?.skipped)) {
+  if (PIN_LOCK && (locked || (auth?.pinHash === null && !auth?.skipped))) {
     return (
       <LoginScreen
         auth={auth}
@@ -2431,7 +2433,7 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              {auth?.pinHash && (
+              {PIN_LOCK && auth?.pinHash && (
                 <button
                   onClick={lockApp}
                   className="glass rounded-full w-11 h-11 flex items-center justify-center active:scale-95"
@@ -2781,6 +2783,9 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
         </div>
 
         {/* PIN actions */}
+        {!PIN_LOCK ? (
+          <div className="rounded-xl bg-stone-50 border border-stone-200 p-3 font-display text-base text-stone-700">🔓 ปิดระบบรหัสผ่านไว้ · เปิดแอปได้ทันทีโดยไม่ต้องใส่ PIN</div>
+        ) : (
         <div className="space-y-2">
           {!hasPin ? (
             <button onClick={() => setMode('set-pin')}
@@ -2808,9 +2813,10 @@ function AuthSettingsSheet({ auth, setAuth, backups, onRestoreFromBackup, onDele
             </>
           )}
         </div>
+        )}
 
         {/* Auto-lock settings */}
-        {hasPin && (
+        {PIN_LOCK && hasPin && (
           <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200">
             <div className="text-base uppercase tracking-wider text-stone-700 font-display font-bold mb-1">ล็อกอัตโนมัติ</div>
             <div className="text-base text-stone-600 font-display mb-3">หลังไม่ใช้งานนานเท่าไหร่ ให้ล็อกแอปอัตโนมัติ</div>
